@@ -136,19 +136,23 @@ The user isn't watching a black box. They see the plan, approve actions, and can
 - `instruction`: what to do next and which agent does it
 - `progress_summary`: where we are in the overall task
 
-**edgekit adaptation**: The AI SDK's `prepareStep` hook runs before each step in the tool loop. edgekit uses this to maintain a lightweight progress state:
+**edgekit adaptation**: The AI SDK's `stopWhen` callback receives all previous steps, giving the agent awareness of progress. If the AI SDK supports a `prepareStep` hook (verify in v6 docs), use it to inject progress context before each step. Otherwise, include progress in the system prompt:
 
 ```typescript
-prepareStep: ({ previousSteps }) => {
-  const progress = summarizeProgress(previousSteps)
-  return {
-    toolChoice: selectNextTool(progress),
-    system: `${basePrompt}\n\nProgress so far: ${progress.summary}`,
-  }
-}
+// Pattern: progress-aware tool loop (verify prepareStep exists in AI SDK v6)
+const result = await generateText({
+  model,
+  system: `${basePrompt}\n\nYou have completed ${completedSteps} of ${totalSteps} steps.`,
+  tools: { /* ... */ },
+  stopWhen: (event) => {
+    // event.steps contains all previous steps — use for progress tracking
+    if (event.steps.length >= totalSteps) return true
+    return event.finishReason === 'stop'
+  },
+})
 ```
 
-This gives the agent awareness of where it is in a multi-step task without building a custom state machine.
+This gives the agent awareness of where it is in a multi-step task without building a custom state machine. **Note:** `prepareStep` was not tested in the spike — verify against AI SDK v6 docs before relying on it.
 
 #### 5. The Retrofit / Sidecar Pattern
 
@@ -227,7 +231,7 @@ Three packages. Not nine.
 | `@browser-ai/core` | Chrome AI (Gemini Nano) provider | Already handles system prompts, message formatting correctly. Sponsored by Chrome team |
 | `@browser-ai/web-llm` | WebGPU model provider | Tool calling, structured output, web worker execution. AI SDK compatible |
 | `lit` | Web component framework | ~5KB, standards-based, framework-agnostic output |
-| `@ag-ui/client` | Agent-UI event protocol (optional) | Standard event format for agent-to-UI communication |
+| `@ag-ui/client` | Agent-UI event protocol | Standard event format for agent-to-UI communication. **Evaluate during Phase 2** — only add if it simplifies the UI-core boundary. Don't adopt preemptively. |
 
 ### Progressive Model Cascade
 
@@ -351,6 +355,32 @@ Borrowed from Magentic-UI's action guard pattern, implemented via AI SDK's `need
 | Always irreversible | Require human approval | Add to cart, submit order, delete |
 
 The developer sets `needsApproval` per tool. The UI shows an approval prompt when triggered. The agent pauses until the user approves or rejects.
+
+### Multi-Turn Conversation
+
+The spike validated single-turn (one prompt → tool loop → response). A chat widget needs multi-turn conversation with history.
+
+**Who manages conversation history?** edgekit core, not the developer. The `createAgent()` instance maintains a `messages` array internally. Each user message appends to the array, passes the full history to `streamText`/`generateText`, and appends the assistant response + tool results.
+
+```typescript
+// Internal pattern (inside createAgent):
+messages.push({ role: 'user', content: userInput })
+
+const result = await streamText({
+  model,
+  system: systemPrompt,
+  messages,     // full conversation history
+  tools,
+  stopWhen: (event) => { /* ... */ },
+})
+
+// After completion, append assistant response + any tool calls/results
+messages.push(...result.responseMessages)
+```
+
+The developer doesn't manage messages. They call `agent.send(userInput)` and get back a streamed response. The agent maintains context across turns.
+
+**Context window management:** Small browser models have limited context (2K-8K tokens typically). edgekit should truncate older messages when approaching the limit, keeping the system prompt + most recent turns + tool results. This is a Phase 2 concern — get basic multi-turn working first, optimize later.
 
 ---
 

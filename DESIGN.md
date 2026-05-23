@@ -70,6 +70,117 @@ The north star is: **browser-native agent runtime for retrofitting or building a
 
 ---
 
+## Architectural Blueprint: Magentic-UI Patterns in the Browser
+
+edgekit adopts the core design patterns from [Microsoft Magentic-UI](https://github.com/microsoft/magentic-ui) (MIT licensed), a human-centered agentic system. Magentic-UI is Python/server-based; edgekit brings these patterns to the browser. This is not a fork — it's a deliberate adoption of proven agent UX patterns, re-implemented on browser-native infrastructure.
+
+### Patterns We Adopt
+
+#### 1. Two-Loop System (Planning + Execution)
+
+**Magentic-UI**: Outer loop generates a step-by-step plan. Inner loop executes each step, tracking progress. If a step fails or conditions change, it replans.
+
+**edgekit adaptation**: The Vercel AI SDK's `streamText` with `stopWhen` provides the inner execution loop (generate -> tool call -> execute -> feed back -> repeat). The outer planning loop is implemented as a `plan` tool: the agent's first action is to propose a plan, the user reviews/edits/approves it, then the agent executes step by step.
+
+```typescript
+const planTool = tool({
+  description: 'Create a step-by-step plan before taking action',
+  parameters: z.object({
+    steps: z.array(z.object({
+      title: z.string(),
+      action: z.string(),
+      tool: z.string(),
+    })),
+  }),
+  execute: async ({ steps }) => steps, // Returns plan for display
+  needsApproval: true, // User reviews and approves the plan
+})
+```
+
+This maps to Magentic-UI's **co-planning**: the agent proposes, the human edits and approves before execution begins.
+
+#### 2. Action Guards (Three-Tier Safety)
+
+**Magentic-UI**: Every action is classified into three tiers:
+- `always_safe` (e.g., search, read) -> auto-execute
+- `maybe_irreversible` (e.g., click a button) -> LLM judge decides
+- `always_irreversible` (e.g., submit order, delete) -> require human approval
+
+For ambiguous cases, a separate LLM evaluates the risk.
+
+**edgekit adaptation**: Mapped directly to Vercel AI SDK's `needsApproval` parameter on each tool:
+
+| Magentic-UI tier | edgekit implementation | Example |
+|-----------------|----------------------|---------|
+| `always_safe` | `needsApproval: false` | Search products, get details |
+| `maybe_irreversible` | `needsApproval: async (args) => llmJudge(args)` | Dynamic risk assessment |
+| `always_irreversible` | `needsApproval: true` | Add to cart, submit order, delete |
+
+The developer classifies their tools at registration time. For `maybe_irreversible`, edgekit provides a default risk classifier, or the developer supplies their own.
+
+#### 3. User as Team Member
+
+**Magentic-UI**: The human is represented as a `UserProxy` agent — a first-class member of the agent team. The orchestrator can delegate tasks to the user ("I need you to log in" or "Which of these options do you prefer?") just like it delegates to any other agent.
+
+**edgekit adaptation**: The agent can yield control to the user through two mechanisms:
+- **Approval prompts** (action guards) — "I want to add this to your cart. Approve?"
+- **Clarification requests** — the agent asks the user for input before proceeding, surfaced as a special message type in the chat UI
+
+The user isn't watching a black box. They see the plan, approve actions, and can interject at any time.
+
+#### 4. Progress Ledger (Structured State)
+
+**Magentic-UI**: Each execution step tracks a structured state:
+- `step_complete`: boolean + reason
+- `replan`: boolean + reason
+- `instruction`: what to do next and which agent does it
+- `progress_summary`: where we are in the overall task
+
+**edgekit adaptation**: The AI SDK's `prepareStep` hook runs before each step in the tool loop. edgekit uses this to maintain a lightweight progress state:
+
+```typescript
+prepareStep: ({ previousSteps }) => {
+  const progress = summarizeProgress(previousSteps)
+  return {
+    toolChoice: selectNextTool(progress),
+    system: `${basePrompt}\n\nProgress so far: ${progress.summary}`,
+  }
+}
+```
+
+This gives the agent awareness of where it is in a multi-step task without building a custom state machine.
+
+#### 5. The Retrofit / Sidecar Pattern
+
+**Magentic-UI**: Retrofits existing web apps by having its WebSurfer agent interact through the browser (Playwright clicks, types, scrolls). The existing app doesn't change.
+
+**edgekit adaptation**: Instead of screen-based interaction (fragile, slow), edgekit retrofits at the API level. The developer registers their existing endpoints as tools:
+
+```
+Existing app                    Magentic-UI approach        edgekit approach
+/api/products?q=shoes    ->    WebSurfer types in search    ->    Agent calls searchProducts tool
+/api/cart/add            ->    WebSurfer clicks "Add"       ->    Agent calls addToCart tool
+```
+
+Both achieve the same outcome (agent uses existing app capabilities) but edgekit's approach is more reliable (no DOM fragility), faster (direct API call vs. screenshot-click-wait), and runs in the browser (no server-side Playwright).
+
+#### 6. Long-Term Memory (Future)
+
+**Magentic-UI**: Stores successful task-plan pairs as `(task, plan)` entries. When a similar task appears, retrieves and adapts the previous plan. Uses vector search for matching.
+
+**edgekit adaptation (v3.1, not v3.0)**: Store successful tool-calling sequences in IndexedDB. When a similar user intent appears, suggest the proven plan. This is a natural extension but not in scope for initial launch.
+
+### Patterns We Don't Adopt
+
+| Magentic-UI pattern | Why we skip it |
+|--------------------|---------------|
+| Multi-agent team (WebSurfer, Coder, FileSurfer) | edgekit is single-agent with tools, not multi-agent. Simpler, sufficient for browser context |
+| Docker/QEMU sandboxing | No server, no containers. Browser is the sandbox |
+| Playwright browser control | We call APIs directly, not through UI automation |
+| MCP server extensibility | Future consideration, not v3.0 |
+
+---
+
 ## Architecture
 
 ### Foundation: Vercel AI SDK + @browser-ai

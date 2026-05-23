@@ -28,6 +28,7 @@ export interface DownloadPromptEvent {
 
 export interface NoModelEvent {
   availableTools: string[]
+  input: string
   message: string
 }
 
@@ -178,6 +179,7 @@ export function createAgent(options: CreateAgentOptions): EdgeAgent {
         const defaultMessage = 'AI is not available in this browser.'
         const message = options.onNoModel?.({
           availableTools: Object.keys(options.tools),
+          input,
           message: defaultMessage,
         }) ?? defaultMessage
         yield { type: 'no-model', message }

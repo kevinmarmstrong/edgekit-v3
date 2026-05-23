@@ -39,6 +39,7 @@ describe('resolveModel', () => {
 describe('createAgent', () => {
   it('reports no-model instead of throwing when the cascade cannot resolve a model', async () => {
     const statuses: string[] = []
+    const noModelInputs: string[] = []
     const agent = createAgent({
       systemPrompt: 'You are helpful.',
       model: [
@@ -53,7 +54,10 @@ describe('createAgent', () => {
         statuses.push(status)
         return null
       },
-      onNoModel: () => 'No model available.',
+      onNoModel: ({ input }) => {
+        noModelInputs.push(input)
+        return 'No model available.'
+      },
     })
 
     const events = []
@@ -66,6 +70,7 @@ describe('createAgent', () => {
       message: 'No model available.',
     })
     expect(statuses).toContain('unavailable')
+    expect(noModelInputs).toEqual(['hello'])
   })
 
   it('passes conversation history to the next turn', async () => {

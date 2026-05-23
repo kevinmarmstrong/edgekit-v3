@@ -105,7 +105,11 @@ const addToCart = tool({
   needsApproval: true,
 })
 
-document.querySelector<EdgeChat>('edge-chat#docs-chat')?.registerTools({ searchDocs: searchDocsTool })
+const docsChat = document.querySelector<EdgeChat>('edge-chat#docs-chat')
+docsChat?.configure({
+  onNoModel: ({ input }) => answerFromDocs(input),
+})
+docsChat?.registerTools({ searchDocs: searchDocsTool })
 document.querySelector<EdgeChat>('edge-chat#commerce-chat')?.registerTools({ searchProducts, addToCart })
 
 renderDocCards()
@@ -152,6 +156,18 @@ function renderCatalog() {
       `,
     )
     .join('')
+}
+
+function answerFromDocs(input: string) {
+  const matches = searchDocs(input)
+  if (matches.length === 0) {
+    return 'Local browser AI is unavailable here, and the docs search did not find a matching section.'
+  }
+
+  const summary = matches
+    .map(match => `${match.title}: ${match.body}`)
+    .join('\n\n')
+  return `Local browser AI is unavailable here, so edgekit answered through its docs-search fallback.\n\n${summary}`
 }
 
 function renderCart() {

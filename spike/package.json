@@ -1,0 +1,22 @@
+{
+  "name": "spike",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@ai-sdk/provider": "^3.0.10",
+    "@ai-sdk/provider-utils": "^4.0.27",
+    "@browser-ai/core": "^2.1.12",
+    "@browser-ai/web-llm": "^2.1.7",
+    "ai": "^6.0.191",
+    "vite": "^8.0.14",
+    "zod": "^4.4.3"
+  }
+}

@@ -147,6 +147,34 @@ export const docChunks: DocChunk[] = [
       'executeParallelTools runs app-owned batches concurrently only when each tool is marked readOnly and parallelSafe. Mutations and unmarked tools remain sequential.',
   },
   {
+    slug: 'ui',
+    title: 'React Wrapper',
+    tags: ['react', 'hooks', 'framework'],
+    body:
+      '@kevinmarmstrong/edgekit-react provides EdgeChat, useEdgeAgent, useEdgeActivity, and createEdgeAgentController for React apps while preserving the universal edge-chat web component.',
+  },
+  {
+    slug: 'advanced',
+    title: 'Offline Mutation Journal',
+    tags: ['offline', 'sync', 'journal', 'crdt'],
+    body:
+      'createOfflineTool queues approved idempotent mutations into a mutation journal when connectivity is unavailable. syncMutationJournal replays them through the original app tools and marks synced, failed, or conflict status.',
+  },
+  {
+    slug: 'advanced',
+    title: 'Guarded Tool Execution',
+    tags: ['sandbox', 'mcp', 'policy', 'wasm'],
+    body:
+      'createToolPolicyExecutor and executeToolWithPolicy put allowlists, timeouts, payload limits, and abort signals around third-party or dynamically loaded tools before heavier worker or WASM adapters are needed.',
+  },
+  {
+    slug: 'advanced',
+    title: 'Roadmap',
+    tags: ['roadmap', 'frameworks', 'crdt', 'wasm'],
+    body:
+      'The roadmap prioritizes package publication, React first-class adoption, Vue and Svelte wrappers, a worker-backed guarded tool adapter, optional Yjs/Automerge journals, and a later WASM adapter for pure compute tools.',
+  },
+  {
     slug: 'advanced',
     title: 'PII Redaction',
     tags: ['pii', 'phi', 'redaction', 'privacy', 'compliance'],

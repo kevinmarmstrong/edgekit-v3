@@ -11,7 +11,7 @@
     "url": "https://github.com/kevinmarmstrong/edgekit.git"
   },
   "scripts": {
-    "build": "pnpm --filter @kevinmarmstrong/edgekit build && pnpm --filter @kevinmarmstrong/edgekit-ui build && pnpm --filter @kevinmarmstrong/edgekit-cli build && pnpm --filter @edgekit/ecommerce-demo build && pnpm --filter @edgekit/site build",
+    "build": "pnpm --filter @kevinmarmstrong/edgekit build && pnpm --filter @kevinmarmstrong/edgekit-ui build && pnpm --filter @kevinmarmstrong/edgekit-react build && pnpm --filter @kevinmarmstrong/edgekit-cli build && pnpm --filter @edgekit/ecommerce-demo build && pnpm --filter @edgekit/site build",
     "typecheck": "pnpm -r typecheck",
     "test": "vitest run",
     "test:e2e": "pnpm build && EDGEKIT_E2E_FRESH=1 playwright test",

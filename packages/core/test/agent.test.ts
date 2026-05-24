@@ -10,10 +10,13 @@ import {
   createHandoffEnvelope,
   createHybridModelRouter,
   createMarkdownMemoryStore,
+  createMemoryMutationJournal,
   createMemoryResponseCache,
   createMissionControl,
+  createOfflineTool,
   createModelProvider,
   createPiiRedactor,
+  createToolPolicyExecutor,
   createSupervisorRouter,
   executeParallelTools,
   filterToolManifestsForSession,
@@ -23,6 +26,7 @@ import {
   estimateTokens,
   resolveSessionContext,
   resolveModel,
+  syncMutationJournal,
   toolsFromManifests,
   withToolContext,
 } from '../src/index'
@@ -346,6 +350,107 @@ The shopper prefers curbside pickup and size 11 shoes.`,
       { id: 'call-2', toolName: 'weather', output: { temp: 72 } },
       { id: 'call-3', toolName: 'updateCart', output: { ok: true } },
     ])
+  })
+
+  it('queues offline-capable tool mutations and syncs them through the original tool context', async () => {
+    const journal = createMemoryMutationJournal({ now: () => '2026-05-24T00:00:00.000Z' })
+    const execute = vi.fn(async (input, context) => ({
+      synced: true,
+      input,
+      userId: context.identity?.id,
+    }))
+    const addToCart = createOfflineTool({
+      name: 'addToCart',
+      tool: { execute },
+      journal,
+      online: () => false,
+      idempotencyKey: input => `cart:${input.productId}:${input.size}`,
+    })
+
+    const queued = await addToCart.execute(
+      { productId: 'dunk', size: '11' },
+      { session: { identity: { id: 'user-1' } }, identity: { id: 'user-1' } },
+    )
+
+    expect(execute).not.toHaveBeenCalled()
+    expect(queued).toMatchObject({
+      queued: true,
+      mutation: {
+        toolName: 'addToCart',
+        input: { productId: 'dunk', size: '11' },
+        status: 'queued',
+        idempotencyKey: 'cart:dunk:11',
+      },
+    })
+    expect(await journal.list()).toHaveLength(1)
+
+    const results = await syncMutationJournal({
+      journal,
+      tools: { addToCart: { execute } },
+      context: { session: { identity: { id: 'user-1' } }, identity: { id: 'user-1' } },
+      online: () => true,
+    })
+
+    expect(results).toEqual([
+      expect.objectContaining({ toolName: 'addToCart', status: 'synced', output: expect.objectContaining({ userId: 'user-1' }) }),
+    ])
+    expect((await journal.list())[0]).toMatchObject({ status: 'synced', attempts: 1 })
+  })
+
+  it('marks offline sync conflicts for host review instead of dropping the mutation', async () => {
+    const journal = createMemoryMutationJournal()
+    await journal.enqueue({ toolName: 'updateTicket', input: { id: 'T-1' } })
+    const conflict = Object.assign(new Error('version conflict'), { code: 'conflict' })
+
+    const results = await syncMutationJournal({
+      journal,
+      tools: { updateTicket: { execute: async () => { throw conflict } } },
+      context: { session: {} },
+      online: () => true,
+    })
+
+    expect(results[0]).toMatchObject({ toolName: 'updateTicket', status: 'conflict' })
+    expect((await journal.list())[0]).toMatchObject({ status: 'conflict', attempts: 1 })
+  })
+
+  it('enforces tool execution policy limits around untrusted tool calls', async () => {
+    const executor = createToolPolicyExecutor({
+      defaultPolicy: {
+        timeoutMs: 15,
+        maxInputBytes: 80,
+        maxOutputBytes: 80,
+      },
+      policies: {
+        slowTool: { timeoutMs: 5 },
+      },
+    })
+
+    await expect(
+      executor.execute({
+        toolName: 'searchProducts',
+        tool: { execute: async input => ({ ok: true, input }) },
+        input: { query: 'dunks' },
+        context: { session: {} },
+      }),
+    ).resolves.toMatchObject({ ok: true })
+
+    await expect(
+      executor.execute({
+        toolName: 'searchProducts',
+        tool: { execute: async () => ({ huge: 'x'.repeat(100) }) },
+        input: { query: 'dunks' },
+        context: { session: {} },
+      }),
+    ).rejects.toMatchObject({ name: 'EdgeToolPolicyError', code: 'output-too-large' })
+
+    await expect(
+      executor.execute({
+        toolName: 'slowTool',
+        tool: { execute: async () => new Promise(resolve => setTimeout(() => resolve({ ok: true }), 30)) },
+        input: {},
+        context: { session: {} },
+      }),
+    ).rejects.toMatchObject({ name: 'EdgeToolPolicyError', code: 'timeout' })
   })
 
   it('passes session auth and identity into contextual tool execution', async () => {

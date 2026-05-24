@@ -12,8 +12,9 @@ This repo is designed to be worked on by coding agents. Keep changes aligned wit
 
 ## Main Packages
 
-- `packages/core`: model providers, model routing, Markdown memory, redaction middleware, agent event stream, AG-UI adapter, MCP tool adapter, telemetry, mission-control aggregation, audit trail primitives.
+- `packages/core`: model providers, model routing, Markdown memory, offline mutation journals, guarded tool execution, redaction middleware, agent event stream, AG-UI adapter, MCP tool adapter, telemetry, mission-control aggregation, audit trail primitives.
 - `packages/ui`: Lit `<edge-chat>` web component, approval prompts, EdgeView renderer, action forms, UI telemetry for app-owned form actions.
+- `packages/react`: React hook/controller primitives and an idiomatic `<EdgeChat />` wrapper around the web component.
 - `packages/cli`: docs indexing utility.
 - `examples/ecommerce`: standalone retrofit workflow demo.
 - `site`: public GitHub Pages docs and demos.
@@ -34,6 +35,8 @@ This repo is designed to be worked on by coding agents. Keep changes aligned wit
 - Activity states: emit/render `activity` events for safe orchestration progress. Do not expose hidden reasoning or chain-of-thought.
 - Response cache: use `responseCache` only for read-only, state-keyed answers with clear TTL/invalidation. Do not cache mutations or approval outcomes.
 - Parallel tools: use `executeParallelTools()` only for app-owned batches whose manifests are both `readOnly` and `parallelSafe`.
+- Offline tools: use `createOfflineTool()` plus a mutation journal for approved, idempotent mutations that can queue while offline and sync later. Add Yjs/Automerge through adapters, not core assumptions.
+- Tool policy: use `createToolPolicyExecutor()` or `executeToolWithPolicy()` before running third-party or dynamic tools. Start with allowlists, timeouts, payload limits, and workers before adding WASM.
 - MCP: use `loadMcpTools()` or `mcpToolsFromDefinitions()` against a safe backend/proxy catalog.
 - Telemetry: pass `telemetry` to `createAgent()`, `createAgUiAgent()`, or `chat.configure()`.
 - Audit: pass `auditTrail: createAuditTrail(...)`; production compliance should provide a cryptographic hash/signing function and persist entries server-side.
@@ -77,6 +80,8 @@ After deploy, smoke `https://kevinmarmstrong.github.io/edgekit/` in a browser or
 - Do not treat regex redaction as the only privacy control. Keep backend authorization, least-privilege tools, and prompt minimization in place.
 - Do not create unbounded self-repair loops. Tool repair must have a small retry limit and surface failures once exhausted.
 - Do not label mutating tools as parallel-safe or cacheable just to improve latency.
+- Do not queue non-idempotent offline mutations without a host-owned conflict policy and user-visible recovery path.
+- Do not treat browser-loaded MCP or WASM tools as trusted just because they run in a separate execution format. Keep sensitive capabilities behind backend/proxy authorization.
 - Do not present activity states as model reasoning. They are product progress states.
 - Do not hide tool/action failures behind generic assistant text.
 - Do not add a hardcoded fix only for one demo when the problem belongs in core configuration or reusable component patterns.

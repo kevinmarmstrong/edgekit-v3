@@ -90,6 +90,8 @@ edgekit stays small by exposing contracts instead of shipping a required cloud s
 - Streaming activity states: core emits `activity` events, and `<edge-chat>` renders safe orchestration progress without exposing hidden reasoning.
 - Edge response caching: `createMemoryResponseCache()` and `createIndexedDbResponseCache()` let read-only repeat questions bypass inference when state has not changed.
 - Parallel-safe tools: `executeParallelTools()` runs app-owned read-only batches concurrently only when manifests opt in with `readOnly` and `parallelSafe`.
+- Offline mutation journal: `createOfflineTool()`, `createMemoryMutationJournal()`, `createLocalStorageMutationJournal()`, and `syncMutationJournal()` queue approved offline-capable mutations and sync them when connectivity returns.
+- Guarded tool execution: `createToolPolicyExecutor()` and `executeToolWithPolicy()` enforce timeouts, payload limits, and allowlists around third-party or dynamically loaded tools.
 - Redaction middleware: `createPiiRedactor()` and custom redactors sanitize tool results before they reach UI events, telemetry, and audit trails.
 - MCP catalogs: `mcpToolsFromDefinitions()` and `loadMcpTools()` adapt safe MCP tool catalogs into normal Edgekit tools.
 - Telemetry: pass `telemetry` to `createAgent()`, `createAgUiAgent()`, or `<edge-chat>.configure()` to observe runs, tools, approvals, views, errors, and no-model fallbacks.
@@ -127,10 +129,18 @@ chat.configure({
 
 - `@kevinmarmstrong/edgekit`: core browser-agent runtime, model cascade, tool loop wrapper, provider helpers.
 - `@kevinmarmstrong/edgekit-ui`: Lit web component, `<edge-chat>`, EdgeView rendering, and `mountChat()`.
+- `@kevinmarmstrong/edgekit-react`: React hook/controller primitives and an idiomatic `<EdgeChat />` wrapper around the web component.
 - `@kevinmarmstrong/edgekit-cli`: docs indexing CLI for Q&A/RAG tools.
 - `examples/ecommerce`: retrofit demo with product search and add-to-cart tools.
 - `site/docs`: full GitHub Pages documentation for concepts, APIs, UI, CLI, testing, and deployment.
 - `spike`: Phase 0 validation harness for Vercel AI SDK plus `@browser-ai` providers.
+
+## Roadmap
+
+- Near term: publish the core, UI, React, and CLI packages; add Vue and Svelte wrappers once the React API shape settles.
+- Near term: add a browser worker adapter for guarded tools so untrusted client-side compute can run off the main thread with the same policy contract.
+- Next: add optional `@edgekit/yjs` and `@edgekit/automerge` adapters on top of the mutation journal for apps that need CRDT-backed collaborative state.
+- Later: add a WASM tool adapter for pure compute tools. Keep secret-bearing MCP and data access behind backend/proxy tools, not arbitrary browser-loaded WASM.
 
 ## Docs Index CLI
 

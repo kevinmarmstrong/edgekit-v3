@@ -36,6 +36,8 @@ Use `createHybridModelRouter()` or `createSupervisorRouter()` when an app needs 
 Use `createHandoffEnvelope()` or supervisor `onHandoff` callbacks to pass bounded context to cloud workers without leaking secret claims.
 Use `createMarkdownMemoryStore()` for inspectable `.md`-backed memory that can later be replaced by IndexedDB, OPFS, vectors, or a server store implementing the same `search()` contract. Configure compaction thresholds when Markdown logs become append-heavy.
 Use `createMemoryResponseCache()` or `createIndexedDbResponseCache()` for opt-in state-keyed caching of read-only responses.
+Use `createOfflineTool()`, `createMemoryMutationJournal()`, `createLocalStorageMutationJournal()`, and `syncMutationJournal()` for offline-capable mutations that queue locally and sync through the original app tools later.
+Use `createToolPolicyExecutor()` or `executeToolWithPolicy()` to put timeouts, payload limits, and allowlists around dynamically loaded or third-party tools before considering heavier worker or WASM isolation.
 Use `createPiiRedactor()` or custom redactors to sanitize tool results before they are emitted to UI events, telemetry, and audit trails.
 Use `toolRepair` to invisibly retry validation-shaped tool failures before surfacing an error.
 Use `activity` events for safe progress UI, and `executeParallelTools()` for host-owned read-only tool batches that explicitly opt into parallel execution.

@@ -202,6 +202,12 @@ document.querySelector('edge-chat')?.registerTools({ searchProducts })`,
           '`createMemoryResponseCache()`: opt-in in-memory response cache for deterministic local reuse.',
           '`createIndexedDbResponseCache(options)`: browser IndexedDB response cache for persisted edge caching.',
           '`executeParallelTools(options)`: run explicitly read-only and parallel-safe tool batches concurrently.',
+          '`createOfflineTool(options)`: wrap an app tool so approved offline-capable mutations queue instead of failing when the network is unavailable.',
+          '`createMemoryMutationJournal(options)`: in-memory mutation journal for tests and short-lived sessions.',
+          '`createLocalStorageMutationJournal(options)`: browser-local mutation journal for simple persisted offline queues.',
+          '`syncMutationJournal(options)`: replay queued mutations through the original app tools and mark synced, failed, or conflict status.',
+          '`createToolPolicyExecutor(options)`: enforce allowlists, timeouts, and payload limits around dynamic tool execution.',
+          '`executeToolWithPolicy(options, policy)`: one-shot guarded execution for third-party or MCP-adapted tools.',
           '`createPiiRedactor(options)`: mask common PII patterns before tool results are emitted to telemetry, audit, and UI events.',
           '`createAgUiAgent(options)`: wrap an AG-UI compatible event stream as an Edgekit agent.',
           '`agUiEventToAgentEvents(event)`: translate AG-UI events into Edgekit events.',
@@ -566,6 +572,62 @@ const agent = createAgent({
         },
       },
       {
+        id: 'offline-journal',
+        title: 'Offline mutation journal',
+        body: [
+          'Local inference can still work without internet, but networked tools and cloud routes cannot. Edgekit handles that boundary with a mutation journal contract rather than forcing a CRDT engine into core.',
+          'Wrap approved, idempotent tools with `createOfflineTool()`. When `online()` returns false, the wrapper records the mutation locally and returns a queued result. When connectivity returns, `syncMutationJournal()` replays queued mutations through the original tool execution context so the host app keeps identity, auth, validation, telemetry, and conflict handling.',
+          'Use `createMemoryMutationJournal()` for tests and temporary sessions. Use `createLocalStorageMutationJournal()` for simple browser persistence. For collaborative documents or complex shared state, add Yjs or Automerge as an adapter that implements the same journal contract.',
+        ],
+        code: {
+          language: 'ts',
+          text: `const journal = createLocalStorageMutationJournal()
+const addToCartOffline = createOfflineTool({
+  name: 'addToCart',
+  tool: addToCart,
+  journal,
+  online: () => navigator.onLine,
+  idempotencyKey: input => \`cart:\${input.productId}:\${input.size}\`,
+})
+
+window.addEventListener('online', () => {
+  syncMutationJournal({
+    journal,
+    tools: { addToCart },
+    context: { session: currentSession },
+    onActivity: activity => renderProgress(activity),
+  })
+})`,
+        },
+      },
+      {
+        id: 'guarded-tools',
+        title: 'Guarded tool execution',
+        body: [
+          'Dynamic MCP catalogs and third-party client tools should not run with unlimited trust. Start with policy isolation: explicit allowlists, timeouts, input and output payload limits, abort signals, and backend/proxy boundaries for secret-bearing work.',
+          '`createToolPolicyExecutor()` is intentionally lighter than a WASM runtime. It gives every host app a default safety boundary today, while leaving room for worker and WASM adapters later for pure compute tools.',
+          'Use backend MCP proxies for filesystem, database, SaaS, or credentialed tools. Use browser-side policy execution for narrow client capabilities where the host app owns the risk.',
+        ],
+        code: {
+          language: 'ts',
+          text: `const executor = createToolPolicyExecutor({
+  defaultPolicy: {
+    timeoutMs: 3000,
+    maxInputBytes: 16_000,
+    maxOutputBytes: 64_000,
+    allowedTools: ['searchDocs', 'summarizeSelection'],
+  },
+})
+
+const output = await executor.execute({
+  toolName: 'searchDocs',
+  tool: searchDocs,
+  input: { query },
+  context: { session },
+})`,
+        },
+      },
+      {
         id: 'telemetry',
         title: 'Telemetry and mission control',
         body: [
@@ -611,6 +673,15 @@ const agent = createAgent({
           'For smart but non-specialist builders: start with `<edge-chat>`, register a few app tools, add `registerActions()` for buttons/forms, then add telemetry or AG-UI only when the app needs them.',
         ],
       },
+      {
+        id: 'roadmap',
+        title: 'Roadmap',
+        body: [
+          'The near-term roadmap is adoption and safety before heavier infrastructure: publish the packages, keep React first-class, add Vue and Svelte wrappers after the React API settles, and ship a browser worker adapter for guarded tools.',
+          'The offline roadmap is adapter-driven. Core owns the mutation journal and sync contract; optional Yjs and Automerge packages can provide CRDT-backed journals for collaborative state without making every Edgekit app adopt a CRDT.',
+          'The isolation roadmap is progressive. Start with policy execution and backend MCP proxies, then add worker isolation, then add a WASM adapter for pure compute tools where the browser sandbox meaningfully helps.',
+        ],
+      },
     ],
   },
   {
@@ -634,6 +705,34 @@ chat?.configure({
   onNoModel: ({ input }) => fallbackSearch(input),
 })
 chat?.registerTools({ searchProducts, addToCart })`,
+        },
+      },
+      {
+        id: 'react',
+        title: 'React wrapper',
+        body: [
+          'Use `@kevinmarmstrong/edgekit-react` when a React app wants idiomatic hooks and JSX while preserving the same browser-native runtime and `<edge-chat>` renderer.',
+          '`EdgeChat` wraps the web component. `useEdgeAgent()` and `createEdgeAgentController()` expose streaming text, approval state, events, and activity rows for custom React surfaces.',
+        ],
+        code: {
+          language: 'tsx',
+          text: `import { EdgeChat, useEdgeAgent } from '@kevinmarmstrong/edgekit-react'
+
+function Assistant({ agent }) {
+  const edge = useEdgeAgent(agent)
+
+  return (
+    <>
+      <EdgeChat
+        systemPrompt="You are a concise app assistant."
+        onReady={chat => chat.useAgent?.(agent)}
+      />
+      {edge.state.activities.map(activity => (
+        <p key={activity.id}>{activity.label}</p>
+      ))}
+    </>
+  )
+}`,
         },
       },
       {

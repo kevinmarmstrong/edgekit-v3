@@ -15,7 +15,8 @@
     "baseUrl": ".",
     "paths": {
       "@kevinmarmstrong/edgekit": ["packages/core/src/index.ts"],
-      "@kevinmarmstrong/edgekit-ui": ["packages/ui/src/index.ts"]
+      "@kevinmarmstrong/edgekit-ui": ["packages/ui/src/index.ts"],
+      "@kevinmarmstrong/edgekit-react": ["packages/react/src/index.ts"]
     }
   }
 }

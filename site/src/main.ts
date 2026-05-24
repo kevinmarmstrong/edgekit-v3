@@ -1,6 +1,6 @@
 import '@kevinmarmstrong/edgekit-ui'
 import { chromeAI, createAgUiAgent, modelOptional, tool } from '@kevinmarmstrong/edgekit'
-import type { EdgeViewNode } from '@kevinmarmstrong/edgekit'
+import type { AgUiRunInput, EdgeViewNode } from '@kevinmarmstrong/edgekit'
 import type { EdgeChat } from '@kevinmarmstrong/edgekit-ui'
 import { z } from 'zod'
 import { mountAdminDemo } from './adminDemo'
@@ -142,6 +142,20 @@ const createSupportTicket = tool({
   }),
 })
 
+const submitDemoRequest = tool({
+  description: 'Submit a sample AG-UI form from the public demo.',
+  inputSchema: z.object({
+    name: z.string(),
+    useCase: z.string(),
+    urgency: z.string(),
+  }),
+  execute: async input => ({
+    success: true,
+    requestId: `DEMO-${String(input.useCase).toUpperCase()}`,
+    ...input,
+  }),
+})
+
 const docsChat = document.querySelector<EdgeChat>('edge-chat#docs-chat')
 docsChat?.configure({
   model: [chromeAI()],
@@ -179,7 +193,7 @@ commerceChat?.registerActions(({ toolName, output }) => {
 })
 
 const agUiChat = document.querySelector<EdgeChat>('edge-chat#agui-chat')
-agUiChat?.registerTools({ createSupportTicket })
+agUiChat?.registerTools({ createSupportTicket, submitDemoRequest })
 agUiChat?.useAgent(createAgUiAgent({ run: mockAgUiRun }))
 
 renderDocCards()
@@ -284,16 +298,142 @@ function answerFromCatalog(input: string) {
   ].join('\n')
 }
 
-async function* mockAgUiRun() {
+async function* mockAgUiRun({ input }: AgUiRunInput) {
+  const normalized = input.toLowerCase()
+  if (normalized.includes('component') || normalized.includes('ui')) {
+    yield* renderAgUiDemoResponse(
+      'This Pages demo is a scripted AG-UI stream. It can still show the EdgeView component contract that a real AG-UI backend would emit dynamically.',
+      componentCatalogView(),
+    )
+    return
+  }
+
+  if (normalized.includes('hard coded') || normalized.includes('hardcoded') || normalized.includes('same example')) {
+    yield* renderAgUiDemoResponse(
+      'Yes. This public Pages demo uses a local scripted AG-UI event source so the repo can be tested without a backend. In production, replace the script with createAgUiAgent({ endpoint }) and stream events from your agent provider.',
+      transparencyView(),
+    )
+    return
+  }
+
+  if (normalized.includes('form')) {
+    yield* renderAgUiDemoResponse(
+      'Here is a sample EdgeView form emitted through the AG-UI adapter. The app still owns the tool execution when you submit it.',
+      sampleFormView(),
+    )
+    return
+  }
+
+  yield* renderAgUiDemoResponse(
+    'This response came from a scripted AG-UI-compatible event stream. Edgekit translated the stream into text plus a declarative EdgeView payload.',
+    supportQueueView(),
+  )
+}
+
+async function* renderAgUiDemoResponse(message: string, view: EdgeViewNode | EdgeViewNode[]) {
   yield {
     type: 'TEXT_MESSAGE_CONTENT',
-    delta: 'This response came from an AG-UI-compatible event stream. Edgekit translated the stream into text plus a declarative EdgeView payload.',
+    delta: message,
   }
 
   yield {
     type: 'CUSTOM',
     name: 'edgekit.view',
-    value: [
+    value: view,
+  }
+
+  yield { type: 'RUN_FINISHED' }
+}
+
+function componentCatalogView(): EdgeViewNode[] {
+  return [
+    {
+      type: 'table',
+      id: 'edgeview-components',
+      columns: [
+        { key: 'component', label: 'Component' },
+        { key: 'use', label: 'Use' },
+      ],
+      rows: [
+        { component: 'Text', use: 'Streaming assistant copy or generated explanation' },
+        { component: 'Card', use: 'Grouped recommendations, summaries, and action containers' },
+        { component: 'Form', use: 'User-confirmed inputs before app-owned tool execution' },
+        { component: 'Table', use: 'Comparable records, status lists, and result sets' },
+        { component: 'Chart', use: 'Simple bar charts for metrics and queues' },
+      ],
+    },
+    {
+      type: 'card',
+      id: 'agui-provider-note',
+      title: 'Provider path',
+      description:
+        'A real AG-UI provider can choose these views at runtime. The public Pages demo is scripted only so it can run without a server.',
+    },
+  ]
+}
+
+function transparencyView(): EdgeViewNode {
+  return {
+    type: 'card',
+    id: 'agui-transparency',
+    title: 'What is scripted here',
+    description:
+      'GitHub Pages is serving a deterministic AG-UI mock stream. The scalable integration point is createAgUiAgent({ endpoint }) or createAgUiAgent({ run }), which accepts provider events and renders the same EdgeView payloads.',
+  }
+}
+
+function sampleFormView(): EdgeViewNode {
+  return {
+    type: 'card',
+    id: 'demo-request-card',
+    title: 'Sample intake form',
+    description: 'This form was emitted as an EdgeView payload through the AG-UI adapter.',
+    children: [
+      {
+        type: 'form',
+        id: 'demo-request-form',
+        toolName: 'submitDemoRequest',
+        submitLabel: 'Submit request',
+        input: {},
+        fields: [
+          {
+            name: 'name',
+            label: 'Name',
+            type: 'text',
+            required: true,
+            value: 'Demo user',
+          },
+          {
+            name: 'useCase',
+            label: 'Use case',
+            type: 'select',
+            required: true,
+            options: [
+              { label: 'Support', value: 'support' },
+              { label: 'Shopping', value: 'shopping' },
+              { label: 'Admin workflow', value: 'admin' },
+            ],
+          },
+          {
+            name: 'urgency',
+            label: 'Urgency',
+            type: 'select',
+            required: true,
+            options: [
+              { label: 'Normal', value: 'normal' },
+              { label: 'Urgent', value: 'urgent' },
+            ],
+          },
+        ],
+        successMessage: (_output: unknown, formInput: Record<string, unknown>) =>
+          `Submitted ${formInput.urgency} ${formInput.useCase} request for ${formInput.name}.`,
+      },
+    ],
+  }
+}
+
+function supportQueueView(): EdgeViewNode[] {
+  return [
       {
         type: 'chart',
         id: 'support-chart',
@@ -345,10 +485,7 @@ async function* mockAgUiRun() {
           },
         ],
       },
-    ] satisfies EdgeViewNode[],
-  }
-
-  yield { type: 'RUN_FINISHED' }
+    ]
 }
 
 function renderCart() {

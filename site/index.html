@@ -202,15 +202,15 @@
           <p class="section-label">AG-UI ecosystem demo</p>
           <h2>Use Edgekit with an AG-UI event stream.</h2>
           <p>
-            This demo uses an AG-UI-compatible event source instead of the browser-native model
-            cascade. The stream sends text plus a declarative EdgeView payload that renders as a
-            chart and a fillable support form.
+            This public Pages demo uses a scripted AG-UI-compatible event source so it can run
+            without a backend. Production apps replace the script with an AG-UI endpoint while
+            keeping the same EdgeView renderer for charts, tables, cards, and forms.
           </p>
         </div>
         <edge-chat
           id="agui-chat"
           system-prompt="You render AG-UI compatible streams."
-          placeholder="Ask: triage the support queue"
+          placeholder="Ask: what UI components are available?"
         ></edge-chat>
       </section>
 

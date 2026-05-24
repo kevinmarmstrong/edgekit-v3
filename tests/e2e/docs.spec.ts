@@ -32,6 +32,45 @@ test('public site renders AG-UI compatible declarative UI demo', async ({ page }
   await expect(agui.getByTestId('chat-messages')).toContainText('Created a urgent orders support ticket')
 })
 
+test('public AG-UI demo discloses the scripted stream and shows component variants', async ({ page }) => {
+  await page.goto(siteURL + '?cacheBust=' + Date.now() + '#agui')
+
+  const agui = page.locator('#agui')
+  await expect(agui).toContainText('scripted AG-UI-compatible event source')
+
+  await agui.getByTestId('chat-input').fill('what other components do you have for the UI?')
+  await agui.getByTestId('send-button').click()
+
+  await expect(agui.getByText('EdgeView component contract')).toBeVisible()
+  await expect(agui.getByRole('cell', { name: 'Text', exact: true })).toBeVisible()
+  await expect(agui.getByRole('cell', { name: 'Card', exact: true })).toBeVisible()
+  await expect(agui.getByRole('cell', { name: 'Form', exact: true })).toBeVisible()
+  await expect(agui.getByRole('cell', { name: 'Table', exact: true })).toBeVisible()
+  await expect(agui.getByRole('cell', { name: 'Chart', exact: true })).toBeVisible()
+
+  await agui.getByTestId('chat-input').fill('is this hard coded?')
+  await agui.getByTestId('send-button').click()
+
+  await expect(agui.getByText('Yes. This public Pages demo uses a local scripted AG-UI event source')).toBeVisible()
+  await expect(agui.getByText('What is scripted here')).toBeVisible()
+})
+
+test('public AG-UI demo can render a requested fillable form', async ({ page }) => {
+  await page.goto(siteURL + '?cacheBust=' + Date.now() + '#agui')
+
+  const agui = page.locator('#agui')
+  await agui.getByTestId('chat-input').fill('Create a form for me to fill in')
+  await agui.getByTestId('send-button').click()
+
+  await expect(agui.getByText('Sample intake form')).toBeVisible()
+  await agui.getByTestId('action-field-name').fill('Kevin')
+  await agui.getByTestId('action-field-useCase').selectOption('shopping')
+  await agui.getByTestId('action-field-urgency').selectOption('urgent')
+  await agui.getByTestId('action-run-button').click()
+
+  await expect(agui.getByTestId('chat-messages')).toContainText('Submitted urgent shopping request for Kevin')
+})
+
 test('docs pages expose core documentation sections and navigation', async ({ page }) => {
   await page.goto(`${siteURL}docs/api/`)
 

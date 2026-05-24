@@ -82,7 +82,8 @@ main {
 .split-section,
 .docs-section,
 .demos-section,
-.ecommerce-demo {
+.ecommerce-demo,
+.admin-demo {
   border: 1px solid #d8e5df;
   border-radius: 8px;
   background: #ffffff;
@@ -357,7 +358,8 @@ input {
 
 .docs-section,
 .demos-section,
-.ecommerce-demo {
+.ecommerce-demo,
+.admin-demo {
   display: grid;
   gap: 22px;
   padding: 28px;
@@ -384,15 +386,22 @@ input {
   background: #173d31;
 }
 
-.demo-card.active span {
+.demo-card.active span,
+.demo-card.active-secondary span {
   color: #9ce8c6;
+}
+
+.demo-card.active-secondary {
+  color: #ffffff;
+  background: #254c68;
 }
 
 .demo-card.muted {
   opacity: 0.74;
 }
 
-.commerce-layout {
+.commerce-layout,
+.admin-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
   gap: 20px;
@@ -456,6 +465,55 @@ dd {
   padding: 16px;
 }
 
+.account-list {
+  display: grid;
+  gap: 12px;
+}
+
+.account-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+  gap: 18px;
+  align-items: center;
+  border: 1px solid #d8e5df;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 18px;
+}
+
+.account-row h3 {
+  margin-bottom: 6px;
+}
+
+.account-row p {
+  margin-bottom: 0;
+  color: #60736b;
+}
+
+.admin-agent {
+  position: sticky;
+  top: 84px;
+  display: grid;
+  gap: 14px;
+  align-self: start;
+}
+
+.activity-log {
+  border: 1px solid #d8e5df;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 16px;
+}
+
+.activity-log ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+  color: #536b62;
+  font-size: 14px;
+}
+
 footer {
   display: flex;
   justify-content: center;
@@ -470,6 +528,8 @@ footer {
   .hero,
   .split-section,
   .commerce-layout,
+  .admin-layout,
+  .account-row,
   .frame-body {
     grid-template-columns: 1fr;
   }
@@ -498,7 +558,8 @@ footer {
     grid-template-columns: 1fr;
   }
 
-  .commerce-agent {
+  .commerce-agent,
+  .admin-agent {
     position: static;
   }
 }

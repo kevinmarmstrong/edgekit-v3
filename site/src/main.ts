@@ -2,6 +2,7 @@ import '@kevinmarmstrong/edgekit-ui'
 import { chromeAI, tool } from '@kevinmarmstrong/edgekit'
 import type { EdgeChat } from '@kevinmarmstrong/edgekit-ui'
 import { z } from 'zod'
+import { mountAdminDemo } from './adminDemo'
 import { docChunks, searchDocs } from './content'
 import './styles.css'
 
@@ -136,6 +137,7 @@ renderDocCards()
 renderCatalog()
 renderCart()
 wireDocSearch()
+mountAdminDemo()
 
 function renderDocCards() {
   const grid = document.querySelector<HTMLElement>('#doc-card-grid')

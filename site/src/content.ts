@@ -45,7 +45,7 @@ export const docChunks: DocChunk[] = [
     title: 'Deployment',
     tags: ['pages', 'webllm', 'headers'],
     body:
-      'GitHub Pages hosts the public docs and Chrome AI/basic-mode demos. Full WebLLM production verification needs a host that can set COOP and COEP cross-origin isolation headers, such as Cloudflare Pages or Vercel.',
+      'GitHub Pages hosts the public docs and Chrome AI/basic-mode demos. Full WebLLM production verification needs a host that can set COOP and COEP cross-origin isolation headers. The repo includes Cloudflare Pages headers and wrangler.jsonc for that path.',
   },
   {
     title: 'Testing',
@@ -58,6 +58,18 @@ export const docChunks: DocChunk[] = [
     tags: ['ecommerce', 'workflow', 'approval', 'cart'],
     body:
       'The ecommerce demo has a deterministic agent mode for CI. It tests requests such as find me size nine white nike dunks and put in cart, verifies searchProducts tool calls, pauses for addToCart approval, and covers both approve and reject paths.',
+  },
+  {
+    title: 'Admin Workflow Demo',
+    tags: ['saas', 'admin', 'approval', 'workflow'],
+    body:
+      'The public site includes a SaaS admin sidecar demo. It registers searchAccounts, updatePlan, and suspendAccount tools, then requires approval before account plan changes or suspensions.',
+  },
+  {
+    title: 'Real Model Evals',
+    tags: ['evals', 'chrome ai', 'webllm', 'quality'],
+    body:
+      'pnpm eval:models runs a real-browser model cascade harness and writes JSON to test-results/model-cascade-eval.json. It separates provider and prompt quality from deterministic CI workflow checks.',
   },
 ]
 

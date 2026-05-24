@@ -21,10 +21,31 @@ GitHub Pages does not let this repo set those headers, so the public Pages site 
 
 ## Cloudflare Pages Header Example
 
+The repo includes `site/public/_headers`, which Vite copies into `site/dist` for Cloudflare Pages. Cloudflare Pages supports a `_headers` file for custom response headers, and Wrangler Pages can deploy a project with `pages_build_output_dir` in `wrangler.jsonc`.
+
 ```text
 /*
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Resource-Policy: cross-origin
+```
+
+Deploy preview:
+
+```bash
+pnpm build
+cd site
+pnpm dlx wrangler pages deploy dist --project-name edgekit
+```
+
+Config-backed deploys can use `site/wrangler.jsonc`, which sets:
+
+```json
+{
+  "name": "edgekit",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-05-24"
+}
 ```
 
 ## Vercel Header Example

@@ -1,5 +1,5 @@
 import '@kevinmarmstrong/edgekit-ui'
-import { chromeAI, createModelProvider, tool } from '@kevinmarmstrong/edgekit'
+import { chromeAI, createModelProvider, tool, webLLM } from '@kevinmarmstrong/edgekit'
 import type { LanguageModelV3 } from '@kevinmarmstrong/edgekit'
 import { z } from 'zod'
 import './styles.css'
@@ -107,7 +107,10 @@ const addToCart = tool({
 
 const catalog = document.querySelector<HTMLElement>('#catalog')
 const chat = document.querySelector('edge-chat')
-const scriptedMode = new URLSearchParams(window.location.search).get('agentMode') === 'scripted'
+const params = new URLSearchParams(window.location.search)
+const scriptedMode = params.get('agentMode') === 'scripted'
+const modelMode = params.get('modelMode') ?? 'chrome'
+const downloadPolicy = params.get('downloadPolicy') === 'auto' ? 'auto' : 'never'
 
 renderCatalog()
 renderCart()
@@ -118,12 +121,18 @@ if (scriptedMode) {
   })
 } else {
   chat?.configure({
-    model: [chromeAI()],
-    downloadPolicy: 'never',
+    model: commerceModelCascade(modelMode),
+    downloadPolicy,
     onNoModel: ({ input }) => answerFromCatalog(input),
   })
 }
 chat?.registerTools({ searchProducts, addToCart })
+
+function commerceModelCascade(mode: string) {
+  if (mode === 'webllm') return [webLLM({ modelSize: 'about 400 MB' })]
+  if (mode === 'cascade') return [chromeAI(), webLLM({ modelSize: 'about 400 MB' })]
+  return [chromeAI()]
+}
 
 function renderCatalog() {
   if (!catalog) return

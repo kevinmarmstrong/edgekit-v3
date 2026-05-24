@@ -13,6 +13,7 @@ pnpm install
 pnpm build
 pnpm test
 pnpm test:e2e
+pnpm eval:models
 pnpm dev:ecommerce
 ```
 
@@ -85,6 +86,7 @@ Use `pnpm test:workflows` while tuning app workflows. Use real Chrome AI/WebLLM 
 - `pnpm build`: package and demo production builds.
 - `pnpm test:e2e`: browser smoke for the ecommerce demo, scripted agent workflows, and graceful no-model fallback.
 - `pnpm test:workflows`: focused Playwright coverage for the ecommerce workflow suite.
+- `pnpm eval:models`: real-browser model cascade evals for Chrome AI/WebLLM prompt quality. See `MODEL_EVALS.md`.
 
 ## Notes
 

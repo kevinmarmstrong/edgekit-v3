@@ -4,6 +4,7 @@ import type { EdgeChat } from '@kevinmarmstrong/edgekit-ui'
 import { z } from 'zod'
 import { mountAdminDemo } from './adminDemo'
 import { docChunks, searchDocs } from './content'
+import { docsPages, docsPath } from './docsContent'
 import './styles.css'
 
 type Product = {
@@ -65,6 +66,7 @@ const products: Product[] = [
 ]
 
 const cart: Array<{ productId: string; quantity: number }> = []
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, '')
 
 const searchDocsTool = tool({
   description: 'Search edgekit project documentation by natural language query.',
@@ -146,14 +148,24 @@ function renderDocCards() {
   grid.innerHTML = docChunks
     .map(
       chunk => `
-        <article class="doc-card">
+        <a class="doc-card" href="${docsHref(chunk.slug)}">
           <span>${chunk.tags[0]}</span>
           <h3>${chunk.title}</h3>
           <p>${chunk.body}</p>
-        </article>
+        </a>
       `,
     )
     .join('')
+}
+
+function docsHref(slug: string) {
+  const page = docsPages.find(candidate => candidate.slug === slug)
+  return page ? withBase(docsPath(page)) : withBase('/docs/')
+}
+
+function withBase(path: string) {
+  if (path === '/') return `${basePath}/`
+  return `${basePath}${path}`
 }
 
 function renderCatalog() {

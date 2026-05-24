@@ -19,6 +19,7 @@ pnpm dev:ecommerce
 
 Open the ecommerce demo at `http://127.0.0.1:5173`.
 Open the public docs and demo site at `https://kevinmarmstrong.github.io/edgekit/`.
+Open the full documentation at `https://kevinmarmstrong.github.io/edgekit/docs/`.
 
 ## Embed
 
@@ -57,6 +58,7 @@ chat?.registerTools({ searchProducts })
 - `@kevinmarmstrong/edgekit-ui`: Lit web component, `<edge-chat>`, and `mountChat()`.
 - `@kevinmarmstrong/edgekit-cli`: docs indexing CLI for Q&A/RAG tools.
 - `examples/ecommerce`: retrofit demo with product search and add-to-cart tools.
+- `site/docs`: full GitHub Pages documentation for concepts, APIs, UI, CLI, testing, and deployment.
 - `spike`: Phase 0 validation harness for Vercel AI SDK plus `@browser-ai` providers.
 
 ## Docs Index CLI

@@ -52,6 +52,15 @@ const products: Product[] = [
     color: 'Cloud White',
     support: 'Responsive long runs',
   },
+  {
+    id: 'dunk',
+    name: 'Nike Dunk Low',
+    category: 'casual shoes',
+    price: 64.99,
+    sizes: ['9', '10', '11'],
+    color: 'White / Black',
+    support: 'Streetwear',
+  },
 ]
 
 const cart: Array<{ productId: string; quantity: number }> = []
@@ -68,14 +77,16 @@ const searchDocsTool = tool({
 })
 
 const searchProducts = tool({
-  description: 'Search the product catalog by query, maximum price, and size.',
+  description: 'Search the product catalog by query, maximum price, size, and color.',
   inputSchema: z.object({
     query: z.string().describe('Product search terms, such as running shoes'),
     maxPrice: z.number().optional().describe('Maximum price in dollars'),
     size: z.string().optional().describe('Shoe size'),
+    color: z.string().optional().describe('Requested product color'),
   }),
-  execute: async ({ query, maxPrice, size }) => {
+  execute: async ({ query, maxPrice, size, color }) => {
     const normalizedQuery = query.toLowerCase()
+    const normalizedColor = color?.toLowerCase()
     const results = products.filter(product => {
       const matchesQuery =
         product.name.toLowerCase().includes(normalizedQuery) ||
@@ -83,7 +94,8 @@ const searchProducts = tool({
         product.support.toLowerCase().includes(normalizedQuery)
       const matchesPrice = maxPrice == null || product.price <= maxPrice
       const matchesSize = size == null || product.sizes.includes(size)
-      return matchesQuery && matchesPrice && matchesSize
+      const matchesColor = normalizedColor == null || product.color.toLowerCase().includes(normalizedColor)
+      return matchesQuery && matchesPrice && matchesSize && matchesColor
     })
     return { results, total: results.length }
   },
@@ -180,16 +192,22 @@ function answerFromDocs(input: string) {
 
 function answerFromCatalog(input: string) {
   const maxPrice = input.match(/under\s+\$?(\d+)/i)?.[1]
-  const requestedSize = input.match(/size\s+([\d.]+)/i)?.[1]
+  const requestedSize = extractSize(input)
+  const requestedColor = input.match(/\b(white|black|blue|green|volt)\b/i)?.[1]?.toLowerCase()
   const normalizedInput = input.toLowerCase()
+  const wantsDunks = normalizedInput.includes('dunk')
   const results = products.filter(product => {
+    const productName = product.name.toLowerCase()
     const matchesQuery =
-      normalizedInput.includes('shoe') ||
-      normalizedInput.includes('running') ||
-      product.name.toLowerCase().includes(normalizedInput)
+      (wantsDunks && productName.includes('dunk')) ||
+      (!wantsDunks &&
+        (normalizedInput.includes('shoe') ||
+          normalizedInput.includes('running') ||
+          productName.includes(normalizedInput)))
     const matchesPrice = maxPrice == null || product.price <= Number(maxPrice)
     const matchesSize = requestedSize == null || product.sizes.includes(requestedSize)
-    return matchesQuery && matchesPrice && matchesSize
+    const matchesColor = requestedColor == null || product.color.toLowerCase().includes(requestedColor)
+    return matchesQuery && matchesPrice && matchesSize && matchesColor
   })
 
   if (results.length === 0) {
@@ -219,6 +237,22 @@ function renderCart() {
       return `${item.quantity}x ${product?.name ?? item.productId}`
     })
     .join(', ')
+}
+
+function extractSize(input: string) {
+  const numeric = input.match(/size\s+([\d.]+)/i)?.[1]
+  if (numeric) return numeric
+
+  const wordSizes: Record<string, string> = {
+    nine: '9',
+    ten: '10',
+    eleven: '11',
+    twelve: '12',
+  }
+  return input.match(/\b(nine|ten|eleven|twelve)\b/i)?.[1]?.toLowerCase().replace(
+    /nine|ten|eleven|twelve/,
+    match => wordSizes[match],
+  )
 }
 
 function wireDocSearch() {

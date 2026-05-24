@@ -51,7 +51,13 @@ export const docChunks: DocChunk[] = [
     title: 'Testing',
     tags: ['tests', 'playwright'],
     body:
-      'The release checks include Vitest unit tests for cascade and conversation history, strict TypeScript, production builds, Playwright desktop and mobile E2E, and package dry runs.',
+      'The release checks include Vitest unit tests for cascade and conversation history, strict TypeScript, production builds, Playwright desktop and mobile E2E, scripted ecommerce workflow tests, and package dry runs.',
+  },
+  {
+    title: 'Workflow Harness',
+    tags: ['ecommerce', 'workflow', 'approval', 'cart'],
+    body:
+      'The ecommerce demo has a deterministic agent mode for CI. It tests requests such as find me size nine white nike dunks and put in cart, verifies searchProducts tool calls, pauses for addToCart approval, and covers both approve and reject paths.',
   },
 ]
 

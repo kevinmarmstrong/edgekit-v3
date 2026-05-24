@@ -67,12 +67,24 @@ pnpm --filter @kevinmarmstrong/edgekit-cli index -- README.md DESIGN.md --out ed
 
 The generated JSON is portable: register it behind a normal Edgekit tool and let the agent search it like any other app capability.
 
+## Workflow Testing
+
+The ecommerce demo includes a deterministic test model at `/?agentMode=scripted`. It is not a user-facing model path; it exists so CI can prove the embedded agent contract end to end:
+
+- natural-language request parsing, including "find me size nine white nike dunks and put in cart"
+- `searchProducts` tool calls against the app catalog
+- approval prompts before guarded `addToCart` mutations
+- approve and reject paths that update, or preserve, cart state
+
+Use `pnpm test:workflows` while tuning app workflows. Use real Chrome AI/WebLLM sessions separately for model quality, prompt tuning, and provider behavior.
+
 ## Release Checks
 
 - `pnpm test`: unit coverage for model cascade, approval resume, and docs indexing.
 - `pnpm typecheck`: strict TypeScript across core, UI, CLI, example, site, and spike.
 - `pnpm build`: package and demo production builds.
-- `pnpm test:e2e`: browser smoke for the ecommerce demo and graceful no-model fallback.
+- `pnpm test:e2e`: browser smoke for the ecommerce demo, scripted agent workflows, and graceful no-model fallback.
+- `pnpm test:workflows`: focused Playwright coverage for the ecommerce workflow suite.
 
 ## Notes
 

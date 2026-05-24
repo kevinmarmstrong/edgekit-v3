@@ -133,6 +133,7 @@ document.querySelector('edge-chat')?.registerTools({ searchProducts })`,
         title: 'Tools are app capabilities',
         body: [
           'Tools should wrap real app capabilities rather than duplicate business logic. Search, retrieve, update, create, cancel, suspend, add-to-cart, and submit-order actions can all be represented as tools.',
+          'For optional tool fields, accept both omitted values and `null`. Browser models may send `null` for an unspecified slot, and the tool should normalize that the same way it handles absence.',
         ],
       },
       {

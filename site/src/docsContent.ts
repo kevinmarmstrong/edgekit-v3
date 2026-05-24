@@ -194,9 +194,14 @@ document.querySelector('edge-chat')?.registerTools({ searchProducts })`,
           '`createAgent(options)`: create an event-streaming agent.',
           '`chromeAI()`: provider helper for browser Chrome AI.',
           '`webLLM(options)`: provider helper for WebLLM.',
+          '`createHybridModelRouter(routes)`: route simple work to local models and complex work to developer-provided models.',
           '`createAgUiAgent(options)`: wrap an AG-UI compatible event stream as an Edgekit agent.',
           '`agUiEventToAgentEvents(event)`: translate AG-UI events into Edgekit events.',
           '`actionsToEdgeView(actions)`: compile action metadata into declarative EdgeView cards/forms.',
+          '`mcpToolsFromDefinitions(definitions, client)`: convert a safe MCP tool catalog into Edgekit tools.',
+          '`loadMcpTools(client)`: load tools from an MCP client that exposes `listTools()` and `callTool()`.',
+          '`createMissionControl()`: aggregate telemetry events for dashboards or analytics adapters.',
+          '`createAuditTrail(options)`: create a hash-chained approval/tool audit log.',
           '`createModelProvider(options)`: define a custom provider.',
           '`tool`: re-export of the AI SDK tool helper.',
           '`modelOptional(schema)`: optional schema helper that treats model-supplied `null` the same as an omitted field.',
@@ -230,6 +235,106 @@ const agent = createAgent({
   renderAgentEvent(event)
 }`,
         },
+      },
+    ],
+  },
+  {
+    slug: 'advanced',
+    navLabel: 'Advanced',
+    title: 'Scalable integration primitives',
+    summary: 'Hybrid routing, MCP adapters, telemetry, audit trails, and coding-agent handoff patterns.',
+    sections: [
+      {
+        id: 'hybrid-routing',
+        title: 'Hybrid routing',
+        body: [
+          'Use `createHybridModelRouter()` when simple work should stay local but complex prompts should route to a developer-provided model. The cloud model can be any AI SDK-compatible model exposed by your app route or provider package.',
+          'The router receives the user input, message history, available tools, default local cascade, and whether the run is a fresh send or approval resume.',
+        ],
+        code: {
+          language: 'ts',
+          text: `const modelRouter = createHybridModelRouter([
+  {
+    id: 'cloud-complex',
+    model: [cloudModel],
+    when: ({ input }) => /plan|compare|synthesize|multi-step/i.test(input),
+  },
+], [chromeAI(), webLLM()])
+
+const agent = createAgent({
+  systemPrompt,
+  tools,
+  model: [chromeAI(), webLLM()],
+  modelRouter,
+})`,
+        },
+      },
+      {
+        id: 'mcp',
+        title: 'MCP tool catalogs',
+        body: [
+          'Edgekit should not connect a browser directly to arbitrary MCP stdio servers with broad filesystem, database, or credential access. The scalable pattern is a safe MCP proxy or app backend that exposes only the approved tool catalog.',
+          '`mcpToolsFromDefinitions()` converts that catalog into normal Edgekit tools, so existing MCP resources can power the sidecar without hand-writing every wrapper.',
+        ],
+        code: {
+          language: 'ts',
+          text: `const tools = await loadMcpTools({
+  listTools: () => fetch('/api/mcp/tools').then(res => res.json()),
+  callTool: (name, input) =>
+    fetch('/api/mcp/call', {
+      method: 'POST',
+      body: JSON.stringify({ name, input }),
+    }).then(res => res.json()),
+})
+
+chat.registerTools(tools)`,
+        },
+      },
+      {
+        id: 'telemetry',
+        title: 'Telemetry and mission control',
+        body: [
+          'Pass `telemetry` to `createAgent()`, `createAgUiAgent()`, or `<edge-chat>.configure()` to observe runs, model availability, tool calls, approvals, views, errors, and UI actions.',
+          '`createMissionControl()` is an in-memory aggregator for demos and dashboards. Production teams can send the same event contract to OpenTelemetry, Datadog, PostHog, Supabase, or their own warehouse.',
+        ],
+        code: {
+          language: 'ts',
+          text: `const missionControl = createMissionControl()
+missionControl.subscribe((_event, snapshot) => renderDashboard(snapshot))
+
+chat.configure({
+  telemetry: missionControl,
+  sessionId: currentUser.id,
+})`,
+        },
+      },
+      {
+        id: 'audit',
+        title: 'Approval audit trails',
+        body: [
+          '`createAuditTrail()` records tool calls, tool results, approval requests, approval decisions, UI actions, and errors into a hash chain. The default hash is portable and deterministic; compliance deployments should provide their own cryptographic hash or signing function and persist entries server-side.',
+        ],
+        code: {
+          language: 'ts',
+          text: `const auditTrail = createAuditTrail({
+  sessionId: currentUser.id,
+  hash: payload => signOrHash(payload),
+})
+
+const agent = createAgent({
+  systemPrompt,
+  tools,
+  auditTrail,
+})`,
+        },
+      },
+      {
+        id: 'agent-handoff',
+        title: 'Coding-agent handoff',
+        body: [
+          'The repository includes `AGENTS.md` for implementation agents. It names the architecture, extension points, commands, and release rules so future coding agents can make changes without drifting from the product model.',
+          'For smart but non-specialist builders: start with `<edge-chat>`, register a few app tools, add `registerActions()` for buttons/forms, then add telemetry or AG-UI only when the app needs them.',
+        ],
       },
     ],
   },

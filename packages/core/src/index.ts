@@ -109,6 +109,101 @@ export interface NoModelEvent {
   message: string
 }
 
+export type EdgeTelemetryEventName =
+  | 'run-start'
+  | 'run-finish'
+  | 'model-selected'
+  | 'model-unavailable'
+  | 'status'
+  | 'text-delta'
+  | 'tool-call'
+  | 'tool-result'
+  | 'approval-request'
+  | 'approval-decision'
+  | 'view'
+  | 'error'
+  | 'ui-action'
+
+export interface EdgeTelemetryEvent {
+  id: string
+  sessionId: string
+  runId?: string
+  timestamp: string
+  name: EdgeTelemetryEventName
+  input?: string
+  toolName?: string
+  approved?: boolean
+  provider?: string
+  status?: string
+  data?: unknown
+}
+
+export type EdgeTelemetrySink =
+  | ((event: EdgeTelemetryEvent) => void | Promise<void>)
+  | { record(event: EdgeTelemetryEvent): void | Promise<void> }
+
+export type EdgeAuditAction =
+  | 'tool-call'
+  | 'tool-result'
+  | 'approval-request'
+  | 'approval-decision'
+  | 'ui-action'
+  | 'error'
+
+export interface EdgeAuditEvent {
+  action: EdgeAuditAction
+  sessionId: string
+  runId?: string
+  prompt?: string
+  toolName?: string
+  approved?: boolean
+  input?: unknown
+  output?: unknown
+  reason?: string
+}
+
+export interface EdgeAuditEntry {
+  id: string
+  sequence: number
+  timestamp: string
+  previousHash: string
+  hash: string
+  event: EdgeAuditEvent
+}
+
+export interface EdgeAuditTrail {
+  record(event: EdgeAuditEvent): EdgeAuditEntry | Promise<EdgeAuditEntry>
+  entries?(): EdgeAuditEntry[]
+}
+
+export interface ModelRouterContext {
+  input: string
+  messages: ModelMessage[]
+  tools: string[]
+  defaultModel: Array<ModelProvider | LanguageModelV3>
+  phase: 'send' | 'approval'
+}
+
+export type EdgeModelRouter = (
+  context: ModelRouterContext,
+) => Array<ModelProvider | LanguageModelV3> | Promise<Array<ModelProvider | LanguageModelV3>>
+
+export interface HybridModelRoute {
+  id: string
+  description?: string
+  model: Array<ModelProvider | LanguageModelV3>
+  when?: (context: ModelRouterContext) => boolean | Promise<boolean>
+}
+
+export interface MissionControlSnapshot {
+  runs: number
+  toolCalls: Record<string, number>
+  approvals: { requested: number; approved: number; rejected: number }
+  errors: number
+  localModelUnavailable: number
+  lastEvent?: EdgeTelemetryEvent
+}
+
 export interface ResolveModelContext {
   downloadPolicy: DownloadPolicy
   emitStatus(event: ModelStatusEvent): void
@@ -144,9 +239,13 @@ export interface CreateAgentOptions {
   systemPrompt: string
   tools: Record<string, unknown>
   model?: Array<ModelProvider | LanguageModelV3>
+  modelRouter?: EdgeModelRouter
   downloadPolicy?: DownloadPolicy
   maxSteps?: number
   modelResolveTimeoutMs?: number
+  sessionId?: string
+  telemetry?: EdgeTelemetrySink | EdgeTelemetrySink[]
+  auditTrail?: EdgeAuditTrail
   onModelStatus?: (event: ModelStatusEvent) => string | null | void
   onDownloadPrompt?: (event: DownloadPromptEvent) => boolean | Promise<boolean>
   onNoModel?: (event: NoModelEvent) => string | null | void
@@ -171,6 +270,8 @@ export interface CreateAgUiAgentOptions {
   endpoint?: string
   run?: (input: AgUiRunInput) => AsyncIterable<AgUiEvent> | Promise<AsyncIterable<AgUiEvent>>
   fetch?: typeof fetch
+  sessionId?: string
+  telemetry?: EdgeTelemetrySink | EdgeTelemetrySink[]
 }
 
 export function agUiEventToAgentEvents(event: AgUiEvent): AgentEvent[] {
@@ -208,19 +309,33 @@ export function agUiEventToAgentEvents(event: AgUiEvent): AgentEvent[] {
 
 export function createAgUiAgent(options: CreateAgUiAgentOptions): EdgeAgent {
   const messages: ModelMessage[] = []
+  const sessionId = options.sessionId ?? createId('session')
+  const telemetry = createTelemetryDispatcher(options.telemetry, sessionId)
 
   const runAgUi = async function* (input: AgUiRunInput): AsyncGenerator<AgentEvent> {
     let text = ''
+    const runId = createId('run')
+    await telemetry.emit('run-start', { runId, input: input.input, data: { provider: 'ag-ui' } })
     const events = options.run ? await options.run(input) : streamAgUiEndpoint(options, input)
 
     for await (const event of events) {
       for (const agentEvent of agUiEventToAgentEvents(event)) {
         if (agentEvent.type === 'text-delta') text += agentEvent.text
+        const telemetryName = agentEventToTelemetryName(agentEvent)
+        if (telemetryName) {
+          await telemetry.emit(telemetryName, {
+            runId,
+            input: input.input,
+            toolName: agentEvent.type === 'tool-result' ? agentEvent.toolName : undefined,
+            data: agentEvent,
+          })
+        }
         yield agentEvent
       }
     }
 
     if (text) messages.push({ role: 'assistant', content: [{ type: 'text', text }] })
+    await telemetry.emit('run-finish', { runId, input: input.input, data: { text } })
     yield { type: 'done', text }
   }
 
@@ -254,6 +369,135 @@ export function createModelProvider(options: ProviderOptions): ModelProvider {
     label: options.label,
     resolve: options.resolve,
   }
+}
+
+export function createHybridModelRouter(routes: HybridModelRoute[], fallback?: Array<ModelProvider | LanguageModelV3>): EdgeModelRouter {
+  return async context => {
+    for (const route of routes) {
+      if (!route.when || await route.when(context)) return route.model
+    }
+    return fallback ?? context.defaultModel
+  }
+}
+
+export interface CreateAuditTrailOptions {
+  sessionId?: string
+  now?: () => string
+  hash?: (payload: string) => string
+}
+
+export function createAuditTrail(options: CreateAuditTrailOptions = {}): EdgeAuditTrail {
+  const entries: EdgeAuditEntry[] = []
+  const now = options.now ?? (() => new Date().toISOString())
+  const hash = options.hash ?? stableHash
+
+  return {
+    record(event: EdgeAuditEvent) {
+      const sequence = entries.length + 1
+      const previousHash = entries.at(-1)?.hash ?? 'genesis'
+      const timestamp = now()
+      const normalizedEvent = { ...event, sessionId: event.sessionId || options.sessionId || createId('session') }
+      const payload = stableStringify({ sequence, timestamp, previousHash, event: normalizedEvent })
+      const entry: EdgeAuditEntry = {
+        id: createId('audit'),
+        sequence,
+        timestamp,
+        previousHash,
+        hash: hash(payload),
+        event: normalizedEvent,
+      }
+      entries.push(entry)
+      return entry
+    },
+    entries() {
+      return [...entries]
+    },
+  }
+}
+
+export function createMissionControl() {
+  const events: EdgeTelemetryEvent[] = []
+  const subscribers = new Set<(event: EdgeTelemetryEvent, snapshot: MissionControlSnapshot) => void>()
+
+  const snapshot = (): MissionControlSnapshot => {
+    const toolCalls: Record<string, number> = {}
+    let runs = 0
+    let requested = 0
+    let approved = 0
+    let rejected = 0
+    let errors = 0
+    let localModelUnavailable = 0
+
+    for (const event of events) {
+      if (event.name === 'run-start') runs += 1
+      if (event.name === 'tool-call' && event.toolName) toolCalls[event.toolName] = (toolCalls[event.toolName] ?? 0) + 1
+      if (event.name === 'approval-request') requested += 1
+      if (event.name === 'approval-decision') event.approved ? approved += 1 : rejected += 1
+      if (event.name === 'error') errors += 1
+      if (event.name === 'model-unavailable') localModelUnavailable += 1
+    }
+
+    return {
+      runs,
+      toolCalls,
+      approvals: { requested, approved, rejected },
+      errors,
+      localModelUnavailable,
+      lastEvent: events.at(-1),
+    }
+  }
+
+  return {
+    record(event: EdgeTelemetryEvent) {
+      events.push(event)
+      const current = snapshot()
+      subscribers.forEach(subscriber => subscriber(event, current))
+    },
+    events() {
+      return [...events]
+    },
+    snapshot,
+    subscribe(subscriber: (event: EdgeTelemetryEvent, snapshot: MissionControlSnapshot) => void) {
+      subscribers.add(subscriber)
+      return () => subscribers.delete(subscriber)
+    },
+  }
+}
+
+export type McpToolDefinition = {
+  name: string
+  description?: string
+  inputSchema?: unknown
+}
+
+export interface McpToolClient {
+  listTools?: () => Promise<McpToolDefinition[] | { tools: McpToolDefinition[] }>
+  callTool: (name: string, input: Record<string, unknown>) => Promise<unknown> | unknown
+}
+
+export function mcpToolsFromDefinitions(definitions: McpToolDefinition[], client: McpToolClient): Record<string, unknown> {
+  const createTool = tool as never as (options: {
+    description: string
+    inputSchema: z.ZodType
+    execute: (input: Record<string, unknown>) => Promise<unknown>
+  }) => unknown
+  return Object.fromEntries(
+    definitions.map(definition => [
+      definition.name,
+      createTool({
+        description: definition.description ?? `Call MCP tool ${definition.name}.`,
+        inputSchema: jsonSchemaToZod(definition.inputSchema),
+        execute: async (input: Record<string, unknown>) => client.callTool(definition.name, input),
+      }),
+    ]),
+  )
+}
+
+export async function loadMcpTools(client: McpToolClient): Promise<Record<string, unknown>> {
+  if (!client.listTools) throw new Error('loadMcpTools requires an MCP client with listTools().')
+  const listed = await client.listTools()
+  const definitions = Array.isArray(listed) ? listed : listed.tools
+  return mcpToolsFromDefinitions(definitions, client)
 }
 
 export async function resolveModel(
@@ -302,12 +546,19 @@ export function createAgent(options: CreateAgentOptions): EdgeAgent {
   const maxSteps = options.maxSteps ?? 5
   const streamText = options.streamText ?? aiStreamText
   const providers = options.model ?? [chromeAI(), webLLM()]
+  const sessionId = options.sessionId ?? createId('session')
+  const telemetry = createTelemetryDispatcher(options.telemetry, sessionId)
   const messages: ModelMessage[] = []
   let lastUserInput = ''
 
   const emitStatus = (event: ModelStatusEvent): ModelStatusEvent => {
     const custom = options.onModelStatus?.(event)
     return custom === null ? event : { ...event, message: custom ?? event.message }
+  }
+
+  const recordAudit = async (event: EdgeAuditEvent) => {
+    if (!options.auditTrail) return
+    await options.auditTrail.record({ ...event, sessionId })
   }
 
   const requestDownload = async (event: DownloadPromptEvent): Promise<boolean> => {
@@ -317,7 +568,9 @@ export function createAgent(options: CreateAgentOptions): EdgeAgent {
     return false
   }
 
-  const run = async function* (): AsyncGenerator<AgentEvent> {
+  const run = async function* (phase: 'send' | 'approval'): AsyncGenerator<AgentEvent> {
+    const runId = createId('run')
+    await telemetry.emit('run-start', { runId, input: lastUserInput, data: { phase } })
     const statusEvents: ModelStatusEvent[] = []
     const drainStatus = function* () {
       while (statusEvents.length > 0) {
@@ -325,12 +578,29 @@ export function createAgent(options: CreateAgentOptions): EdgeAgent {
       }
     }
 
-    const resolved = await resolveModel(providers, {
+    const selectedProviders = options.modelRouter
+      ? await options.modelRouter({
+          input: lastUserInput,
+          messages: [...messages],
+          tools: Object.keys(options.tools),
+          defaultModel: providers,
+          phase,
+        })
+      : providers
+
+    const resolved = await resolveModel(selectedProviders, {
       downloadPolicy,
       timeoutMs: options.modelResolveTimeoutMs ?? 3_000,
       emitStatus: event => {
         const displayEvent = emitStatus(event)
         statusEvents.push(displayEvent)
+        void telemetry.emit('status', {
+          runId,
+          input: lastUserInput,
+          provider: displayEvent.provider,
+          status: displayEvent.status,
+          data: displayEvent,
+        })
       },
       requestDownload,
     })
@@ -343,9 +613,18 @@ export function createAgent(options: CreateAgentOptions): EdgeAgent {
         input: lastUserInput,
         message: defaultMessage,
       }) ?? defaultMessage
+      await telemetry.emit('model-unavailable', { runId, input: lastUserInput, data: { availableTools: Object.keys(options.tools) } })
       yield { type: 'no-model', message }
+      await telemetry.emit('run-finish', { runId, input: lastUserInput, data: { noModel: true } })
       return
     }
+
+    await telemetry.emit('model-selected', {
+      runId,
+      input: lastUserInput,
+      provider: resolved.provider.id,
+      data: { provider: resolved.provider.label },
+    })
 
     let text = ''
     const result = (streamText as never as (options: Record<string, unknown>) => ReturnType<StreamTextFn>)({
@@ -362,33 +641,74 @@ export function createAgent(options: CreateAgentOptions): EdgeAgent {
         case 'text-delta': {
           const delta = String(part.text ?? part.delta ?? '')
           text += delta
+          await telemetry.emit('text-delta', { runId, input: lastUserInput, data: { length: delta.length } })
           yield { type: 'text-delta', text: delta }
           break
         }
-        case 'tool-call':
+        case 'tool-call': {
+          const toolName = String(part.toolName)
+          await telemetry.emit('tool-call', { runId, input: lastUserInput, toolName, data: part.input })
+          await recordAudit({
+            action: 'tool-call',
+            sessionId,
+            runId,
+            prompt: lastUserInput,
+            toolName,
+            input: part.input,
+          })
           yield {
             type: 'tool-call',
-            toolName: String(part.toolName),
+            toolName,
             toolCallId: String(part.toolCallId),
             input: part.input,
           }
           break
-        case 'tool-result':
+        }
+        case 'tool-result': {
+          const toolName = String(part.toolName)
+          await telemetry.emit('tool-result', { runId, input: lastUserInput, toolName, data: part.output })
+          await recordAudit({
+            action: 'tool-result',
+            sessionId,
+            runId,
+            prompt: lastUserInput,
+            toolName,
+            output: part.output,
+          })
           yield {
             type: 'tool-result',
-            toolName: String(part.toolName),
+            toolName,
             toolCallId: String(part.toolCallId),
             output: part.output,
           }
           break
-        case 'tool-approval-request':
+        }
+        case 'tool-approval-request': {
+          const toolCall = part.toolCall as { toolName?: string; input?: unknown } | undefined
+          await telemetry.emit('approval-request', {
+            runId,
+            input: lastUserInput,
+            toolName: toolCall?.toolName,
+            data: part.toolCall,
+          })
+          await recordAudit({
+            action: 'approval-request',
+            sessionId,
+            runId,
+            prompt: lastUserInput,
+            toolName: toolCall?.toolName,
+            input: toolCall?.input,
+          })
           yield {
             type: 'approval-request',
             approvalId: String(part.approvalId),
             toolCall: part.toolCall,
           }
           break
+        }
         case 'error':
+          await telemetry.emit('error', { runId, input: lastUserInput, data: part.error })
+          await recordAudit({ action: 'error', sessionId, runId, prompt: lastUserInput, output: part.error })
           yield { type: 'error', error: part.error }
           break
       }
@@ -397,6 +717,7 @@ export function createAgent(options: CreateAgentOptions): EdgeAgent {
 
     const response = await result.response
     messages.push(...response.messages)
+    await telemetry.emit('run-finish', { runId, input: lastUserInput, data: { text } })
     yield { type: 'done', text }
   }
 
@@ -404,9 +725,21 @@ export function createAgent(options: CreateAgentOptions): EdgeAgent {
     async *send(input: string): AsyncGenerator<AgentEvent> {
       lastUserInput = input
       messages.push({ role: 'user', content: input })
-      yield* run()
+      yield* run('send')
     },
     async *respondToApproval(approvalId: string, approved: boolean, reason?: string): AsyncGenerator<AgentEvent> {
+      await telemetry.emit('approval-decision', {
+        input: lastUserInput,
+        approved,
+        data: { approvalId, reason },
+      })
+      await recordAudit({
+        action: 'approval-decision',
+        sessionId,
+        prompt: lastUserInput,
+        approved,
+        reason,
+      })
       messages.push({
         role: 'tool',
         content: [
@@ -418,7 +751,7 @@ export function createAgent(options: CreateAgentOptions): EdgeAgent {
           },
         ],
       })
-      yield* run()
+      yield* run('approval')
     },
     reset() {
       messages.length = 0
@@ -580,6 +913,102 @@ function parseAgUiLine(line: string): AgUiEvent | null {
   } catch {
     return null
   }
+}
+
+function agentEventToTelemetryName(event: AgentEvent): EdgeTelemetryEventName | null {
+  switch (event.type) {
+    case 'text-delta':
+    case 'tool-call':
+    case 'tool-result':
+    case 'approval-request':
+    case 'view':
+    case 'error':
+      return event.type
+    case 'no-model':
+      return 'model-unavailable'
+    default:
+      return null
+  }
+}
+
+function createTelemetryDispatcher(telemetry: EdgeTelemetrySink | EdgeTelemetrySink[] | undefined, sessionId: string) {
+  const sinks = (Array.isArray(telemetry) ? telemetry : telemetry ? [telemetry] : []).filter(Boolean)
+
+  return {
+    async emit(name: EdgeTelemetryEventName, event: Partial<EdgeTelemetryEvent> = {}) {
+      if (sinks.length === 0) return
+      const payload: EdgeTelemetryEvent = {
+        id: event.id ?? createId('evt'),
+        sessionId: event.sessionId ?? sessionId,
+        timestamp: event.timestamp ?? new Date().toISOString(),
+        name,
+        ...event,
+      }
+      await Promise.all(
+        sinks.map(async sink => {
+          try {
+            if (typeof sink === 'function') await sink(payload)
+            else await sink.record(payload)
+          } catch {
+            // Telemetry must never break the user workflow.
+          }
+        }),
+      )
+    },
+  }
+}
+
+function jsonSchemaToZod(schema: unknown): z.ZodType {
+  if (!isRecord(schema)) return z.record(z.string(), z.unknown())
+  if (Array.isArray(schema.enum) && schema.enum.length > 0) return z.enum(schema.enum.map(String) as [string, ...string[]])
+
+  switch (schema.type) {
+    case 'object': {
+      const properties = isRecord(schema.properties) ? schema.properties : {}
+      const required = Array.isArray(schema.required) ? new Set(schema.required.map(String)) : new Set<string>()
+      const shape = Object.fromEntries(
+        Object.entries(properties).map(([key, value]) => {
+          const field = jsonSchemaToZod(value)
+          return [key, required.has(key) ? field : field.optional()]
+        }),
+      )
+      return z.object(shape)
+    }
+    case 'string':
+      return z.string()
+    case 'number':
+      return z.number()
+    case 'integer':
+      return z.number().int()
+    case 'boolean':
+      return z.boolean()
+    case 'array':
+      return z.array(jsonSchemaToZod(schema.items))
+    default:
+      return z.record(z.string(), z.unknown())
+  }
+}
+
+function createId(prefix: string) {
+  return `${prefix}_${Math.random().toString(36).slice(2, 10)}`
+}
+
+function stableStringify(value: unknown): string {
+  if (value == null || typeof value !== 'object') return JSON.stringify(value)
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`
+  const entries = Object.entries(value as Record<string, unknown>)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`)
+  return `{${entries.join(',')}}`
+}
+
+function stableHash(payload: string): string {
+  let hash = 2166136261
+  for (let index = 0; index < payload.length; index += 1) {
+    hash ^= payload.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+  return `fnv1a:${(hash >>> 0).toString(16).padStart(8, '0')}`
 }
 
 async function maybeAvailability(model: unknown): Promise<string | undefined> {

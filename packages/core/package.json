@@ -17,6 +17,9 @@
     "ai",
     "agent",
     "browser-ai",
+    "ag-ui",
+    "mcp",
+    "telemetry",
     "webllm",
     "vercel-ai-sdk",
     "web-component"

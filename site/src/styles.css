@@ -368,10 +368,66 @@ input {
 .docs-section,
 .demos-section,
 .ecommerce-demo,
-.admin-demo {
+.admin-demo,
+.mission-section {
   display: grid;
   gap: 22px;
   padding: 28px;
+}
+
+.mission-section {
+  border: 1px solid #d8e5df;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.mission-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.mission-grid article {
+  display: grid;
+  gap: 8px;
+  min-height: 116px;
+  align-content: end;
+  border: 1px solid #d8e5df;
+  border-radius: 8px;
+  background: #f8fbfa;
+  padding: 16px;
+}
+
+.mission-grid span,
+.mission-table th {
+  color: #177e58;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.mission-grid strong {
+  overflow-wrap: anywhere;
+  font-size: clamp(18px, 2.5vw, 28px);
+  line-height: 1.1;
+}
+
+.mission-table {
+  overflow: auto;
+  border: 1px solid #d8e5df;
+  border-radius: 8px;
+}
+
+.mission-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.mission-table th,
+.mission-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #e4eee9;
+  text-align: left;
 }
 
 .steps-grid article {
@@ -731,7 +787,8 @@ pre code {
   .demo-grid,
   .doc-card-grid,
   .steps-grid,
-  .catalog {
+  .catalog,
+  .mission-grid {
     grid-template-columns: 1fr;
   }
 

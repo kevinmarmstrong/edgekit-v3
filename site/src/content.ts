@@ -83,6 +83,34 @@ export const docChunks: DocChunk[] = [
     body:
       'pnpm eval:models runs a real-browser model cascade harness and writes JSON to test-results/model-cascade-eval.json. It separates provider and prompt quality from deterministic CI workflow checks.',
   },
+  {
+    slug: 'advanced',
+    title: 'Hybrid Routing',
+    tags: ['routing', 'cloud', 'local', 'cascade'],
+    body:
+      'createHybridModelRouter lets simple work stay local while complex prompts route to a developer-provided model or app route. The runtime remains local-first and configurable.',
+  },
+  {
+    slug: 'advanced',
+    title: 'MCP Adapter',
+    tags: ['mcp', 'tools', 'integration'],
+    body:
+      'mcpToolsFromDefinitions and loadMcpTools convert a safe MCP tool catalog into normal Edgekit tools. Use a backend or proxy to keep credentials and broad resource access out of the browser.',
+  },
+  {
+    slug: 'advanced',
+    title: 'Telemetry and Audit',
+    tags: ['mission control', 'telemetry', 'audit', 'approval'],
+    body:
+      'createMissionControl aggregates run, tool, approval, error, and no-model events. createAuditTrail records approval and tool activity into a hash-chained log for compliance-oriented deployments.',
+  },
+  {
+    slug: 'advanced',
+    title: 'Coding Agent Handoff',
+    tags: ['agents', 'implementation', 'handoff'],
+    body:
+      'AGENTS.md documents the architecture, commands, release checks, extension points, and guardrails so coding agents can implement against Edgekit without drifting from the intended product model.',
+  },
 ]
 
 export function searchDocs(query: string) {

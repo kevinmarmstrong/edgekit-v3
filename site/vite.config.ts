@@ -16,6 +16,7 @@ export default defineConfig({
         'docs-getting-started': resolve(__dirname, 'docs/getting-started/index.html'),
         'docs-concepts': resolve(__dirname, 'docs/concepts/index.html'),
         'docs-api': resolve(__dirname, 'docs/api/index.html'),
+        'docs-advanced': resolve(__dirname, 'docs/advanced/index.html'),
         'docs-ui': resolve(__dirname, 'docs/ui/index.html'),
         'docs-cli': resolve(__dirname, 'docs/cli/index.html'),
         'docs-testing': resolve(__dirname, 'docs/testing/index.html'),

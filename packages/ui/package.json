@@ -19,7 +19,8 @@
     "edgekit",
     "web-component",
     "browser-ai",
-    "agent-ui"
+    "agent-ui",
+    "generative-ui"
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",

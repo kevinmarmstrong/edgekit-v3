@@ -77,6 +77,17 @@ Backend-served generative UI needs a hosted route or worker that can stream AG-U
 ></edge-chat>
 ```
 
+## Scalable Integration Primitives
+
+edgekit stays small by exposing contracts instead of shipping a required cloud service:
+
+- Hybrid routing: `createHybridModelRouter()` keeps simple work local and routes complex work to a developer-provided model.
+- MCP catalogs: `mcpToolsFromDefinitions()` and `loadMcpTools()` adapt safe MCP tool catalogs into normal Edgekit tools.
+- Telemetry: pass `telemetry` to `createAgent()`, `createAgUiAgent()`, or `<edge-chat>.configure()` to observe runs, tools, approvals, views, errors, and no-model fallbacks.
+- Mission control: `createMissionControl()` provides an in-memory dashboard aggregator; production apps can send the same events to OpenTelemetry, Datadog, PostHog, Supabase, or their own warehouse.
+- Audit trails: `createAuditTrail()` records tool calls, approval requests, approval decisions, UI actions, and errors in a hash chain. Bring your own signing or cryptographic hash for strict compliance environments.
+- Coding-agent handoff: `AGENTS.md` documents the architecture, commands, and guardrails for implementation agents.
+
 ## Packages
 
 - `@kevinmarmstrong/edgekit`: core browser-agent runtime, model cascade, tool loop wrapper, provider helpers.

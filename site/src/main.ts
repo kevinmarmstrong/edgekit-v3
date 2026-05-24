@@ -1,6 +1,6 @@
 import '@kevinmarmstrong/edgekit-ui'
-import { chromeAI, createAgUiAgent, modelOptional, tool } from '@kevinmarmstrong/edgekit'
-import type { AgUiRunInput, EdgeViewNode } from '@kevinmarmstrong/edgekit'
+import { chromeAI, createAgUiAgent, createMissionControl, modelOptional, tool } from '@kevinmarmstrong/edgekit'
+import type { AgUiRunInput, EdgeViewNode, MissionControlSnapshot } from '@kevinmarmstrong/edgekit'
 import type { EdgeChat } from '@kevinmarmstrong/edgekit-ui'
 import { z } from 'zod'
 import { mountAdminDemo } from './adminDemo'
@@ -73,6 +73,8 @@ const products: Product[] = [
 ]
 
 const cart: CartItem[] = []
+const missionControl = createMissionControl()
+missionControl.subscribe((_event, snapshot) => renderMissionControl(snapshot))
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '')
 
 const searchDocsTool = tool({
@@ -158,6 +160,8 @@ const submitDemoRequest = tool({
 
 const docsChat = document.querySelector<EdgeChat>('edge-chat#docs-chat')
 docsChat?.configure({
+  sessionId: 'site-docs-demo',
+  telemetry: missionControl,
   model: [chromeAI()],
   downloadPolicy: 'never',
   onNoModel: ({ input }) => answerFromDocs(input),
@@ -165,6 +169,8 @@ docsChat?.configure({
 docsChat?.registerTools({ searchDocs: searchDocsTool })
 const commerceChat = document.querySelector<EdgeChat>('edge-chat#commerce-chat')
 commerceChat?.configure({
+  sessionId: 'site-commerce-demo',
+  telemetry: missionControl,
   model: [chromeAI()],
   downloadPolicy: 'never',
   onNoModel: ({ input }) => answerFromCatalog(input),
@@ -193,12 +199,14 @@ commerceChat?.registerActions(({ toolName, output }) => {
 })
 
 const agUiChat = document.querySelector<EdgeChat>('edge-chat#agui-chat')
+agUiChat?.configure({ sessionId: 'site-agui-demo', telemetry: missionControl })
 agUiChat?.registerTools({ createSupportTicket, submitDemoRequest })
-agUiChat?.useAgent(createAgUiAgent({ run: mockAgUiRun }))
+agUiChat?.useAgent(createAgUiAgent({ run: mockAgUiRun, sessionId: 'site-agui-demo', telemetry: missionControl }))
 
 renderDocCards()
 renderCatalog()
 renderCart()
+renderMissionControl()
 wireDocSearch()
 mountAdminDemo()
 
@@ -503,6 +511,30 @@ function renderCart() {
       return `${item.quantity}x ${product?.name ?? item.productId}${size}`
     })
     .join(', ')
+}
+
+function renderMissionControl(snapshot: MissionControlSnapshot = missionControl.snapshot()) {
+  setText('#mc-runs', String(snapshot.runs))
+  setText('#mc-tools', String(Object.values(snapshot.toolCalls).reduce((total, count) => total + count, 0)))
+  setText('#mc-approvals', `${snapshot.approvals.approved}/${snapshot.approvals.requested}`)
+  setText('#mc-errors', String(snapshot.errors))
+  setText('#mc-local', String(snapshot.localModelUnavailable))
+  setText('#mc-last-event', snapshot.lastEvent ? `${snapshot.lastEvent.name} · ${snapshot.lastEvent.sessionId}` : 'Waiting for demo activity')
+
+  const tools = document.querySelector<HTMLElement>('#mc-tool-table')
+  if (tools) {
+    const entries = Object.entries(snapshot.toolCalls)
+    tools.innerHTML = entries.length === 0
+      ? '<tr><td colspan="2">Run a demo to see tool activity.</td></tr>'
+      : entries
+          .map(([name, count]) => `<tr><td>${name}</td><td>${count}</td></tr>`)
+          .join('')
+  }
+}
+
+function setText(selector: string, value: string) {
+  const element = document.querySelector<HTMLElement>(selector)
+  if (element) element.textContent = value
 }
 
 function extractProducts(output: unknown): Product[] {

@@ -6,13 +6,26 @@ test('homepage links into the full documentation site', async ({ page }) => {
   await page.goto(siteURL)
 
   await expect(page.getByRole('heading', { name: 'Full documentation, not just a demo page.' })).toBeVisible()
-  await expect(page.locator('#doc-card-grid a.doc-card')).toHaveCount(11)
+  await expect(page.locator('#doc-card-grid a.doc-card')).toHaveCount(15)
   await expect(page.locator('.site-header nav').getByRole('link', { name: 'Admin' })).toHaveCount(0)
   await expect(page.locator('edge-chat')).toHaveCount(4)
+  await expect(page.getByRole('heading', { name: 'Observe edge agents without centralizing the runtime.' })).toBeVisible()
 
   await page.getByRole('link', { name: 'Read the docs' }).click()
   await expect(page).toHaveURL(/\/edgekit\/docs\/$/)
   await expect(page.getByRole('heading', { name: 'What edgekit is' })).toBeVisible()
+})
+
+test('mission control dashboard aggregates public demo telemetry', async ({ page }) => {
+  await page.goto(siteURL + '?cacheBust=' + Date.now())
+
+  await expect(page.locator('#mc-runs')).toHaveText('0')
+  const agui = page.locator('#agui')
+  await agui.getByTestId('chat-input').fill('what other components do you have for the UI?')
+  await agui.getByTestId('send-button').click()
+
+  await expect(page.locator('#mc-runs')).toHaveText('1')
+  await expect(page.locator('#mc-last-event')).toContainText('run-finish')
 })
 
 test('public site renders AG-UI compatible declarative UI demo', async ({ page }) => {
@@ -82,4 +95,9 @@ test('docs pages expose core documentation sections and navigation', async ({ pa
   await expect(page).toHaveURL(/\/edgekit\/docs\/testing\/$/)
   await expect(page.getByRole('heading', { name: 'Testing agent workflows' })).toBeVisible()
   await expect(page.locator('pre code').filter({ hasText: 'pnpm eval:models' })).toBeVisible()
+
+  await page.getByRole('link', { name: 'Advanced' }).click()
+  await expect(page).toHaveURL(/\/edgekit\/docs\/advanced\/$/)
+  await expect(page.getByRole('heading', { name: 'Scalable integration primitives' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Hybrid routing' })).toBeVisible()
 })

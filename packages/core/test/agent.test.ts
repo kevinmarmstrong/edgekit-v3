@@ -6,7 +6,12 @@ import {
   agUiEventToAgentEvents,
   createAgent,
   createAgUiAgent,
+  createAuditTrail,
+  createHybridModelRouter,
+  createMissionControl,
   createModelProvider,
+  loadMcpTools,
+  mcpToolsFromDefinitions,
   modelOptional,
   resolveModel,
 } from '../src/index'
@@ -42,6 +47,91 @@ describe('resolveModel', () => {
     expect(result?.model).toBe(fakeModel)
     expect(result?.provider.id).toBe('second')
     expect(events).toEqual(['first', 'second'])
+  })
+
+  it('routes complex prompts to a developer-provided model route', async () => {
+    const localModel = { provider: 'local', modelId: 'local', specificationVersion: 'v3' } as LanguageModelV3
+    const cloudModel = { provider: 'cloud', modelId: 'cloud', specificationVersion: 'v3' } as LanguageModelV3
+    const streamText = vi.fn((options: Record<string, unknown>) => ({
+      fullStream: (async function* () {
+        yield { type: 'text-delta', delta: 'routed' }
+      })(),
+      response: Promise.resolve({
+        messages: [{ role: 'assistant', content: [{ type: 'text', text: 'routed' }] }],
+      }),
+      options,
+    }))
+    const modelRouter = createHybridModelRouter([
+      {
+        id: 'cloud-complex',
+        model: [cloudModel],
+        when: ({ input }) => input.includes('complex'),
+      },
+    ], [localModel])
+
+    const agent = createAgent({
+      systemPrompt: 'You are helpful.',
+      model: [localModel],
+      modelRouter,
+      tools: {},
+      streamText: streamText as never,
+    })
+
+    for await (const _ of agent.send('complex planning task')) {
+      // drain
+    }
+
+    expect(streamText.mock.calls[0][0]).toMatchObject({ model: cloudModel })
+  })
+
+  it('emits telemetry and writes an approval audit trail', async () => {
+    const telemetry = createMissionControl()
+    const auditTrail = createAuditTrail({
+      now: () => '2026-05-24T00:00:00.000Z',
+      hash: payload => `hash:${payload.length}`,
+    })
+    const streamText = vi.fn(() => ({
+      fullStream: (async function* () {
+        yield {
+          type: 'tool-call',
+          toolCallId: 'tool-1',
+          toolName: 'addToCart',
+          input: { productId: 'dunk' },
+        }
+        yield {
+          type: 'tool-approval-request',
+          approvalId: 'approval-1',
+          toolCall: { toolName: 'addToCart', input: { productId: 'dunk' } },
+        }
+      })(),
+      response: Promise.resolve({
+        messages: [{ role: 'assistant', content: [{ type: 'text', text: 'pending' }] }],
+      }),
+    }))
+    const agent = createAgent({
+      systemPrompt: 'You are helpful.',
+      model: [fakeModel],
+      tools: { addToCart: {} },
+      streamText: streamText as never,
+      telemetry,
+      auditTrail,
+      sessionId: 'test-session',
+    })
+
+    for await (const _ of agent.send('add dunk')) {
+      // drain
+    }
+    for await (const _ of agent.respondToApproval('approval-1', false, 'testing')) {
+      // drain
+    }
+
+    expect(telemetry.snapshot()).toMatchObject({
+      runs: 2,
+      toolCalls: { addToCart: 2 },
+      approvals: { requested: 2, approved: 0, rejected: 1 },
+    })
+    expect(auditTrail.entries?.().map(entry => entry.event.action)).toContain('approval-decision')
+    expect(auditTrail.entries?.()[0]?.previousHash).toBe('genesis')
   })
 })
 
@@ -368,5 +458,48 @@ describe('AG-UI adapter', () => {
       { type: 'text-delta', text: 'From AG-UI' },
       { type: 'done', text: 'From AG-UI' },
     ])
+  })
+})
+
+describe('MCP adapter', () => {
+  it('turns MCP tool definitions into executable AI SDK tools', async () => {
+    const calls: unknown[] = []
+    const tools = mcpToolsFromDefinitions(
+      [
+        {
+          name: 'searchDocs',
+          description: 'Search docs',
+          inputSchema: {
+            type: 'object',
+            required: ['query'],
+            properties: {
+              query: { type: 'string' },
+            },
+          },
+        },
+      ],
+      {
+        callTool: async (name, input) => {
+          calls.push({ name, input })
+          return { results: ['ok'] }
+        },
+      },
+    )
+
+    const result = await (tools.searchDocs as { execute: (input: Record<string, unknown>) => Promise<unknown> }).execute({
+      query: 'edgekit',
+    })
+
+    expect(result).toEqual({ results: ['ok'] })
+    expect(calls).toEqual([{ name: 'searchDocs', input: { query: 'edgekit' } }])
+  })
+
+  it('loads MCP tools from a client catalog', async () => {
+    const tools = await loadMcpTools({
+      listTools: async () => ({ tools: [{ name: 'ping' }] }),
+      callTool: async () => 'pong',
+    })
+
+    expect(Object.keys(tools)).toEqual(['ping'])
   })
 })

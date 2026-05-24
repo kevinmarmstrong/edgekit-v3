@@ -10,6 +10,8 @@ import {
   type CreateAgentOptions,
   type DownloadPromptEvent,
   type EdgeAgent,
+  type EdgeTelemetryEvent,
+  type EdgeTelemetryEventName,
   type EdgeViewNode,
   type ModelStatusEvent,
   type NoModelEvent,
@@ -592,7 +594,15 @@ export class EdgeChat extends LitElement {
     this.busy = true
     this.views = this.views.filter(candidate => candidate.id !== `${form.id}-card` && candidate.id !== form.id)
     try {
+      await this.emitUiTelemetry('ui-action', { toolName: form.toolName, data: { stage: 'start', input } })
+      await this.config.auditTrail?.record({
+        action: 'ui-action',
+        sessionId: this.config.sessionId ?? 'edge-chat',
+        toolName: form.toolName,
+        input,
+      })
       const output = await this.executeTool(form.toolName, input)
+      await this.emitUiTelemetry('tool-result', { toolName: form.toolName, data: output })
       this.messages = [
         ...this.messages,
         {
@@ -601,6 +611,7 @@ export class EdgeChat extends LitElement {
         },
       ]
     } catch (error) {
+      await this.emitUiTelemetry('error', { toolName: form.toolName, data: error })
       this.messages = [...this.messages, { role: 'assistant', text: `Something went wrong: ${String(error)}` }]
     } finally {
       this.busy = false
@@ -617,6 +628,29 @@ export class EdgeChat extends LitElement {
     if (typeof form.successMessage === 'function') return form.successMessage(output, input)
     if (form.successMessage) return form.successMessage
     return `${form.submitLabel} complete.`
+  }
+
+  private async emitUiTelemetry(name: EdgeTelemetryEventName, event: Partial<EdgeTelemetryEvent>) {
+    const telemetry = this.config.telemetry
+    if (!telemetry) return
+    const sinks = Array.isArray(telemetry) ? telemetry : [telemetry]
+    const payload: EdgeTelemetryEvent = {
+      id: `ui_${Math.random().toString(36).slice(2, 10)}`,
+      sessionId: this.config.sessionId ?? 'edge-chat',
+      timestamp: new Date().toISOString(),
+      name,
+      ...event,
+    }
+    await Promise.all(
+      sinks.map(async sink => {
+        try {
+          if (typeof sink === 'function') await sink(payload)
+          else await sink.record(payload)
+        } catch {
+          // Telemetry should never block an app-owned action.
+        }
+      }),
+    )
   }
 
   private async answerApproval(approved: boolean) {

@@ -144,6 +144,62 @@
             <span>AG-UI compatible</span>
             <strong>Remote event stream rendering declarative EdgeView UI</strong>
           </a>
+          <a class="demo-card" href="#mission-control">
+            <span>Mission control</span>
+            <strong>Telemetry, approvals, errors, and tool usage hooks</strong>
+          </a>
+        </div>
+      </section>
+
+      <section class="mission-section" id="mission-control">
+        <div class="section-heading">
+          <p class="section-label">Mission control primitive</p>
+          <h2>Observe edge agents without centralizing the runtime.</h2>
+          <p>
+            This dashboard is powered by local telemetry hooks from the public demos. In production,
+            send the same events to your analytics, logging, or compliance backend.
+          </p>
+        </div>
+        <div class="mission-grid">
+          <article>
+            <span>Runs</span>
+            <strong id="mc-runs">0</strong>
+          </article>
+          <article>
+            <span>Tool calls</span>
+            <strong id="mc-tools">0</strong>
+          </article>
+          <article>
+            <span>Approved / requested</span>
+            <strong id="mc-approvals">0/0</strong>
+          </article>
+          <article>
+            <span>Errors</span>
+            <strong id="mc-errors">0</strong>
+          </article>
+          <article>
+            <span>No local model</span>
+            <strong id="mc-local">0</strong>
+          </article>
+          <article>
+            <span>Last event</span>
+            <strong id="mc-last-event">Waiting for demo activity</strong>
+          </article>
+        </div>
+        <div class="mission-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Tool</th>
+                <th>Calls</th>
+              </tr>
+            </thead>
+            <tbody id="mc-tool-table">
+              <tr>
+                <td colspan="2">Run a demo to see tool activity.</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
 

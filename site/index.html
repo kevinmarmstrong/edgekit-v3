@@ -40,7 +40,7 @@
           <div class="hero-actions">
             <a class="button primary" href="docs/">Read the docs</a>
             <a class="button secondary" href="llms.txt">Agent docs</a>
-            <a class="button secondary" href="#demos">Try live demos</a>
+            <a class="button secondary" href="demos/ecommerce/">Try live demos</a>
           </div>
         </div>
         <div class="hero-visual" aria-label="edgekit architecture diagram">
@@ -130,184 +130,26 @@
           </p>
         </div>
         <div class="demo-grid">
-          <a class="demo-card active" href="#ecommerce">
+          <a class="demo-card active" href="demos/ecommerce/">
             <span>Live ecommerce</span>
             <strong>Product search and guarded add-to-cart</strong>
           </a>
-          <a class="demo-card" href="#qa">
+          <a class="demo-card" href="demos/docs/">
             <span>Live docs Q&A</span>
             <strong>Project knowledge as a registered search tool</strong>
           </a>
-          <a class="demo-card active-secondary" href="#admin">
+          <a class="demo-card active-secondary" href="demos/admin/">
             <span>Live SaaS admin</span>
             <strong>Admin sidecar with guarded workflow actions</strong>
           </a>
-          <a class="demo-card active-secondary" href="#agui">
+          <a class="demo-card active-secondary" href="demos/ag-ui/">
             <span>AG-UI compatible</span>
             <strong>Remote event stream rendering declarative EdgeView UI</strong>
           </a>
-          <a class="demo-card" href="#mission-control">
+          <a class="demo-card" href="demos/mission-control/">
             <span>Mission control</span>
             <strong>Telemetry, approvals, errors, and tool usage hooks</strong>
           </a>
-        </div>
-      </section>
-
-      <section class="mission-section" id="mission-control">
-        <div class="section-heading">
-          <p class="section-label">Mission control primitive</p>
-          <h2>Observe edge agents without centralizing the runtime.</h2>
-          <p>
-            This dashboard is powered by local telemetry hooks from the public demos. In production,
-            send the same events to your analytics, logging, or compliance backend.
-          </p>
-        </div>
-        <div class="mission-grid">
-          <article>
-            <span>Runs</span>
-            <strong id="mc-runs">0</strong>
-          </article>
-          <article>
-            <span>Tool calls</span>
-            <strong id="mc-tools">0</strong>
-          </article>
-          <article>
-            <span>Approved / requested</span>
-            <strong id="mc-approvals">0/0</strong>
-          </article>
-          <article>
-            <span>Errors</span>
-            <strong id="mc-errors">0</strong>
-          </article>
-          <article>
-            <span>No local model</span>
-            <strong id="mc-local">0</strong>
-          </article>
-          <article>
-            <span>Last event</span>
-            <strong id="mc-last-event">Waiting for demo activity</strong>
-          </article>
-        </div>
-        <div class="mission-table">
-          <table>
-            <thead>
-              <tr>
-                <th>Tool</th>
-                <th>Calls</th>
-              </tr>
-            </thead>
-            <tbody id="mc-tool-table">
-              <tr>
-                <td colspan="2">Run a demo to see tool activity.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="context-grid">
-          <article>
-            <span>Identity bridge</span>
-            <p>Pass public user, tenant, roles, and permissions into Edgekit while keeping tokens inside tool execution context.</p>
-          </article>
-          <article>
-            <span>RBAC tools</span>
-            <p>Hydrate customer, support, or admin tool manifests dynamically from the current session.</p>
-          </article>
-          <article>
-            <span>State hydration</span>
-            <p>Give the model a concise route and workflow summary before it spends tokens asking where the user is.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="split-section" id="qa">
-        <div>
-          <p class="section-label">Docs Q&A demo</p>
-          <h2>Ask edgekit about its own design.</h2>
-          <p>
-            This demo registers a project documentation search tool with edgekit. Browsers with
-            Chrome AI can answer using local model calls; unsupported browsers switch into basic
-            docs mode and keep the docs searchable below.
-          </p>
-          <div class="quick-search">
-            <label for="doc-search">Basic docs search</label>
-            <div class="search-row">
-              <input id="doc-search" placeholder="Try: model cascade or HITL" />
-              <button id="doc-search-button">Search</button>
-            </div>
-            <div id="doc-results" class="doc-results" aria-live="polite"></div>
-          </div>
-        </div>
-        <edge-chat
-          id="docs-chat"
-          system-prompt="You answer questions about the edgekit project. Always call searchDocs before answering. Cite the matching section titles in concise language."
-          placeholder="Ask: how does the model cascade work?"
-        ></edge-chat>
-      </section>
-
-      <section class="ecommerce-demo" id="ecommerce">
-        <div class="section-heading">
-          <p class="section-label">Live demo</p>
-          <h2>Ecommerce retrofit demo.</h2>
-          <p>
-            The storefront exposes `searchProducts` and `addToCart` tools. edgekit handles the
-            sidecar UI, local model cascade, and graceful fallback.
-          </p>
-        </div>
-        <div class="commerce-layout">
-          <section class="catalog" aria-label="Product catalog" id="catalog"></section>
-          <aside class="commerce-agent">
-            <edge-chat
-              id="commerce-chat"
-              system-prompt="You are a concise shopping assistant. Always search products before recommending. Ask for approval before adding anything to cart."
-              placeholder="Try: find running shoes under $100 in size 10"
-            ></edge-chat>
-            <section class="cart" aria-live="polite">
-              <div class="cart-title">Cart</div>
-              <div id="cart-state">No items yet</div>
-            </section>
-          </aside>
-        </div>
-      </section>
-
-      <section class="split-section" id="agui">
-        <div>
-          <p class="section-label">AG-UI ecosystem demo</p>
-          <h2>Use Edgekit with an AG-UI event stream.</h2>
-          <p>
-            This public Pages demo uses a scripted AG-UI-compatible event source so it can run
-            without a backend. Production apps replace the script with an AG-UI endpoint while
-            keeping the same EdgeView renderer for charts, tables, cards, and forms.
-          </p>
-        </div>
-        <edge-chat
-          id="agui-chat"
-          system-prompt="You render AG-UI compatible streams."
-          placeholder="Ask: what UI components are available?"
-        ></edge-chat>
-      </section>
-
-      <section class="admin-demo" id="admin">
-        <div class="section-heading">
-          <p class="section-label">Live demo</p>
-          <h2>SaaS admin workflow demo.</h2>
-          <p>
-            The admin console exposes account search, plan updates, and suspension tools. edgekit
-            keeps high-impact account changes behind explicit approval.
-          </p>
-        </div>
-        <div class="admin-layout">
-          <section class="account-list" aria-label="Customer accounts" id="admin-accounts"></section>
-          <aside class="admin-agent">
-            <edge-chat
-              id="admin-chat"
-              system-prompt="You are a precise SaaS admin assistant. Always search accounts before recommending or changing account state. Ask for approval before changing plans or suspending accounts."
-              placeholder="Try: upgrade Northwind to Enterprise"
-            ></edge-chat>
-            <section class="activity-log" aria-live="polite">
-              <div class="cart-title">Workflow log</div>
-              <ul id="admin-activity"></ul>
-            </section>
-          </aside>
         </div>
       </section>
     </main>

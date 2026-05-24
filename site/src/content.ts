@@ -223,6 +223,20 @@ export const docChunks: DocChunk[] = [
     body:
       'AGENTS.md documents the architecture, commands, release checks, extension points, and guardrails so coding agents can implement against Edgekit without drifting from the intended product model.',
   },
+  {
+    slug: 'overview',
+    title: 'Dogfood Site Assistant',
+    tags: ['demo', 'dogfood', 'site assistant', 'docs'],
+    body:
+      'The public Pages site mounts an Edgekit assistant across the homepage, docs, and demo pages. It uses the same edge-chat component, Chrome AI cascade, deterministic fallback, docs search tool, and demo catalog tool that adopters can wire into their own apps.',
+  },
+  {
+    slug: 'overview',
+    title: 'Separate Demo Pages',
+    tags: ['demo', 'ecommerce', 'admin', 'ag-ui', 'mission control'],
+    body:
+      'Each public demo has its own route: ecommerce retrofit, docs Q&A, AG-UI event stream, SaaS admin workflow, and mission control telemetry. The homepage now links to dedicated workflow pages instead of burying every agent surface on one long page.',
+  },
 ]
 
 export function searchDocs(query: string) {

@@ -4,8 +4,9 @@ import type { AgUiRunInput, EdgeViewNode, MissionControlSnapshot } from '@kevinm
 import type { EdgeChat } from '@kevinmarmstrong/edgekit-ui'
 import { z } from 'zod'
 import { mountAdminDemo } from './adminDemo'
-import { docChunks, searchDocs } from './content'
+import { searchDocs } from './content'
 import { docsPages, docsPath } from './docsContent'
+import { mountSiteAssistant } from './siteAssistant'
 import './styles.css'
 
 type Product = {
@@ -209,6 +210,7 @@ renderCart()
 renderMissionControl()
 wireDocSearch()
 mountAdminDemo()
+mountSiteAssistant({ telemetry: missionControl })
 
 function renderDocCards() {
   const grid = document.querySelector<HTMLElement>('#doc-card-grid')

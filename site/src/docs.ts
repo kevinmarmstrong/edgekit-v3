@@ -1,5 +1,6 @@
 import './styles.css'
 import { docsPages, docsPath, getDocsPage } from './docsContent'
+import { mountSiteAssistant } from './siteAssistant'
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '')
 const root = document.querySelector<HTMLElement>('#docs-root')
@@ -59,6 +60,8 @@ if (root) {
     </main>
   `
 }
+
+mountSiteAssistant()
 
 function renderSection(section: (typeof activePage.sections)[number]) {
   return `

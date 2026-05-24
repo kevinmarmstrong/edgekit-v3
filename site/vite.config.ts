@@ -14,6 +14,11 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
+        'demo-ecommerce': resolve(__dirname, 'demos/ecommerce/index.html'),
+        'demo-docs': resolve(__dirname, 'demos/docs/index.html'),
+        'demo-ag-ui': resolve(__dirname, 'demos/ag-ui/index.html'),
+        'demo-admin': resolve(__dirname, 'demos/admin/index.html'),
+        'demo-mission-control': resolve(__dirname, 'demos/mission-control/index.html'),
         docs: resolve(__dirname, 'docs/index.html'),
         'docs-getting-started': resolve(__dirname, 'docs/getting-started/index.html'),
         'docs-concepts': resolve(__dirname, 'docs/concepts/index.html'),
@@ -58,6 +63,14 @@ ${links}
 - [Overview Markdown](/docs.md)
 - [Enterprise controls Markdown](/docs/advanced.md)
 - [Ecosystem Markdown](/docs/ecosystem.md)
+
+## Public demos
+
+- [Ecommerce retrofit](/demos/ecommerce/)
+- [Docs Q&A](/demos/docs/)
+- [AG-UI event stream](/demos/ag-ui/)
+- [SaaS admin workflow](/demos/admin/)
+- [Mission control telemetry](/demos/mission-control/)
 
 ## Repository
 

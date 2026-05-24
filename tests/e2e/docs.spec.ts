@@ -7,9 +7,14 @@ test('homepage links into the full documentation site', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'Start with the thesis, then jump to the implementation surface.' })).toBeVisible()
   await expect(page.locator('#doc-card-grid a.doc-card')).toHaveCount(10)
+  await expect(page.locator('.demo-grid a.demo-card')).toHaveCount(5)
   await expect(page.locator('.site-header nav').getByRole('link', { name: 'Admin' })).toHaveCount(0)
-  await expect(page.locator('edge-chat')).toHaveCount(4)
-  await expect(page.getByRole('heading', { name: 'Observe edge agents without centralizing the runtime.' })).toBeVisible()
+  await expect(page.locator('edge-chat')).toHaveCount(1)
+  await expect(page.locator('#site-assistant')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Live ecommerce Product search and guarded add-to-cart' })).toHaveAttribute(
+    'href',
+    'demos/ecommerce/',
+  )
 
   await page.getByRole('link', { name: 'Read the docs' }).click()
   await expect(page).toHaveURL(/\/edgekit\/docs\/$/)
@@ -31,19 +36,20 @@ test('agent-readable documentation exports are available', async ({ page }) => {
 })
 
 test('mission control dashboard aggregates public demo telemetry', async ({ page }) => {
-  await page.goto(siteURL + '?cacheBust=' + Date.now())
+  await page.goto(`${siteURL}demos/mission-control/?cacheBust=${Date.now()}`)
 
   await expect(page.locator('#mc-runs')).toHaveText('0')
-  const agui = page.locator('#agui')
-  await agui.getByTestId('chat-input').fill('what other components do you have for the UI?')
-  await agui.getByTestId('send-button').click()
+  await page.locator('#site-assistant .site-assistant-toggle').click()
+  const assistant = page.locator('#site-assistant')
+  await assistant.getByTestId('chat-input').fill('what demos can I try?')
+  await assistant.getByTestId('send-button').click()
 
   await expect(page.locator('#mc-runs')).toHaveText('1')
   await expect(page.locator('#mc-last-event')).toContainText('run-finish')
 })
 
 test('public site renders AG-UI compatible declarative UI demo', async ({ page }) => {
-  await page.goto(siteURL + '?cacheBust=' + Date.now() + '#agui')
+  await page.goto(`${siteURL}demos/ag-ui/?cacheBust=${Date.now()}`)
 
   const agui = page.locator('#agui')
   await expect(agui).toContainText('AG-UI ecosystem demo')
@@ -60,7 +66,7 @@ test('public site renders AG-UI compatible declarative UI demo', async ({ page }
 })
 
 test('public AG-UI demo discloses the scripted stream and shows component variants', async ({ page }) => {
-  await page.goto(siteURL + '?cacheBust=' + Date.now() + '#agui')
+  await page.goto(`${siteURL}demos/ag-ui/?cacheBust=${Date.now()}`)
 
   const agui = page.locator('#agui')
   await expect(agui).toContainText('scripted AG-UI-compatible event source')
@@ -83,7 +89,7 @@ test('public AG-UI demo discloses the scripted stream and shows component varian
 })
 
 test('public AG-UI demo can render a requested fillable form', async ({ page }) => {
-  await page.goto(siteURL + '?cacheBust=' + Date.now() + '#agui')
+  await page.goto(`${siteURL}demos/ag-ui/?cacheBust=${Date.now()}`)
 
   const agui = page.locator('#agui')
   await agui.getByTestId('chat-input').fill('Create a form for me to fill in')
@@ -136,4 +142,16 @@ test('docs pages expose core documentation sections and navigation', async ({ pa
   await page.locator('.docs-sidebar').getByRole('link', { name: 'Interface', exact: true }).click()
   await expect(page).toHaveURL(/\/edgekit\/docs\/ui\/$/)
   await expect(page.getByRole('heading', { name: 'React wrapper' })).toBeVisible()
+})
+
+test('dogfood assistant is mounted across docs and demo pages', async ({ page }) => {
+  await page.goto(`${siteURL}docs/`)
+  await expect(page.locator('#site-assistant')).toBeVisible()
+  await page.locator('#site-assistant .site-assistant-toggle').click()
+  await expect(page.locator('#site-assistant edge-chat')).toBeVisible()
+
+  await page.goto(`${siteURL}demos/docs/`)
+  await expect(page.getByRole('heading', { name: 'Docs Q&A demo' })).toBeVisible()
+  await expect(page.locator('#site-assistant')).toBeVisible()
+  await expect(page.locator('#qa edge-chat#docs-chat')).toBeVisible()
 })

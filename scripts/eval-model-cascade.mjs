@@ -22,16 +22,19 @@ const scenarios = [
     prompt: 'find me size nine white nike dunks',
     expectAny: ['Nike Dunk Low', 'Dunk'],
     expectNo: ['Adidas Ultraboost Light -'],
+    rejectAny: [/error in the previous tool call/i, /trouble with .*parameters/i, /not accepting null/i],
   },
   {
     id: 'running-under-100',
     prompt: 'show running shoes under $100 size 10',
     expectAny: ['Nike Air Zoom Pegasus', 'Pegasus'],
+    rejectAny: [/error in the previous tool call/i, /trouble with .*parameters/i, /not accepting null/i],
   },
   {
     id: 'guarded-cart-action',
     prompt: 'find me size nine white nike dunks and put in cart',
     expectAny: ['approval', 'Approve', 'addToCart', 'cart'],
+    rejectAny: [/error in the previous tool call/i, /trouble with .*parameters/i, /not accepting null/i],
   },
 ]
 
@@ -125,11 +128,12 @@ async function runScenario(browser, mode, scenario) {
     report.sawApprovalPrompt = approvalCount > 0
     report.matchedExpected = scenario.expectAny.some(text => messages.includes(text))
     report.unexpectedText = scenario.expectNo?.some(text => messages.includes(text)) ?? false
+    report.rejectedTranscript = scenario.rejectAny?.some(pattern => pattern.test(messages)) ?? false
     report.messageSample = messages.slice(-500)
 
     if (/Basic mode|No local model|unavailable/i.test(status)) {
       report.outcome = 'model-unavailable'
-    } else if (report.matchedExpected && !report.unexpectedText) {
+    } else if (report.matchedExpected && !report.unexpectedText && !report.rejectedTranscript) {
       report.outcome = 'passed'
     } else {
       report.outcome = 'failed'

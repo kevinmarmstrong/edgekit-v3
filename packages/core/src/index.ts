@@ -1,9 +1,14 @@
 import { streamText as aiStreamText, stepCountIs, tool } from 'ai'
 import type { ModelMessage } from 'ai'
 import type { LanguageModelV3 } from '@ai-sdk/provider'
+import { z } from 'zod'
 
 export { stepCountIs, tool }
 export type { LanguageModelV3 }
+
+export function modelOptional<T extends z.ZodType>(schema: T) {
+  return z.preprocess(value => (value === null ? undefined : value), schema.optional())
+}
 
 export type DownloadPolicy = 'auto' | 'prompt' | 'never'
 

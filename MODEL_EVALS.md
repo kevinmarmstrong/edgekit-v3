@@ -28,5 +28,6 @@ EDGEKIT_REQUIRE_REAL_MODEL=1 pnpm eval:models
 - White Nike Dunks search narrows to `Nike Dunk Low`.
 - Running shoes under `$100` in size `10` return a matching running product.
 - Guarded cart request asks before changing cart state.
+- Real-model transcripts fail if they contain tool-schema recovery chatter such as previous tool-call errors, parameter trouble, or `null` rejection language.
 
 When tuning prompts or provider wrappers, compare the JSON reports across modes. The deterministic `pnpm test:workflows` suite should remain green while the real-model scores improve.

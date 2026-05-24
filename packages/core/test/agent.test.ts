@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { LanguageModelV3 } from '@ai-sdk/provider'
-import { createAgent, createModelProvider, resolveModel } from '../src/index'
+import { z } from 'zod'
+import { createAgent, createModelProvider, modelOptional, resolveModel } from '../src/index'
 
 const fakeModel = { provider: 'fake', modelId: 'fake-model', specificationVersion: 'v3' } as LanguageModelV3
 
@@ -211,5 +212,37 @@ describe('createAgent', () => {
         },
       ],
     })
+  })
+})
+
+describe('modelOptional', () => {
+  it('normalizes omitted and null model slots to undefined', () => {
+    const inputSchema = z.object({
+      query: z.string(),
+      size: modelOptional(z.string()),
+      maxPrice: modelOptional(z.number()),
+    })
+
+    expect(inputSchema.parse({ query: 'nike dunks' })).toEqual({
+      query: 'nike dunks',
+    })
+    expect(inputSchema.parse({ query: 'nike dunks', size: null, maxPrice: null })).toEqual({
+      query: 'nike dunks',
+      size: undefined,
+      maxPrice: undefined,
+    })
+    expect(inputSchema.parse({ query: 'nike dunks', size: '9', maxPrice: 100 })).toEqual({
+      query: 'nike dunks',
+      size: '9',
+      maxPrice: 100,
+    })
+  })
+
+  it('keeps invalid concrete values invalid', () => {
+    const inputSchema = z.object({
+      maxPrice: modelOptional(z.number()),
+    })
+
+    expect(inputSchema.safeParse({ maxPrice: '100' }).success).toBe(false)
   })
 })

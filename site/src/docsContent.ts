@@ -89,14 +89,14 @@ export const docsPages: DocsPage[] = [
         code: {
           language: 'ts',
           text: `import '@kevinmarmstrong/edgekit-ui'
-import { tool } from '@kevinmarmstrong/edgekit'
+import { modelOptional, tool } from '@kevinmarmstrong/edgekit'
 import { z } from 'zod'
 
 const searchProducts = tool({
   description: 'Search the product catalog.',
   inputSchema: z.object({
     query: z.string(),
-    maxPrice: z.number().optional(),
+    maxPrice: modelOptional(z.number()),
   }),
   execute: async ({ query, maxPrice }) => {
     const params = new URLSearchParams({ q: query })
@@ -133,7 +133,7 @@ document.querySelector('edge-chat')?.registerTools({ searchProducts })`,
         title: 'Tools are app capabilities',
         body: [
           'Tools should wrap real app capabilities rather than duplicate business logic. Search, retrieve, update, create, cancel, suspend, add-to-cart, and submit-order actions can all be represented as tools.',
-          'For optional tool fields, accept both omitted values and `null`. Browser models may send `null` for an unspecified slot, and the tool should normalize that the same way it handles absence.',
+          'For optional tool fields, use `modelOptional(schema)`. Browser models may send `null` for an unspecified slot, and the tool should normalize that the same way it handles absence.',
         ],
       },
       {
@@ -173,6 +173,7 @@ document.querySelector('edge-chat')?.registerTools({ searchProducts })`,
           '`webLLM(options)`: provider helper for WebLLM.',
           '`createModelProvider(options)`: define a custom provider.',
           '`tool`: re-export of the AI SDK tool helper.',
+          '`modelOptional(schema)`: optional schema helper that treats model-supplied `null` the same as an omitted field.',
           '`LanguageModelV3`: model type export for custom providers.',
         ],
       },

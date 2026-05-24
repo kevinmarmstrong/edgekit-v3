@@ -25,14 +25,14 @@ Open the full documentation at `https://kevinmarmstrong.github.io/edgekit/docs/`
 
 ```ts
 import '@kevinmarmstrong/edgekit-ui'
-import { tool } from '@kevinmarmstrong/edgekit'
+import { modelOptional, tool } from '@kevinmarmstrong/edgekit'
 import { z } from 'zod'
 
 const searchProducts = tool({
   description: 'Search the product catalog',
   inputSchema: z.object({
     query: z.string(),
-    maxPrice: z.number().optional(),
+    maxPrice: modelOptional(z.number()),
   }),
   execute: async ({ query, maxPrice }) => {
     const params = new URLSearchParams({ q: query })

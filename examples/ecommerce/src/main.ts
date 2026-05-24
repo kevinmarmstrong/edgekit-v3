@@ -1,5 +1,5 @@
 import '@kevinmarmstrong/edgekit-ui'
-import { chromeAI, createModelProvider, tool, webLLM } from '@kevinmarmstrong/edgekit'
+import { chromeAI, createModelProvider, modelOptional, tool, webLLM } from '@kevinmarmstrong/edgekit'
 import type { LanguageModelV3 } from '@kevinmarmstrong/edgekit'
 import { z } from 'zod'
 import './styles.css'
@@ -63,16 +63,14 @@ const products: Product[] = [
 ]
 
 const cart: Array<{ productId: string; quantity: number }> = []
-const optionalModelNumber = (description: string) => z.union([z.number(), z.null()]).optional().describe(description)
-const optionalModelString = (description: string) => z.union([z.string(), z.null()]).optional().describe(description)
 
 const searchProducts = tool({
   description: 'Search the product catalog by query, maximum price, size, and color.',
   inputSchema: z.object({
     query: z.string().describe('Product search terms, such as running shoes'),
-    maxPrice: optionalModelNumber('Maximum price in dollars'),
-    size: optionalModelString('Shoe size'),
-    color: optionalModelString('Requested product color'),
+    maxPrice: modelOptional(z.number()).describe('Maximum price in dollars'),
+    size: modelOptional(z.string()).describe('Shoe size'),
+    color: modelOptional(z.string()).describe('Requested product color'),
   }),
   execute: async ({ query, maxPrice, size, color }) => {
     const normalizedQuery = query.toLowerCase()

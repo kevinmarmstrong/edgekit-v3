@@ -3,7 +3,7 @@
 Core runtime for browser-native agent sidecars.
 
 ```ts
-import { createAgent, tool } from '@kevinmarmstrong/edgekit'
+import { createAgent, modelOptional, tool } from '@kevinmarmstrong/edgekit'
 import { z } from 'zod'
 
 const agent = createAgent({
@@ -11,8 +11,15 @@ const agent = createAgent({
   tools: {
     searchProducts: tool({
       description: 'Search products',
-      inputSchema: z.object({ query: z.string() }),
-      execute: async ({ query }) => fetch(`/api/products?q=${query}`).then(res => res.json()),
+      inputSchema: z.object({
+        query: z.string(),
+        maxPrice: modelOptional(z.number()),
+      }),
+      execute: async ({ query, maxPrice }) => {
+        const params = new URLSearchParams({ q: query })
+        if (maxPrice) params.set('max_price', String(maxPrice))
+        return fetch(`/api/products?${params}`).then(res => res.json())
+      },
     }),
   },
 })
@@ -23,3 +30,4 @@ for await (const event of agent.send('find running shoes')) {
 ```
 
 Use `chromeAI()` and `webLLM()` for the default local model cascade, or pass any AI SDK language model in `model`.
+Use `modelOptional(schema)` for optional tool fields so browser models can omit a value or send `null` without causing a visible schema-retry loop.

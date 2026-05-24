@@ -302,7 +302,10 @@ function answerFromCatalog(input: string) {
   return [
     'Local browser AI is unavailable here, so edgekit answered through basic catalog mode.',
     '',
-    ...results.map(product => `${product.name} - $${product.price.toFixed(2)} - ${product.support}`),
+    ...results.map(
+      product =>
+        `${product.name} - $${product.price.toFixed(2)} - sizes ${product.sizes.join(', ')} - ${product.color} - ${product.support}`,
+    ),
     '',
     'Enable Chrome AI for tool-calling recommendations and guarded add-to-cart actions.',
   ].join('\n')

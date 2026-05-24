@@ -146,14 +146,35 @@ document.querySelector('edge-chat')?.registerTools({ searchProducts })`,
       {
         id: 'events',
         title: 'Agent events',
-        body: ['The core agent streams status, text, tool calls, tool results, approval requests, no-model fallbacks, errors, and done events.'],
+        body: ['The core agent streams status, text, tool calls, tool results, declarative views, approval requests, no-model fallbacks, errors, and done events.'],
         code: {
           language: 'ts',
           text: `for await (const event of agent.send('upgrade Northwind to Enterprise')) {
   if (event.type === 'tool-call') console.log(event.toolName, event.input)
+  if (event.type === 'view') renderEdgeView(event.view)
   if (event.type === 'approval-request') showApproval(event)
 }`,
         },
+      },
+      {
+        id: 'edgeview',
+        title: 'EdgeView',
+        body: [
+          'EdgeView is the default declarative UI layer. `registerActions()` compiles into EdgeView cards and forms, and AG-UI custom events can carry EdgeView payloads. This gives developers a stable, framework-neutral way to render text, cards, forms, tables, and simple charts before adopting a broader A2UI renderer.',
+        ],
+      },
+      {
+        id: 'ag-ui',
+        title: 'AG-UI compatibility',
+        body: [
+          'Use `createAgUiAgent()` when the agent comes from an AG-UI ecosystem backend instead of the browser-native model cascade. Edgekit accepts text events, tool-result events, and custom `edgekit.view` or A2UI-style view events.',
+          'Without AG-UI, use `registerTools()` plus `registerActions()` to keep the agent fully browser-native and app-owned. With AG-UI, attach an external event stream with `useAgent()` and keep the same EdgeView renderer for rich UI.',
+        ],
+        bullets: [
+          'Standard AG-UI HTTP/SSE endpoint: pass `createAgUiAgent({ endpoint })` and attach it with `chat.useAgent(agent)`.',
+          '@ag-ui/client or HttpAgent-backed service: expose the same event stream endpoint, or adapt its event iterator through `createAgUiAgent({ run })`.',
+          'CopilotKit, LangGraph, CrewAI, or other AG-UI bridges: keep their backend agent runtime, then let Edgekit render the user-facing event stream inside your app.',
+        ],
       },
     ],
   },
@@ -171,6 +192,9 @@ document.querySelector('edge-chat')?.registerTools({ searchProducts })`,
           '`createAgent(options)`: create an event-streaming agent.',
           '`chromeAI()`: provider helper for browser Chrome AI.',
           '`webLLM(options)`: provider helper for WebLLM.',
+          '`createAgUiAgent(options)`: wrap an AG-UI compatible event stream as an Edgekit agent.',
+          '`agUiEventToAgentEvents(event)`: translate AG-UI events into Edgekit events.',
+          '`actionsToEdgeView(actions)`: compile action metadata into declarative EdgeView cards/forms.',
           '`createModelProvider(options)`: define a custom provider.',
           '`tool`: re-export of the AI SDK tool helper.',
           '`modelOptional(schema)`: optional schema helper that treats model-supplied `null` the same as an omitted field.',
@@ -228,6 +252,22 @@ chat?.configure({
   onNoModel: ({ input }) => fallbackSearch(input),
 })
 chat?.registerTools({ searchProducts, addToCart })`,
+        },
+      },
+      {
+        id: 'ag-ui-agent',
+        title: 'AG-UI agent',
+        body: ['Use `useAgent()` when the sidecar should be powered by an AG-UI-compatible backend instead of the built-in browser model cascade.'],
+        code: {
+          language: 'ts',
+          text: `import { createAgUiAgent } from '@kevinmarmstrong/edgekit'
+
+const agent = createAgUiAgent({
+  endpoint: '/api/ag-ui/support-agent',
+})
+
+const chat = document.querySelector('edge-chat')
+chat?.useAgent(agent)`,
         },
       },
       {

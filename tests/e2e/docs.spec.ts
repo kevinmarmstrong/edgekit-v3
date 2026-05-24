@@ -8,11 +8,28 @@ test('homepage links into the full documentation site', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Full documentation, not just a demo page.' })).toBeVisible()
   await expect(page.locator('#doc-card-grid a.doc-card')).toHaveCount(11)
   await expect(page.locator('.site-header nav').getByRole('link', { name: 'Admin' })).toHaveCount(0)
-  await expect(page.locator('edge-chat')).toHaveCount(3)
+  await expect(page.locator('edge-chat')).toHaveCount(4)
 
   await page.getByRole('link', { name: 'Read the docs' }).click()
   await expect(page).toHaveURL(/\/edgekit\/docs\/$/)
   await expect(page.getByRole('heading', { name: 'What edgekit is' })).toBeVisible()
+})
+
+test('public site renders AG-UI compatible declarative UI demo', async ({ page }) => {
+  await page.goto(siteURL + '?cacheBust=' + Date.now() + '#agui')
+
+  const agui = page.locator('#agui')
+  await expect(agui).toContainText('AG-UI ecosystem demo')
+  await agui.getByTestId('chat-input').fill('triage the support queue')
+  await agui.getByTestId('send-button').click()
+
+  await expect(agui.getByText('Open support queue')).toBeVisible()
+  await expect(agui.getByText('Create a support ticket')).toBeVisible()
+  await agui.getByTestId('action-field-category').selectOption('orders')
+  await agui.getByTestId('action-field-priority').selectOption('urgent')
+  await agui.getByTestId('action-run-button').click()
+
+  await expect(agui.getByTestId('chat-messages')).toContainText('Created a urgent orders support ticket')
 })
 
 test('docs pages expose core documentation sections and navigation', async ({ page }) => {

@@ -10,6 +10,77 @@ export function modelOptional<T extends z.ZodType>(schema: T) {
   return z.preprocess(value => (value === null ? undefined : value), schema.optional())
 }
 
+export type EdgeFieldOption = {
+  label: string
+  value: string
+}
+
+export type EdgeField = {
+  name: string
+  label: string
+  type: 'select' | 'text' | 'number'
+  options?: EdgeFieldOption[]
+  required?: boolean
+  value?: string | number
+}
+
+export type EdgeAction = {
+  id: string
+  label: string
+  toolName: string
+  description?: string
+  input?: Record<string, unknown>
+  fields?: EdgeField[]
+  successMessage?: string | ((output: unknown, input: Record<string, unknown>) => string)
+}
+
+export type EdgeActionContext = {
+  toolName: string
+  input: unknown
+  output: unknown
+}
+
+export type EdgeViewNode =
+  | { type: 'text'; id?: string; text: string }
+  | { type: 'card'; id?: string; title: string; description?: string; children?: EdgeViewNode[] }
+  | {
+      type: 'form'
+      id: string
+      toolName: string
+      submitLabel: string
+      input?: Record<string, unknown>
+      fields?: EdgeField[]
+      successMessage?: string | ((output: unknown, input: Record<string, unknown>) => string)
+    }
+  | { type: 'table'; id?: string; columns: Array<{ key: string; label: string }>; rows: Array<Record<string, unknown>> }
+  | {
+      type: 'chart'
+      id?: string
+      chartType: 'bar'
+      title?: string
+      data: Array<{ label: string; value: number }>
+    }
+
+export function actionsToEdgeView(actions: EdgeAction[]): EdgeViewNode[] {
+  return actions.map(action => ({
+    type: 'card',
+    id: `${action.id}-card`,
+    title: action.label,
+    description: action.description,
+    children: [
+      {
+        type: 'form',
+        id: action.id,
+        toolName: action.toolName,
+        submitLabel: action.label,
+        input: action.input,
+        fields: action.fields,
+        successMessage: action.successMessage,
+      },
+    ],
+  }))
+}
+
 export type DownloadPolicy = 'auto' | 'prompt' | 'never'
 
 export type ModelStatus =
@@ -61,6 +132,7 @@ export type AgentEvent =
   | { type: 'text-delta'; text: string }
   | { type: 'tool-call'; toolName: string; toolCallId: string; input: unknown }
   | { type: 'tool-result'; toolName: string; toolCallId: string; output: unknown }
+  | { type: 'view'; view: EdgeViewNode | EdgeViewNode[] }
   | { type: 'approval-request'; approvalId: string; toolCall: unknown }
   | { type: 'no-model'; message: string }
   | { type: 'error'; error: unknown }
@@ -85,6 +157,89 @@ export interface EdgeAgent {
   send(input: string): AsyncGenerator<AgentEvent>
   respondToApproval(approvalId: string, approved: boolean, reason?: string): AsyncGenerator<AgentEvent>
   reset(): void
+}
+
+export type AgUiEvent = Record<string, unknown> & { type: string }
+
+export interface AgUiRunInput {
+  input: string
+  messages: ModelMessage[]
+  resume?: Array<{ approvalId: string; approved: boolean; reason?: string }>
+}
+
+export interface CreateAgUiAgentOptions {
+  endpoint?: string
+  run?: (input: AgUiRunInput) => AsyncIterable<AgUiEvent> | Promise<AsyncIterable<AgUiEvent>>
+  fetch?: typeof fetch
+}
+
+export function agUiEventToAgentEvents(event: AgUiEvent): AgentEvent[] {
+  const type = normalizeAgUiType(event.type)
+
+  if (type === 'TEXT_MESSAGE_CONTENT' || type === 'TEXT_MESSAGE_CHUNK') {
+    const text = String(event.delta ?? event.text ?? event.content ?? '')
+    return text ? [{ type: 'text-delta', text }] : []
+  }
+
+  if (type === 'TOOL_CALL_RESULT') {
+    return [
+      {
+        type: 'tool-result',
+        toolCallId: String(event.toolCallId ?? event.id ?? 'tool-result'),
+        toolName: String(event.toolCallName ?? event.toolName ?? event.name ?? 'tool'),
+        output: event.content ?? event.result ?? event.output,
+      },
+    ]
+  }
+
+  if (type === 'CUSTOM') {
+    const name = String(event.name ?? event.eventName ?? '')
+    if (['edgekit.view', 'a2ui', 'a2ui.view'].includes(name)) {
+      return [{ type: 'view', view: (event.value ?? event.payload ?? event.data) as EdgeViewNode | EdgeViewNode[] }]
+    }
+  }
+
+  if (type === 'RUN_ERROR') {
+    return [{ type: 'error', error: event.message ?? event.error ?? 'AG-UI run failed' }]
+  }
+
+  return []
+}
+
+export function createAgUiAgent(options: CreateAgUiAgentOptions): EdgeAgent {
+  const messages: ModelMessage[] = []
+
+  const runAgUi = async function* (input: AgUiRunInput): AsyncGenerator<AgentEvent> {
+    let text = ''
+    const events = options.run ? await options.run(input) : streamAgUiEndpoint(options, input)
+
+    for await (const event of events) {
+      for (const agentEvent of agUiEventToAgentEvents(event)) {
+        if (agentEvent.type === 'text-delta') text += agentEvent.text
+        yield agentEvent
+      }
+    }
+
+    if (text) messages.push({ role: 'assistant', content: [{ type: 'text', text }] })
+    yield { type: 'done', text }
+  }
+
+  return {
+    async *send(input: string): AsyncGenerator<AgentEvent> {
+      messages.push({ role: 'user', content: input })
+      yield* runAgUi({ input, messages: [...messages] })
+    },
+    async *respondToApproval(approvalId: string, approved: boolean, reason?: string): AsyncGenerator<AgentEvent> {
+      yield* runAgUi({
+        input: '',
+        messages: [...messages],
+        resume: [{ approvalId, approved, reason }],
+      })
+    },
+    reset() {
+      messages.length = 0
+    },
+  }
 }
 
 interface ProviderOptions {
@@ -371,6 +526,62 @@ function isModelProvider(value: ModelProvider | LanguageModelV3): value is Model
   return 'resolve' in value && typeof value.resolve === 'function'
 }
 
+function normalizeAgUiType(type: string) {
+  return type
+    .replace(/([a-z])([A-Z])/g, '$1_$2')
+    .replace(/-/g, '_')
+    .toUpperCase()
+}
+
+async function* streamAgUiEndpoint(options: CreateAgUiAgentOptions, input: AgUiRunInput): AsyncGenerator<AgUiEvent> {
+  if (!options.endpoint) throw new Error('createAgUiAgent requires either endpoint or run.')
+  const fetchImpl = options.fetch ?? fetch
+  const response = await fetchImpl(options.endpoint, {
+    method: 'POST',
+    headers: {
+      accept: 'text/event-stream, application/x-ndjson, application/json',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  })
+  if (!response.ok) throw new Error(`AG-UI endpoint failed with ${response.status}`)
+  if (!response.body) return
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split(/\r?\n/)
+    buffer = lines.pop() ?? ''
+
+    for (const line of lines) {
+      const event = parseAgUiLine(line)
+      if (event) yield event
+    }
+  }
+
+  const lastEvent = parseAgUiLine(buffer)
+  if (lastEvent) yield lastEvent
+}
+
+function parseAgUiLine(line: string): AgUiEvent | null {
+  const trimmed = line.trim()
+  if (!trimmed || trimmed === 'data: [DONE]') return null
+  const payload = trimmed.startsWith('data:') ? trimmed.slice(5).trim() : trimmed
+  if (!payload) return null
+
+  try {
+    const event = JSON.parse(payload)
+    return isRecord(event) && typeof event.type === 'string' ? event as AgUiEvent : null
+  } catch {
+    return null
+  }
+}
+
 async function maybeAvailability(model: unknown): Promise<string | undefined> {
   if (typeof model === 'object' && model && 'availability' in model) {
     const availability = (model as { availability: () => Promise<string> }).availability
@@ -395,6 +606,10 @@ async function maybeCreateSessionWithProgress(
 
 function readableError(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
 }
 
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number | undefined): Promise<T | null> {

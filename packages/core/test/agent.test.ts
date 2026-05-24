@@ -1,7 +1,15 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { LanguageModelV3 } from '@ai-sdk/provider'
 import { z } from 'zod'
-import { createAgent, createModelProvider, modelOptional, resolveModel } from '../src/index'
+import {
+  actionsToEdgeView,
+  agUiEventToAgentEvents,
+  createAgent,
+  createAgUiAgent,
+  createModelProvider,
+  modelOptional,
+  resolveModel,
+} from '../src/index'
 
 const fakeModel = { provider: 'fake', modelId: 'fake-model', specificationVersion: 'v3' } as LanguageModelV3
 
@@ -244,5 +252,121 @@ describe('modelOptional', () => {
     })
 
     expect(inputSchema.safeParse({ maxPrice: '100' }).success).toBe(false)
+  })
+})
+
+describe('actionsToEdgeView', () => {
+  it('converts tool actions into declarative EdgeView cards', () => {
+    expect(
+      actionsToEdgeView([
+        {
+          id: 'add-dunk',
+          label: 'Add Nike Dunk Low to cart',
+          toolName: 'addToCart',
+          description: 'Choose a size.',
+          input: { productId: 'dunk', quantity: 1 },
+          fields: [
+            {
+              name: 'size',
+              label: 'Size',
+              type: 'select',
+              required: true,
+              options: [{ label: '11', value: '11' }],
+            },
+          ],
+        },
+      ]),
+    ).toEqual([
+      {
+        type: 'card',
+        id: 'add-dunk-card',
+        title: 'Add Nike Dunk Low to cart',
+        description: 'Choose a size.',
+        children: [
+          {
+            type: 'form',
+            id: 'add-dunk',
+            toolName: 'addToCart',
+            submitLabel: 'Add Nike Dunk Low to cart',
+            input: { productId: 'dunk', quantity: 1 },
+            fields: [
+              {
+                name: 'size',
+                label: 'Size',
+                type: 'select',
+                required: true,
+                options: [{ label: '11', value: '11' }],
+              },
+            ],
+          },
+        ],
+      },
+    ])
+  })
+})
+
+describe('AG-UI adapter', () => {
+  it('maps AG-UI text, tool result, and custom EdgeView events to AgentEvent values', () => {
+    expect(
+      agUiEventToAgentEvents({
+        type: 'TEXT_MESSAGE_CONTENT',
+        delta: 'Hello',
+      }),
+    ).toEqual([{ type: 'text-delta', text: 'Hello' }])
+
+    expect(
+      agUiEventToAgentEvents({
+        type: 'TOOL_CALL_RESULT',
+        toolCallId: 'tool-1',
+        toolCallName: 'searchProducts',
+        content: { results: [] },
+      }),
+    ).toEqual([
+      {
+        type: 'tool-result',
+        toolCallId: 'tool-1',
+        toolName: 'searchProducts',
+        output: { results: [] },
+      },
+    ])
+
+    expect(
+      agUiEventToAgentEvents({
+        type: 'CUSTOM',
+        name: 'edgekit.view',
+        value: {
+          type: 'text',
+          text: 'A declarative UI payload',
+        },
+      }),
+    ).toEqual([
+      {
+        type: 'view',
+        view: {
+          type: 'text',
+          text: 'A declarative UI payload',
+        },
+      },
+    ])
+  })
+
+  it('creates an EdgeAgent over AG-UI event streams', async () => {
+    const agent = createAgUiAgent({
+      run: async function* ({ input }) {
+        yield { type: 'RUN_STARTED', input }
+        yield { type: 'TEXT_MESSAGE_CONTENT', delta: 'From AG-UI' }
+        yield { type: 'RUN_FINISHED' }
+      },
+    })
+
+    const events = []
+    for await (const event of agent.send('hello')) {
+      events.push(event)
+    }
+
+    expect(events).toEqual([
+      { type: 'text-delta', text: 'From AG-UI' },
+      { type: 'done', text: 'From AG-UI' },
+    ])
   })
 })

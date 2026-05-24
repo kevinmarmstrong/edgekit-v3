@@ -140,10 +140,10 @@
             <span>Live SaaS admin</span>
             <strong>Admin sidecar with guarded workflow actions</strong>
           </a>
-          <article class="demo-card">
-            <span>Planned support</span>
-            <strong>Planned inbox assistant using existing case APIs</strong>
-          </article>
+          <a class="demo-card active-secondary" href="#agui">
+            <span>AG-UI compatible</span>
+            <strong>Remote event stream rendering declarative EdgeView UI</strong>
+          </a>
         </div>
       </section>
 
@@ -195,6 +195,23 @@
             </section>
           </aside>
         </div>
+      </section>
+
+      <section class="split-section" id="agui">
+        <div>
+          <p class="section-label">AG-UI ecosystem demo</p>
+          <h2>Use Edgekit with an AG-UI event stream.</h2>
+          <p>
+            This demo uses an AG-UI-compatible event source instead of the browser-native model
+            cascade. The stream sends text plus a declarative EdgeView payload that renders as a
+            chart and a fillable support form.
+          </p>
+        </div>
+        <edge-chat
+          id="agui-chat"
+          system-prompt="You render AG-UI compatible streams."
+          placeholder="Ask: triage the support queue"
+        ></edge-chat>
       </section>
 
       <section class="admin-demo" id="admin">

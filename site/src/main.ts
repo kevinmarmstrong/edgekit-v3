@@ -1,5 +1,6 @@
 import '@kevinmarmstrong/edgekit-ui'
-import { chromeAI, modelOptional, tool } from '@kevinmarmstrong/edgekit'
+import { chromeAI, createAgUiAgent, modelOptional, tool } from '@kevinmarmstrong/edgekit'
+import type { EdgeViewNode } from '@kevinmarmstrong/edgekit'
 import type { EdgeChat } from '@kevinmarmstrong/edgekit-ui'
 import { z } from 'zod'
 import { mountAdminDemo } from './adminDemo'
@@ -127,6 +128,20 @@ const addToCart = tool({
   needsApproval: true,
 })
 
+const createSupportTicket = tool({
+  description: 'Create a support ticket from a user-confirmed form.',
+  inputSchema: z.object({
+    category: z.string(),
+    priority: z.string(),
+  }),
+  execute: async ({ category, priority }) => ({
+    success: true,
+    ticketId: `SUP-${category.toUpperCase()}-${priority.toUpperCase()}`,
+    category,
+    priority,
+  }),
+})
+
 const docsChat = document.querySelector<EdgeChat>('edge-chat#docs-chat')
 docsChat?.configure({
   model: [chromeAI()],
@@ -162,6 +177,10 @@ commerceChat?.registerActions(({ toolName, output }) => {
       `Added ${product.name} to your cart${input.size ? ` (size ${input.size})` : ''}.`,
   }))
 })
+
+const agUiChat = document.querySelector<EdgeChat>('edge-chat#agui-chat')
+agUiChat?.registerTools({ createSupportTicket })
+agUiChat?.useAgent(createAgUiAgent({ run: mockAgUiRun }))
 
 renderDocCards()
 renderCatalog()
@@ -263,6 +282,73 @@ function answerFromCatalog(input: string) {
     '',
     'Enable Chrome AI for tool-calling recommendations and guarded add-to-cart actions.',
   ].join('\n')
+}
+
+async function* mockAgUiRun() {
+  yield {
+    type: 'TEXT_MESSAGE_CONTENT',
+    delta: 'This response came from an AG-UI-compatible event stream. Edgekit translated the stream into text plus a declarative EdgeView payload.',
+  }
+
+  yield {
+    type: 'CUSTOM',
+    name: 'edgekit.view',
+    value: [
+      {
+        type: 'chart',
+        id: 'support-chart',
+        chartType: 'bar',
+        title: 'Open support queue',
+        data: [
+          { label: 'Billing', value: 7 },
+          { label: 'Orders', value: 12 },
+          { label: 'Returns', value: 4 },
+        ],
+      },
+      {
+        type: 'card',
+        id: 'support-ticket-card',
+        title: 'Create a support ticket',
+        description: 'The AG-UI stream can ask Edgekit to render a structured form while the app keeps ownership of the tool.',
+        children: [
+          {
+            type: 'form',
+            id: 'support-ticket-form',
+            toolName: 'createSupportTicket',
+            submitLabel: 'Create ticket',
+            input: {},
+            fields: [
+              {
+                name: 'category',
+                label: 'Category',
+                type: 'select',
+                required: true,
+                options: [
+                  { label: 'Billing', value: 'billing' },
+                  { label: 'Orders', value: 'orders' },
+                  { label: 'Returns', value: 'returns' },
+                ],
+              },
+              {
+                name: 'priority',
+                label: 'Priority',
+                type: 'select',
+                required: true,
+                options: [
+                  { label: 'Normal', value: 'normal' },
+                  { label: 'Urgent', value: 'urgent' },
+                ],
+              },
+            ],
+            successMessage: (_output: unknown, input: Record<string, unknown>) =>
+              `Created a ${input.priority} ${input.category} support ticket.`,
+          },
+        ],
+      },
+    ] satisfies EdgeViewNode[],
+  }
+
+  yield { type: 'RUN_FINISHED' }
 }
 
 function renderCart() {

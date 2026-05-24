@@ -31,3 +31,4 @@ for await (const event of agent.send('find running shoes')) {
 
 Use `chromeAI()` and `webLLM()` for the default local model cascade, or pass any AI SDK language model in `model`.
 Use `modelOptional(schema)` for optional tool fields so browser models can omit a value or send `null` without causing a visible schema-retry loop.
+Use `createAgUiAgent({ endpoint })` to connect an AG-UI compatible event stream, and `actionsToEdgeView()` when you want tool results to render as declarative cards/forms.

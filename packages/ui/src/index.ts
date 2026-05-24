@@ -1,11 +1,16 @@
 import { css, html, LitElement } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
 import {
+  actionsToEdgeView,
   createAgent,
   type AgentEvent,
+  type EdgeAction,
+  type EdgeActionContext,
+  type EdgeField,
   type CreateAgentOptions,
   type DownloadPromptEvent,
   type EdgeAgent,
+  type EdgeViewNode,
   type ModelStatusEvent,
   type NoModelEvent,
 } from '@kevinmarmstrong/edgekit'
@@ -26,37 +31,9 @@ type PendingApproval = {
   input: unknown
 }
 
-export type EdgeActionFieldOption = {
-  label: string
-  value: string
-}
-
-export type EdgeActionField = {
-  name: string
-  label: string
-  type: 'select' | 'text' | 'number'
-  options?: EdgeActionFieldOption[]
-  required?: boolean
-  value?: string | number
-}
-
-export type EdgeAction = {
-  id: string
-  label: string
-  toolName: string
-  description?: string
-  input?: Record<string, unknown>
-  fields?: EdgeActionField[]
-  successMessage?: string | ((output: unknown, input: Record<string, unknown>) => string)
-}
-
-export type EdgeActionContext = {
-  toolName: string
-  input: unknown
-  output: unknown
-}
-
 export type EdgeActionProvider = (context: EdgeActionContext) => EdgeAction[] | null | undefined
+
+type EdgeFormView = Extract<EdgeViewNode, { type: 'form' }>
 
 @customElement('edge-chat')
 export class EdgeChat extends LitElement {
@@ -166,7 +143,7 @@ export class EdgeChat extends LitElement {
       gap: 8px;
     }
 
-    .action-card {
+    .view-card {
       display: grid;
       gap: 12px;
       justify-self: start;
@@ -178,29 +155,61 @@ export class EdgeChat extends LitElement {
       box-shadow: 0 12px 28px rgb(29 43 38 / 8%);
     }
 
-    .action-title {
+    .view-title {
       font-size: 14px;
       font-weight: 700;
       line-height: 1.35;
     }
 
-    .action-description {
+    .view-description {
       color: #5f6f69;
       font-size: 12px;
       line-height: 1.4;
     }
 
-    .action-fields {
+    .view-fields {
       display: grid;
       gap: 10px;
     }
 
-    .action-field {
+    .view-field {
       display: grid;
       gap: 5px;
       color: #42534d;
       font-size: 12px;
       font-weight: 700;
+    }
+
+    .view-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .view-table th,
+    .view-table td {
+      border-bottom: 1px solid #e6eeea;
+      padding: 7px 6px;
+      text-align: left;
+    }
+
+    .view-chart {
+      display: grid;
+      gap: 8px;
+    }
+
+    .view-bar-row {
+      display: grid;
+      grid-template-columns: 90px 1fr auto;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .view-bar {
+      height: 10px;
+      border-radius: 999px;
+      background: #177e58;
     }
 
     select {
@@ -285,21 +294,28 @@ export class EdgeChat extends LitElement {
   private pendingApproval: PendingApproval | null = null
 
   @state()
-  private suggestedActions: EdgeAction[] = []
+  private views: EdgeViewNode[] = []
 
   private tools: CreateAgentOptions['tools'] = {}
   private actionProviders: EdgeActionProvider[] = []
   private config: Partial<CreateAgentOptions> = {}
   private agent: EdgeAgent | null = null
+  private agentIsExternal = false
 
   configure(options: Partial<CreateAgentOptions>) {
     this.config = { ...this.config, ...options }
     this.agent = null
+    this.agentIsExternal = false
   }
 
   registerTools(tools: CreateAgentOptions['tools']) {
     this.tools = tools
-    this.agent = null
+    if (!this.agentIsExternal) this.agent = null
+  }
+
+  useAgent(agent: EdgeAgent) {
+    this.agent = agent
+    this.agentIsExternal = true
   }
 
   registerActions(provider: EdgeActionProvider | EdgeAction[]) {
@@ -355,7 +371,7 @@ export class EdgeChat extends LitElement {
                 </div>
               </div>`
             : null}
-          ${this.suggestedActions.map(action => this.renderAction(action))}
+          ${this.views.map(view => this.renderView(view))}
         </div>
         <form @submit=${this.submit}>
           <input
@@ -383,6 +399,7 @@ export class EdgeChat extends LitElement {
         onNoModel: (event: NoModelEvent) => event.message,
         ...this.config,
       })
+      this.agentIsExternal = false
     }
     return this.agent
   }
@@ -395,7 +412,7 @@ export class EdgeChat extends LitElement {
 
     if (input) input.value = ''
     this.busy = true
-    this.suggestedActions = []
+    this.views = []
     this.messages = [...this.messages, { role: 'user', text }, { role: 'assistant', text: '' }]
 
     try {
@@ -432,6 +449,8 @@ export class EdgeChat extends LitElement {
         input: undefined,
         output: event.output,
       })
+    } else if (event.type === 'view') {
+      this.views = [...this.views, ...(Array.isArray(event.view) ? event.view : [event.view])]
     } else if (event.type === 'error') {
       this.pendingPrompt = null
       this.pendingApproval = null
@@ -461,34 +480,71 @@ export class EdgeChat extends LitElement {
     this.pendingPrompt = null
   }
 
-  private renderAction(action: EdgeAction) {
-    return html`<div class="action-card" data-testid="action-card">
-      <div>
-        <div class="action-title">${action.label}</div>
-        ${action.description ? html`<div class="action-description">${action.description}</div>` : null}
-      </div>
-      ${action.fields?.length
-        ? html`<div class="action-fields">
-            ${action.fields.map(field => this.renderActionField(action, field))}
-          </div>`
-        : null}
-      <div class="prompt-actions">
-        <button type="button" data-testid="action-run-button" @click=${() => this.runAction(action)}>
-          ${action.label}
-        </button>
-      </div>
-    </div>`
+  private renderView(view: EdgeViewNode): unknown {
+    if (view.type === 'text') return html`<div class="message assistant">${view.text}</div>`
+
+    if (view.type === 'card') {
+      return html`<div class="view-card" data-testid="action-card">
+        <div>
+          <div class="view-title">${view.title}</div>
+          ${view.description ? html`<div class="view-description">${view.description}</div>` : null}
+        </div>
+        ${view.children?.map(child => this.renderView(child))}
+      </div>`
+    }
+
+    if (view.type === 'form') {
+      return html`${view.fields?.length
+          ? html`<div class="view-fields">${view.fields.map(field => this.renderFormField(view, field))}</div>`
+          : null}
+        <div class="prompt-actions">
+          <button type="button" data-testid="action-run-button" @click=${() => this.runForm(view)}>
+            ${view.submitLabel}
+          </button>
+        </div>`
+    }
+
+    if (view.type === 'table') {
+      return html`<div class="view-card">
+        <table class="view-table">
+          <thead>
+            <tr>${view.columns.map(column => html`<th>${column.label}</th>`)}</tr>
+          </thead>
+          <tbody>
+            ${view.rows.map(row => html`<tr>${view.columns.map(column => html`<td>${String(row[column.key] ?? '')}</td>`)}</tr>`)}
+          </tbody>
+        </table>
+      </div>`
+    }
+
+    if (view.type === 'chart') {
+      const max = Math.max(1, ...view.data.map(point => point.value))
+      return html`<div class="view-card">
+        ${view.title ? html`<div class="view-title">${view.title}</div>` : null}
+        <div class="view-chart">
+          ${view.data.map(
+            point => html`<div class="view-bar-row">
+              <span>${point.label}</span>
+              <span class="view-bar" style=${`width: ${(point.value / max) * 100}%`}></span>
+              <span>${point.value}</span>
+            </div>`,
+          )}
+        </div>
+      </div>`
+    }
+
+    return null
   }
 
-  private renderActionField(action: EdgeAction, field: EdgeActionField) {
-    const id = `${action.id}-${field.name}`
-    return html`<label class="action-field" for=${id}>
+  private renderFormField(form: EdgeFormView, field: EdgeField): unknown {
+    const id = `${form.id}-${field.name}`
+    return html`<label class="view-field" for=${id}>
       ${field.label}
       ${field.type === 'select'
         ? html`<select
             id=${id}
             data-testid=${`action-field-${field.name}`}
-            data-action-id=${action.id}
+            data-action-id=${form.id}
             data-field-name=${field.name}
           >
             ${field.options?.map(
@@ -500,7 +556,7 @@ export class EdgeChat extends LitElement {
         : html`<input
             id=${id}
             data-testid=${`action-field-${field.name}`}
-            data-action-id=${action.id}
+            data-action-id=${form.id}
             data-field-name=${field.name}
             type=${field.type}
             .value=${String(field.value ?? '')}
@@ -513,14 +569,15 @@ export class EdgeChat extends LitElement {
     if (this.actionProviders.length === 0) return
     const actions = this.actionProviders.flatMap(provider => provider(context) ?? [])
     if (actions.length === 0) return
-    const existingIds = new Set(this.suggestedActions.map(action => action.id))
-    this.suggestedActions = [...this.suggestedActions, ...actions.filter(action => !existingIds.has(action.id))]
+    const actionViews = actionsToEdgeView(actions)
+    const existingIds = new Set(this.views.map(view => view.id).filter(Boolean))
+    this.views = [...this.views, ...actionViews.filter(view => !view.id || !existingIds.has(view.id))]
   }
 
-  private async runAction(action: EdgeAction) {
-    const input = { ...(action.input ?? {}) }
-    for (const field of action.fields ?? []) {
-      const selector = `[data-action-id="${action.id}"][data-field-name="${field.name}"]`
+  private async runForm(form: EdgeFormView) {
+    const input = { ...(form.input ?? {}) }
+    for (const field of form.fields ?? []) {
+      const selector = `[data-action-id="${form.id}"][data-field-name="${field.name}"]`
       const element = this.renderRoot.querySelector<HTMLInputElement | HTMLSelectElement>(selector)
       const rawValue = element?.value ?? ''
       if (field.required && rawValue.length === 0) {
@@ -533,14 +590,14 @@ export class EdgeChat extends LitElement {
     }
 
     this.busy = true
-    this.suggestedActions = this.suggestedActions.filter(candidate => candidate.id !== action.id)
+    this.views = this.views.filter(candidate => candidate.id !== `${form.id}-card` && candidate.id !== form.id)
     try {
-      const output = await this.executeTool(action.toolName, input)
+      const output = await this.executeTool(form.toolName, input)
       this.messages = [
         ...this.messages,
         {
           role: 'assistant',
-          text: this.actionSuccessText(action, output, input),
+          text: this.formSuccessText(form, output, input),
         },
       ]
     } catch (error) {
@@ -556,10 +613,10 @@ export class EdgeChat extends LitElement {
     return candidate.execute(input)
   }
 
-  private actionSuccessText(action: EdgeAction, output: unknown, input: Record<string, unknown>) {
-    if (typeof action.successMessage === 'function') return action.successMessage(output, input)
-    if (action.successMessage) return action.successMessage
-    return `${action.label} complete.`
+  private formSuccessText(form: EdgeFormView, output: unknown, input: Record<string, unknown>) {
+    if (typeof form.successMessage === 'function') return form.successMessage(output, input)
+    if (form.successMessage) return form.successMessage
+    return `${form.submitLabel} complete.`
   }
 
   private async answerApproval(approved: boolean) {

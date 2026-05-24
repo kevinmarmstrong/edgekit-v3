@@ -55,6 +55,17 @@ chat?.registerActions(({ toolName, output }) => {
 })
 ```
 
+AG-UI-compatible backends can drive the same component:
+
+```ts
+import { createAgUiAgent } from '@kevinmarmstrong/edgekit'
+
+const agent = createAgUiAgent({ endpoint: '/api/ag-ui/support-agent' })
+document.querySelector('edge-chat')?.useAgent(agent)
+```
+
+Use the native path when the web app can register local tools directly. Use the AG-UI path when an existing backend agent, CopilotKit/LangGraph/CrewAI bridge, or AG-UI HTTP stream should own the run while Edgekit renders the in-app experience.
+
 ```html
 <edge-chat
   system-prompt="You are a helpful shopping assistant."
@@ -65,7 +76,7 @@ chat?.registerActions(({ toolName, output }) => {
 ## Packages
 
 - `@kevinmarmstrong/edgekit`: core browser-agent runtime, model cascade, tool loop wrapper, provider helpers.
-- `@kevinmarmstrong/edgekit-ui`: Lit web component, `<edge-chat>`, and `mountChat()`.
+- `@kevinmarmstrong/edgekit-ui`: Lit web component, `<edge-chat>`, EdgeView rendering, and `mountChat()`.
 - `@kevinmarmstrong/edgekit-cli`: docs indexing CLI for Q&A/RAG tools.
 - `examples/ecommerce`: retrofit demo with product search and add-to-cart tools.
 - `site/docs`: full GitHub Pages documentation for concepts, APIs, UI, CLI, testing, and deployment.

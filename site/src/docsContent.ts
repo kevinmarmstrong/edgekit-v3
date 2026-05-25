@@ -958,11 +958,11 @@ chat?.useAgent(agent)`,
         title: 'Expansive outcome suite',
         body: [
           '`pnpm research:suite` is the broader tuning loop. It reads scenario packs from `evals/agent-suite/scenarios.json`, applies thresholds from `evals/agent-suite/rubric.json`, runs seeded prompt variants across browser demos, and executes architecture probes that cannot be safely exposed from GitHub Pages.',
-          'The suite covers Chrome AI/WebLLM/provider fallback behavior, hybrid cloud-route selection, supervisor handoffs, response caching, tool repair, MCP adapters, tool policy boundaries, offline mutation journals, parallel-safe tools, PII redaction, loaded-page offline behavior, AG-UI rendering, admin approvals, and agent-readable docs. Add prompt variants and new scenario packs as the project learns from real usage.',
+          'The suite covers Chrome AI/WebLLM/provider fallback behavior, hybrid cloud-route selection, supervisor handoffs, response caching, tool repair, MCP adapters, tool policy boundaries, offline mutation journals, parallel-safe tools, PII redaction, loaded-page offline behavior, AG-UI rendering, admin approvals, and agent-readable docs. The rubric requires no required failures, no required skips, an average score of at least 0.98, and category confidence ratings above their thresholds.',
         ],
         code: {
           language: 'bash',
-          text: 'pnpm research:suite\nEDGEKIT_SUITE_TARGET=live pnpm research:suite\nEDGEKIT_SUITE_PROMPT_LIMIT=2 pnpm research:suite\nEDGEKIT_SUITE_SEED=42 pnpm research:suite\nEDGEKIT_SUITE_HEADLESS=0 pnpm research:suite',
+          text: 'pnpm research:env\npnpm research:suite\npnpm research:full\nEDGEKIT_SUITE_TARGET=live pnpm research:suite\nEDGEKIT_SUITE_PROMPT_LIMIT=2 pnpm research:suite\nEDGEKIT_SUITE_SEED=42 pnpm research:suite\nEDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:full',
         },
       },
       {

@@ -8,6 +8,7 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const target = process.env.EDGEKIT_SUITE_TARGET ?? 'local'
 const strict = process.env.EDGEKIT_SUITE_STRICT !== '0'
 const headless = process.env.EDGEKIT_SUITE_HEADLESS !== '0'
+const requireRealProviders = process.env.EDGEKIT_REQUIRE_REAL_PROVIDERS === '1'
 const promptLimit = Number(process.env.EDGEKIT_SUITE_PROMPT_LIMIT ?? '0')
 const seed = Number(process.env.EDGEKIT_SUITE_SEED ?? '20260525')
 const siteURL = stripTrailingSlash(
@@ -49,6 +50,7 @@ try {
   }
 
   const browser = await launchBrowser()
+  const environmentResult = await runEnvironmentProbe(browser)
   const browserResults = []
   for (const suite of scenarioPack.suites) {
     for (const prompt of selectPrompts(suite.prompts ?? [], suite.id)) {
@@ -60,7 +62,7 @@ try {
   await browser.close()
 
   const architectureResults = await runArchitectureProbes()
-  const results = [...browserResults, ...providerResults, ...architectureResults]
+  const results = [environmentResult, ...browserResults, ...providerResults, ...architectureResults]
   const summary = summarize(results, rubric)
   const payload = {
     generatedAt: new Date().toISOString(),
@@ -71,6 +73,7 @@ try {
     ecommerceURL: target === 'live' ? null : ecommerceURL,
     scenarioPack: scenarioPack.version,
     rubric: rubric.version,
+    requireRealProviders,
     summary,
     results,
   }
@@ -123,6 +126,64 @@ async function runBrowserSuite(browser, suite, prompt) {
     checks,
     transcript,
     screenshot,
+    notes,
+    durationMs: Date.now() - startedAt,
+  })
+}
+
+async function runEnvironmentProbe(browser) {
+  const page = await browser.newPage()
+  const checks = []
+  const startedAt = Date.now()
+  let transcript = ''
+  let notes = ''
+  try {
+    await page.goto('data:text/html,<html><body>edgekit suite env</body></html>')
+    const capabilities = await page.evaluate(() => {
+      const scope = globalThis
+      return {
+        userAgent: navigator.userAgent,
+        webGpu: 'gpu' in navigator,
+        indexedDb: 'indexedDB' in scope,
+        serviceWorker: 'serviceWorker' in navigator,
+        languageModel: 'LanguageModel' in scope,
+        aiLanguageModel: Boolean(scope.ai?.languageModel),
+        crossOriginIsolated: scope.crossOriginIsolated,
+      }
+    })
+    addCheck(checks, 'environment', 'browser automation is available', true, capabilities.userAgent)
+    addCheck(checks, 'environment', 'IndexedDB is available for cache and journal adapters', capabilities.indexedDb)
+    addCheck(checks, 'environment', 'WebGPU is available when real WebLLM providers are required', !requireRealProviders || capabilities.webGpu)
+    addCheck(
+      checks,
+      'environment',
+      'Chrome AI/Nano API is available when real local providers are required',
+      !requireRealProviders || capabilities.languageModel || capabilities.aiLanguageModel,
+    )
+    addCheck(
+      checks,
+      'environment',
+      'cloud route env is configured when real provider routing is required',
+      !requireRealProviders || Boolean(process.env.EDGEKIT_SUITE_CLOUD_ROUTE_URL),
+    )
+    transcript = JSON.stringify(capabilities, null, 2)
+  } catch (error) {
+    addCheck(checks, 'runtime', 'environment probe completed without throwing', false, readableError(error))
+    notes = readableError(error)
+  } finally {
+    await page.close()
+  }
+
+  return makeResult({
+    id: 'environment:browser-capabilities',
+    suiteId: 'environment',
+    title: 'Browser and provider environment',
+    layer: 'environment',
+    required: true,
+    prompt: '',
+    checks,
+    transcript,
+    screenshot: '',
     notes,
     durationMs: Date.now() - startedAt,
   })
@@ -726,6 +787,7 @@ function summarize(results, evalRubric) {
   let failed = 0
   let skipped = 0
   let requiredFailed = 0
+  let requiredSkipped = 0
   let scoreTotal = 0
   let scored = 0
   for (const result of results) {
@@ -734,7 +796,10 @@ function summarize(results, evalRubric) {
       failed += 1
       if (result.required) requiredFailed += 1
     }
-    if (result.outcome === 'skipped') skipped += 1
+    if (result.outcome === 'skipped') {
+      skipped += 1
+      if (result.required) requiredSkipped += 1
+    }
     if (result.outcome !== 'skipped') {
       scored += 1
       scoreTotal += result.score
@@ -751,12 +816,18 @@ function summarize(results, evalRubric) {
     category.meetsThreshold = category.score >= category.threshold
   }
   const averageScore = scored === 0 ? 0 : round(scoreTotal / scored)
+  const confidenceCategories = Object.values(byCategory).filter(category => category.passed + category.failed > 0)
+  const confidenceRating = confidenceCategories.length === 0
+    ? 0
+    : round(confidenceCategories.reduce((total, category) => total + category.score, 0) / confidenceCategories.length)
   const categoryFailures = Object.entries(byCategory)
     .filter(([, value]) => !value.meetsThreshold)
     .map(([name, value]) => ({ name, score: value.score, threshold: value.threshold }))
   const meetsRubric =
     requiredFailed === evalRubric.thresholds.requiredFailureCount &&
+    requiredSkipped <= (evalRubric.thresholds.maxRequiredSkipped ?? 0) &&
     averageScore >= evalRubric.thresholds.overallScore &&
+    confidenceRating >= (evalRubric.thresholds.minimumConfidenceRating ?? evalRubric.thresholds.overallScore) &&
     categoryFailures.length === 0
   return {
     total: results.length,
@@ -764,11 +835,13 @@ function summarize(results, evalRubric) {
     failed,
     skipped,
     requiredFailed,
+    requiredSkipped,
     averageScore,
+    confidenceRating,
     byCategory,
     categoryFailures,
     meetsRubric,
-    confidenceBand: confidenceBand(evalRubric, averageScore, meetsRubric),
+    confidenceBand: confidenceBand(evalRubric, Math.min(averageScore, confidenceRating), meetsRubric),
   }
 }
 
@@ -810,7 +883,9 @@ Summary:
 - Failed: ${payload.summary.failed}
 - Skipped: ${payload.summary.skipped}
 - Required failed: ${payload.summary.requiredFailed}
+- Required skipped: ${payload.summary.requiredSkipped}
 - Average score: ${payload.summary.averageScore}
+- Confidence rating: ${payload.summary.confidenceRating}
 
 ## Category Scores
 

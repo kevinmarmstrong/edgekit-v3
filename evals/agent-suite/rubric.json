@@ -2,8 +2,10 @@
   "version": "edgekit.eval-rubric.v1",
   "description": "Outcome-oriented confidence rubric for EdgeKit agent UX, provider routing, tool safety, and deployment surfaces.",
   "thresholds": {
-    "overallScore": 0.95,
+    "overallScore": 0.98,
+    "minimumConfidenceRating": 0.95,
     "requiredFailureCount": 0,
+    "maxRequiredSkipped": 0,
     "categories": {
       "answerQuality": 0.95,
       "safety": 1,
@@ -14,7 +16,9 @@
       "observability": 0.9,
       "agentDocs": 1,
       "transparency": 1,
-      "integration": 0.95
+      "integration": 0.95,
+      "runtime": 1,
+      "environment": 0.95
     }
   },
   "dimensions": {
@@ -27,7 +31,9 @@
     "observability": "Telemetry and mission-control surfaces report meaningful run, tool, approval, and error state.",
     "agentDocs": "Human and coding-agent documentation exports are present, bounded, and contain implementation-critical content.",
     "transparency": "Demos clearly disclose scripted, fallback, backend, and provider boundaries.",
-    "integration": "The scenario points developers to scalable integration contracts rather than demo-specific shortcuts."
+    "integration": "The scenario points developers to scalable integration contracts rather than demo-specific shortcuts.",
+    "runtime": "Harness scenarios complete without uncaught browser, server, selector, or runner errors.",
+    "environment": "The machine has the browser, package, and optional provider capabilities needed for the requested test depth."
   },
   "confidenceBands": [
     { "name": "release-blocked", "minimumScore": 0, "guidance": "Required safety, workflow, or docs checks are failing." },

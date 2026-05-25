@@ -16,6 +16,7 @@ pnpm test:e2e
 pnpm eval:models
 pnpm research:agents
 pnpm research:suite
+pnpm research:full
 pnpm dev:ecommerce
 ```
 
@@ -177,17 +178,20 @@ EDGEKIT_RESEARCH_STRICT=0 pnpm research:agents
 
 Use this when tuning the real solution surface, not just the fixtures. Fix failures in EdgeKit contracts, harnesses, prompts, or reusable demo integration patterns before adding demo-specific patches.
 
-`pnpm research:suite` is the broader confidence loop. It reads `evals/agent-suite/scenarios.json` and `evals/agent-suite/rubric.json`, runs seeded prompt variants across browser demos, then runs architecture probes for hybrid routing, supervisor handoffs, response cache, tool repair, MCP adapters, guarded tool policy, offline journals, parallel-safe tools, PII redaction, provider fallback, and loaded-page offline behavior.
+`pnpm research:env` checks the local machine and browser preconditions. `pnpm research:suite` is the broader confidence loop. It reads `evals/agent-suite/scenarios.json` and `evals/agent-suite/rubric.json`, runs seeded prompt variants across browser demos, then runs architecture probes for hybrid routing, supervisor handoffs, response cache, tool repair, MCP adapters, guarded tool policy, offline journals, parallel-safe tools, PII redaction, provider fallback, and loaded-page offline behavior.
 
 ```bash
+pnpm research:env
 pnpm research:suite
+pnpm research:full
 EDGEKIT_SUITE_TARGET=live pnpm research:suite
 EDGEKIT_SUITE_PROMPT_LIMIT=2 pnpm research:suite
 EDGEKIT_SUITE_SEED=42 pnpm research:suite
 EDGEKIT_SUITE_HEADLESS=0 pnpm research:suite
+EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:full
 ```
 
-Use `research:agents` as the fast public-surface check and `research:suite` as the expandable tuning loop. Add new prompt variants or scenario packs before adding narrow code fixes.
+Use `research:agents` as the fast public-surface check, `research:suite` as the expandable tuning loop, and `research:full` when you want build + environment preflight + outcome matrix in one pass. Add new prompt variants or scenario packs before adding narrow code fixes. The rubric currently requires no required failures, no required skips, an average score of at least `0.98`, and category confidence ratings at or above their thresholds.
 
 ## Release Checks
 
@@ -199,6 +203,7 @@ Use `research:agents` as the fast public-surface check and `research:suite` as t
 - `pnpm eval:models`: real-browser model cascade evals for Chrome AI/WebLLM prompt quality. See `MODEL_EVALS.md`.
 - `pnpm research:agents`: research loop for answer quality, workflow state, safety, docs exports, and deployed demo behavior.
 - `pnpm research:suite`: expansive outcome suite with rubric thresholds, prompt variants, architecture probes, and resilience checks.
+- `pnpm research:full`: build, environment preflight, and expansive suite for the >95% category confidence and >98% average-score gate.
 
 ## Notes
 

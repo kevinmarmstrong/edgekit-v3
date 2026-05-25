@@ -55,14 +55,16 @@ pnpm build
 pnpm test:e2e
 pnpm eval:models
 pnpm research:agents
+pnpm research:env
 pnpm research:suite
+pnpm research:full
 ```
 
 `pnpm eval:models` may report local model unavailable on machines without Chrome AI/WebLLM support. That is acceptable unless `EDGEKIT_REQUIRE_REAL_MODEL=1` is set.
 
 `pnpm research:agents` is the product-readiness loop. It runs realistic prompts across the docs, ecommerce, AG-UI, admin, mission-control, and agent-readable docs surfaces; records transcripts and screenshots; and scores answer quality, workflow state, safety, observability, and integration transparency.
 
-`pnpm research:suite` is the expansive outcome loop. It loads `evals/agent-suite/scenarios.json` and `evals/agent-suite/rubric.json`, runs seeded prompt variants, provider fallback probes, loaded-page offline checks, and core architecture probes for routing, handoff, cache, repair, MCP, policy, offline sync, parallel tools, redaction, and no-model fallback. Prefer adding scenario variants and rubric checks over narrow demo-specific patches.
+`pnpm research:env` writes machine/browser preflight evidence to `research-results/research-env.*`. `pnpm research:suite` is the expansive outcome loop. It loads `evals/agent-suite/scenarios.json` and `evals/agent-suite/rubric.json`, runs seeded prompt variants, provider fallback probes, loaded-page offline checks, and core architecture probes for routing, handoff, cache, repair, MCP, policy, offline sync, parallel tools, redaction, and no-model fallback. `pnpm research:full` runs build, env preflight, and the expansive suite in one pass. Prefer adding scenario variants and rubric checks over narrow demo-specific patches.
 
 ## Public Release Loop
 

@@ -216,7 +216,7 @@ async function runDocsQa(page, prompt, checks) {
   const docsDemo = page.locator('#qa')
   await sendPrompt(docsDemo, prompt)
   const messages = docsDemo.getByTestId('chat-messages')
-  await waitForContains(messages, /token|cost|cloud|local|browser|agent/i)
+  await waitForContains(messages, /Local browser AI is unavailable here|edgekit answered through its docs-search fallback/i)
   const text = await messages.innerText()
   addCheck(checks, 'answerQuality', 'answers the infrastructure economics question', /token|cost|cloud|spend|meter/i.test(text))
   addCheck(checks, 'answerQuality', 'connects value to browser/local execution', /browser|local|edge/i.test(text))

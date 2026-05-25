@@ -14,6 +14,7 @@ pnpm build
 pnpm test
 pnpm test:e2e
 pnpm eval:models
+pnpm eval:adoption
 pnpm research:agents
 pnpm research:suite
 pnpm research:full
@@ -58,7 +59,7 @@ chat?.registerActions(({ toolName, output }) => {
 })
 ```
 
-For docs search, site-map, catalog, or support assistants that must ground answers in app-owned tools, configure `toolChoice: 'required'`. Keep the default `auto` behavior for open-ended assistants.
+For docs search, site-map, catalog, or support assistants that must ground answers in app-owned tools, configure `toolChoice: 'required'`. For agentic workflows, pair that with `toolProvider` so read tools are always available while mutation tools hydrate only when the prompt, session, role, and workflow state justify them. Keep the default `auto` behavior for open-ended assistants.
 
 AG-UI-compatible backends can drive the same component:
 
@@ -95,6 +96,7 @@ edgekit stays small by exposing contracts instead of shipping a required cloud s
 - Streaming activity states: core emits `activity` events, and `<edge-chat>` renders safe orchestration progress without exposing hidden reasoning.
 - Edge response caching: `createMemoryResponseCache()` and `createIndexedDbResponseCache()` let read-only repeat questions bypass inference when state has not changed.
 - Parallel-safe tools: `executeParallelTools()` runs app-owned read-only batches concurrently only when manifests opt in with `readOnly` and `parallelSafe`.
+- Dynamic tool exposure: `toolProvider({ input, session, phase })` can narrow the model-visible tool set per prompt while `<edge-chat>` still keeps the full registered tool set for user-clicked action forms.
 - Offline mutation journal: `createOfflineTool()`, `createMemoryMutationJournal()`, `createLocalStorageMutationJournal()`, and `syncMutationJournal()` queue approved offline-capable mutations and sync them when connectivity returns.
 - Guarded tool execution: `createToolPolicyExecutor()` and `executeToolWithPolicy()` enforce timeouts, payload limits, and allowlists around third-party or dynamically loaded tools.
 - Redaction middleware: `createPiiRedactor()` and custom redactors sanitize tool results before they reach UI events, telemetry, and audit trails.
@@ -199,6 +201,8 @@ EDGEKIT_CHROME_CDP_URL=http://127.0.0.1:9223 EDGEKIT_SUITE_CLOUD_ROUTE_URL=http:
 
 Use `research:agents` as the fast public-surface check, `research:suite` as the expandable tuning loop, and `research:full` when you want build + environment preflight + outcome matrix in one pass. Add new prompt variants or scenario packs before adding narrow code fixes. The rubric currently requires no required failures, no required skips, an average score of at least `0.98`, and category confidence ratings at or above their thresholds.
 
+`pnpm eval:adoption` is the answer-quality gate for developer adoption prompts. It opens the docs Q&A and dogfood assistant, sends implementation-oriented questions, rejects stock docs-search snippets, and writes JSON plus Markdown transcripts to `research-results/adoption-quality.*`. Use it when tuning whether EdgeKit actually explains how to add an agent to an app, not merely whether `searchDocs` returned.
+
 For strict real-provider runs, use a dedicated Chrome profile instead of a daily browser profile. Create `~/.edgekit/chrome-profile`, launch Chrome with that user-data directory and a remote debugging port, enable Chrome AI/Nano flags, let the local model download, and then set `EDGEKIT_CHROME_CDP_URL` before running the strict loop.
 
 ## Release Checks
@@ -209,6 +213,7 @@ For strict real-provider runs, use a dedicated Chrome profile instead of a daily
 - `pnpm test:e2e`: browser smoke for the ecommerce demo, scripted agent workflows, and graceful no-model fallback.
 - `pnpm test:workflows`: focused Playwright coverage for the ecommerce workflow suite.
 - `pnpm eval:models`: real-browser model cascade evals for Chrome AI/WebLLM prompt quality. See `MODEL_EVALS.md`.
+- `pnpm eval:adoption`: adoption-quality browser eval for developer-facing answers, integration boundaries, safety guidance, and non-snippet synthesis.
 - `pnpm research:agents`: research loop for answer quality, workflow state, safety, docs exports, and deployed demo behavior.
 - `pnpm research:suite`: expansive outcome suite with rubric thresholds, prompt variants, architecture probes, and resilience checks.
 - `pnpm research:full`: build, environment preflight, and expansive suite for the >95% category confidence and >98% average-score gate.

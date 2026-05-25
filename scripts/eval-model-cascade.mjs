@@ -22,18 +22,21 @@ const scenarios = [
     prompt: 'find me size nine white nike dunks',
     expectAny: ['Nike Dunk Low', 'Dunk'],
     expectNo: ['Adidas Ultraboost Light -'],
+    expectApproval: false,
     rejectAny: [/error in the previous tool call/i, /trouble with .*parameters/i, /not accepting null/i],
   },
   {
     id: 'running-under-100',
     prompt: 'show running shoes under $100 size 10',
     expectAny: ['Nike Air Zoom Pegasus', 'Pegasus'],
+    expectApproval: false,
     rejectAny: [/error in the previous tool call/i, /trouble with .*parameters/i, /not accepting null/i],
   },
   {
     id: 'guarded-cart-action',
     prompt: 'find me size nine white nike dunks and put in cart',
     expectAny: ['approval', 'Approve', 'addToCart', 'cart'],
+    expectApproval: true,
     rejectAny: [/error in the previous tool call/i, /trouble with .*parameters/i, /not accepting null/i],
   },
 ]
@@ -115,9 +118,9 @@ async function runScenario(browser, mode, scenario) {
       .getByTestId('agent-status')
       .waitFor({ state: 'visible', timeout: 15_000 })
 
-    await page.waitForTimeout(4_000)
-    const status = await page.getByTestId('agent-status').innerText()
-    const messages = await page.getByTestId('chat-messages').innerText()
+    const observed = await waitForScenarioOutcome(page, scenario)
+    const status = observed.status
+    const messages = observed.messages
     const approvalCount = await page.getByTestId('approval-prompt').count()
 
     report.status = status
@@ -125,12 +128,15 @@ async function runScenario(browser, mode, scenario) {
     report.sawApprovalPrompt = approvalCount > 0
     report.matchedExpected = scenario.expectAny.some(text => messages.includes(text))
     report.unexpectedText = scenario.expectNo?.some(text => messages.includes(text)) ?? false
+    report.approvalMatchesExpected = typeof scenario.expectApproval === 'boolean'
+      ? report.sawApprovalPrompt === scenario.expectApproval
+      : true
     report.rejectedTranscript = scenario.rejectAny?.some(pattern => pattern.test(messages)) ?? false
     report.messageSample = messages.slice(-500)
 
     if (/Basic mode|No local model|unavailable/i.test(status)) {
       report.outcome = 'model-unavailable'
-    } else if (report.matchedExpected && !report.unexpectedText && !report.rejectedTranscript) {
+    } else if (report.matchedExpected && report.approvalMatchesExpected && !report.unexpectedText && !report.rejectedTranscript) {
       report.outcome = 'passed'
     } else {
       report.outcome = 'failed'
@@ -143,6 +149,25 @@ async function runScenario(browser, mode, scenario) {
   }
 
   return report
+}
+
+async function waitForScenarioOutcome(page, scenario, timeout = 18_000) {
+  const deadline = Date.now() + timeout
+  let latest = { status: '', messages: '' }
+  while (Date.now() < deadline) {
+    latest = {
+      status: await page.getByTestId('agent-status').innerText().catch(() => ''),
+      messages: await page.getByTestId('chat-messages').innerText().catch(() => ''),
+    }
+    const approvalCount = await page.getByTestId('approval-prompt').count().catch(() => 0)
+    const matchedExpected = scenario.expectAny.some(text => latest.messages.includes(text))
+    const rejectedTranscript = scenario.rejectAny?.some(pattern => pattern.test(latest.messages)) ?? false
+    const unavailable = /Basic mode|No local model|unavailable/i.test(latest.status)
+    const approvalResolved = typeof scenario.expectApproval !== 'boolean' || approvalCount > 0 === scenario.expectApproval
+    if (unavailable || rejectedTranscript || (matchedExpected && approvalResolved)) return latest
+    await new Promise(resolve => setTimeout(resolve, 300))
+  }
+  return latest
 }
 
 function summarize(reports) {

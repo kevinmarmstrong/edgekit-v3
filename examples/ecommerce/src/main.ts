@@ -123,6 +123,8 @@ if (scriptedMode) {
   chat?.configure({
     model: commerceModelCascade(modelMode),
     downloadPolicy,
+    toolChoice: 'required',
+    toolProvider: ({ input }) => commerceToolsForInput(input),
     onNoModel: ({ input }) => answerFromCatalog(input),
   })
 }
@@ -153,6 +155,16 @@ function commerceModelCascade(mode: string) {
   if (mode === 'webllm') return [webLLM({ modelSize: 'about 400 MB' })]
   if (mode === 'cascade') return [chromeAI(), webLLM({ modelSize: 'about 400 MB' })]
   return [chromeAI()]
+}
+
+function commerceToolsForInput(input: string) {
+  return hasCartMutationIntent(input)
+    ? { searchProducts, addToCart }
+    : { searchProducts }
+}
+
+function hasCartMutationIntent(input: string) {
+  return /\b(add|cart|buy|purchase|checkout|order)\b/i.test(input)
 }
 
 function renderCatalog() {

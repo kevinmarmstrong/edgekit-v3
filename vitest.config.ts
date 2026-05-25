@@ -6,8 +6,9 @@ export default defineConfig({
       ['packages/ui/**', 'jsdom'],
       ['packages/react/**', 'jsdom'],
       ['examples/**', 'jsdom'],
+      ['site/**', 'jsdom'],
     ],
     environment: 'node',
-    include: ['packages/**/*.test.ts', 'examples/**/*.test.ts'],
+    include: ['packages/**/*.test.ts', 'examples/**/*.test.ts', 'site/**/*.test.ts'],
   },
 })

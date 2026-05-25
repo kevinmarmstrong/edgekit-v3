@@ -268,16 +268,20 @@ const agent = createAgent({
         title: 'Tool choice',
         body: [
           'Set `toolChoice: "required"` for docs search, site-map, catalog, or support assistants that must ground answers in registered app tools instead of answering from model memory.',
-          'Keep the default `auto` behavior for open-ended assistants where a model may answer directly, and never use required tools as a substitute for backend authorization.',
+          'For agentic workflows, pair required tools with `toolProvider` so read tools stay broadly available while mutation tools appear only when the prompt, session, role, and workflow state justify them. Keep the default `auto` behavior for open-ended assistants where a model may answer directly, and never use required tools as a substitute for backend authorization.',
         ],
         code: {
           language: 'ts',
           text: `chat.configure({
   model: [chromeAI()],
   toolChoice: 'required',
+  toolProvider: ({ input }) =>
+    /\\b(add|cart|purchase)\\b/i.test(input)
+      ? { searchProducts, addToCart }
+      : { searchProducts },
 })
 
-chat.registerTools({ searchDocs, listDemos })`,
+chat.registerTools({ searchProducts, addToCart })`,
         },
       },
       {
@@ -960,6 +964,18 @@ chat?.useAgent(agent)`,
         },
       },
       {
+        id: 'adoption-quality',
+        title: 'Adoption-quality evals',
+        body: [
+          '`pnpm eval:adoption` opens the docs Q&A demo and the site-wide dogfood assistant, asks developer implementation and safety questions, and records the actual transcripts to `research-results/adoption-quality.*`.',
+          'This gate exists because a returned docs-search result is not the same thing as a useful answer. The rubric rejects stock snippet dumps and requires concrete integration steps, host-app authority, local-first value, approval boundaries, and unsafe-secret guidance.',
+        ],
+        code: {
+          language: 'bash',
+          text: 'pnpm eval:adoption\nEDGEKIT_ADOPTION_TARGET=live pnpm eval:adoption\nEDGEKIT_ADOPTION_HEADLESS=0 pnpm eval:adoption\nEDGEKIT_ADOPTION_STRICT=0 pnpm eval:adoption',
+        },
+      },
+      {
         id: 'research-loops',
         title: 'Research loops',
         body: [
@@ -987,7 +1003,7 @@ chat?.useAgent(agent)`,
         id: 'release-gates',
         title: 'Release gates',
         body: ['Run the full gates before publishing a public release.'],
-        bullets: ['`pnpm test`', '`pnpm typecheck`', '`pnpm build`', '`pnpm test:e2e`', '`pnpm research:agents`', '`pnpm research:suite`'],
+        bullets: ['`pnpm test`', '`pnpm typecheck`', '`pnpm build`', '`pnpm test:e2e`', '`pnpm eval:adoption`', '`pnpm research:agents`', '`pnpm research:suite`'],
       },
     ],
   },

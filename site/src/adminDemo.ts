@@ -57,10 +57,20 @@ export function mountAdminDemo() {
       : {
           model: [chromeAI()],
           downloadPolicy: 'never',
+          toolChoice: 'required',
+          toolProvider: ({ input }) => adminToolsForInput(input),
           onNoModel: ({ input }) => answerFromAccounts(input),
         },
   )
   chat?.registerTools({ searchAccounts, updatePlan, suspendAccount })
+}
+
+function adminToolsForInput(input: string) {
+  if (/\b(suspend|disable|block)\b/i.test(input)) return { searchAccounts, suspendAccount }
+  if (/\b(upgrade|downgrade|change|move|set|plan|enterprise|pro|starter)\b/i.test(input)) {
+    return { searchAccounts, updatePlan }
+  }
+  return { searchAccounts }
 }
 
 const searchAccounts = tool({

@@ -1,0 +1,93 @@
+{
+  "version": "edgekit.adoption-quality-scenarios.v1",
+  "description": "Outcome-grade prompts for proving EdgeKit answers are useful to developers adopting an in-app agent, not just successful docs search calls.",
+  "scenarios": [
+    {
+      "id": "add-agent-to-app",
+      "surface": "docs-qa",
+      "prompt": "how will this help me add an agent to my app?",
+      "required": [
+        { "category": "directness", "label": "answers the adoption question directly", "pattern": "\\b(add|embed|drop|install|wire)\\b[\\s\\S]{0,120}\\b(agent|sidecar|edge-chat)\\b" },
+        { "category": "integration", "label": "names the web component", "pattern": "<edge-chat>|EdgeChat" },
+        { "category": "integration", "label": "names tool registration", "pattern": "registerTools|register existing app|typed tools" },
+        { "category": "architecture", "label": "preserves host-owned app state", "pattern": "host app[\\s\\S]{0,120}(owns|keeps|enforces)[\\s\\S]{0,120}(state|auth|business logic|permissions)" },
+        { "category": "value", "label": "connects to local browser execution", "pattern": "Chrome AI|WebLLM|browser-local|browser-native|local-first" },
+        { "category": "safety", "label": "mentions approval for risky work", "pattern": "approval|needsApproval|gated mutation" }
+      ],
+      "forbidden": [
+        { "category": "directness", "label": "does not dump stock docs sections", "pattern": "^(North Star|Latency and Resilience|Workflow Harness|Packages):" },
+        { "category": "transparency", "label": "does not sell as SaaS pricing", "pattern": "book a demo|contact sales|pricing tier" }
+      ]
+    },
+    {
+      "id": "first-integration-step",
+      "surface": "site-assistant",
+      "prompt": "what do I add first to my app?",
+      "required": [
+        { "category": "directness", "label": "starts with the first implementation move", "pattern": "\\b(first|start|begin)\\b[\\s\\S]{0,140}<edge-chat>|<edge-chat>[\\s\\S]{0,140}\\b(first|start|begin)\\b" },
+        { "category": "integration", "label": "includes configure step", "pattern": "\\.configure\\(|configure" },
+        { "category": "integration", "label": "includes registerTools step", "pattern": "registerTools" },
+        { "category": "architecture", "label": "does not move business logic into the assistant", "pattern": "existing app|host app|business logic" }
+      ],
+      "forbidden": [
+        { "category": "directness", "label": "does not answer with demo list", "pattern": "Ecommerce retrofit[\\s\\S]+Mission control" }
+      ]
+    },
+    {
+      "id": "chatbot-difference",
+      "surface": "docs-qa",
+      "prompt": "how is edgekit different from embedding a chatbot?",
+      "required": [
+        { "category": "directness", "label": "contrasts sidecar with chatbot", "pattern": "chatbot[\\s\\S]{0,180}(sidecar|tool|workflow)|sidecar[\\s\\S]{0,180}chatbot" },
+        { "category": "architecture", "label": "mentions app-owned tools or state", "pattern": "app-owned|host app|registered tools|existing app" },
+        { "category": "integration", "label": "mentions in-workflow actions", "pattern": "tool|action|CTA|form|approval" }
+      ],
+      "forbidden": [
+        { "category": "directness", "label": "does not only define browser-native runtime", "pattern": "^edgekit is a browser-native agent runtime\\." }
+      ]
+    },
+    {
+      "id": "unsafe-database-update",
+      "surface": "site-assistant",
+      "prompt": "can the agent update my database directly if I give it my JWT?",
+      "required": [
+        { "category": "safety", "label": "rejects putting JWTs in prompt", "pattern": "No|Do not|Don't" },
+        { "category": "safety", "label": "keeps credentials in execution context", "pattern": "tool execution context|sessionProvider|identityProvider|backend|server" },
+        { "category": "architecture", "label": "keeps permission enforcement in host app", "pattern": "host app[\\s\\S]{0,160}(permission|authorization|RBAC|auth)|RBAC" },
+        { "category": "safety", "label": "requires approvals/audit for risky mutations", "pattern": "approval|audit|gated" }
+      ],
+      "forbidden": [
+        { "category": "safety", "label": "does not encourage prompt secrets", "pattern": "put (your )?JWT|paste (your )?token|include (your )?cookie" }
+      ]
+    },
+    {
+      "id": "token-cost-value",
+      "surface": "docs-qa",
+      "prompt": "why would I use this instead of paying cloud tokens for every user message?",
+      "required": [
+        { "category": "value", "label": "explains variable cost problem", "pattern": "variable|unbounded|per-message|per user|token" },
+        { "category": "value", "label": "explains local compute path", "pattern": "Chrome AI|WebLLM|browser|local" },
+        { "category": "architecture", "label": "says cloud fallback is explicit", "pattern": "fallbacks?[\\s\\S]{0,160}(explicit|configurable|developer-provided)|(explicit|configurable|developer-provided)[\\s\\S]{0,160}fallbacks?|explicit[\\s\\S]{0,120}cloud" }
+      ],
+      "forbidden": [
+        { "category": "transparency", "label": "does not claim cloud is never possible", "pattern": "never uses cloud|cloud is impossible" }
+      ]
+    },
+    {
+      "id": "agentic-not-rag",
+      "surface": "site-assistant",
+      "prompt": "is edgekit just fallback search or RAG, or can it actually enable agentic workflows in my app?",
+      "required": [
+        { "category": "directness", "label": "answers that EdgeKit is not just search/RAG", "pattern": "not just|not only|more than[\\s\\S]{0,120}(search|RAG|docs)" },
+        { "category": "integration", "label": "names registered app tools", "pattern": "registerTools|registered tools|typed tools" },
+        { "category": "integration", "label": "names workflow UI actions", "pattern": "registerActions|CTA|form|EdgeView|AG-UI|action" },
+        { "category": "architecture", "label": "names state hydration or current app context", "pattern": "stateProvider|state hydration|current app state|workflow context|page context" },
+        { "category": "safety", "label": "names approval gated mutations", "pattern": "approval|needsApproval|gated mutation" },
+        { "category": "architecture", "label": "keeps execution app-owned", "pattern": "host app[\\s\\S]{0,160}(owns|executes|keeps|enforces)|app-owned" }
+      ],
+      "forbidden": [
+        { "category": "directness", "label": "does not reduce EdgeKit to docs search", "pattern": "EdgeKit is (a )?(docs search|RAG|search-only)" }
+      ]
+    }
+  ]
+}

@@ -43,6 +43,13 @@ export const docChunks: DocChunk[] = [
   },
   {
     slug: 'overview',
+    title: 'Agentic Workflows Not Just RAG',
+    tags: ['agentic', 'workflow', 'tools', 'actions', 'rag'],
+    body:
+      'Edgekit can use search and RAG tools, but the solution stack is for agentic app workflows: registered tools, state hydration, generated CTAs and forms, approval-gated mutations, telemetry, audit, and app-owned execution.',
+  },
+  {
+    slug: 'overview',
     title: 'Latency and Resilience',
     tags: ['latency', 'cache', 'parallel', 'offline'],
     body:

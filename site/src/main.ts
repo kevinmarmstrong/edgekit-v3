@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { mountAdminDemo } from './adminDemo'
 import { searchDocs } from './content'
 import { docsPages, docsPath } from './docsContent'
+import { composeEdgekitAnswer } from './answerComposer'
 import { mountSiteAssistant } from './siteAssistant'
 import './styles.css'
 
@@ -169,6 +170,8 @@ commerceChat?.configure({
   telemetry: missionControl,
   model: [chromeAI()],
   downloadPolicy: 'never',
+  toolChoice: 'required',
+  toolProvider: ({ input }) => commerceToolsForInput(input),
   onNoModel: ({ input }) => answerFromCatalog(input),
 })
 commerceChat?.registerTools({ searchProducts, addToCart })
@@ -264,10 +267,11 @@ function answerFromDocs(input: string) {
     return 'Local browser AI is unavailable here, and the docs search did not find a matching section.'
   }
 
-  const summary = matches
-    .map(match => `${match.title}: ${match.body}`)
-    .join('\n\n')
-  return `Local browser AI is unavailable here, so edgekit answered through its docs-search fallback.\n\n${summary}`
+  return composeEdgekitAnswer({
+    input,
+    results: matches,
+    mode: 'docs-demo',
+  })
 }
 
 function createDocsSearchStream() {
@@ -276,7 +280,7 @@ function createDocsSearchStream() {
     const toolName = 'searchDocs'
     const toolInput = { query: input }
     const outputPromise = executeTool(options.tools?.[toolName], toolInput)
-    const textPromise = outputPromise.then(formatDocsAnswer)
+    const textPromise = outputPromise.then(output => formatDocsAnswer(output, input))
 
     return {
       fullStream: (async function* () {
@@ -284,7 +288,7 @@ function createDocsSearchStream() {
         yield { type: 'tool-call', toolCallId, toolName, input: toolInput }
         const output = await outputPromise
         yield { type: 'tool-result', toolCallId, toolName, output }
-        yield { type: 'text-delta', delta: formatDocsAnswer(output) }
+        yield { type: 'text-delta', delta: formatDocsAnswer(output, input) }
       })(),
       response: textPromise.then(text => ({
         messages: [{ role: 'assistant', content: [{ type: 'text', text }] }],
@@ -293,10 +297,14 @@ function createDocsSearchStream() {
   }
 }
 
-function formatDocsAnswer(output: unknown) {
+function formatDocsAnswer(output: unknown, input: string) {
   const results = isRecord(output) && Array.isArray(output.results) ? output.results.filter(isRecord).slice(0, 3) : []
   if (results.length === 0) return 'I did not find a matching EdgeKit docs section.'
-  return results.map(result => `${String(result.title)}: ${String(result.body)}`).join('\n\n')
+  return composeEdgekitAnswer({
+    input,
+    results,
+    mode: 'docs-demo',
+  })
 }
 
 function answerFromCatalog(input: string) {
@@ -324,6 +332,16 @@ function answerFromCatalog(input: string) {
     '',
     'Enable Chrome AI for tool-calling recommendations and guarded add-to-cart actions.',
   ].join('\n')
+}
+
+function commerceToolsForInput(input: string) {
+  return hasCartMutationIntent(input)
+    ? { searchProducts, addToCart }
+    : { searchProducts }
+}
+
+function hasCartMutationIntent(input: string) {
+  return /\b(add|cart|buy|purchase|checkout|order)\b/i.test(input)
 }
 
 async function* mockAgUiRun({ input }: AgUiRunInput) {

@@ -4,6 +4,7 @@ import type { EdgeTelemetrySink } from '@kevinmarmstrong/edgekit'
 import type { EdgeChat } from '@kevinmarmstrong/edgekit-ui'
 import { z } from 'zod'
 import { searchDocs } from './content'
+import { composeEdgekitAnswer } from './answerComposer'
 
 type SiteAssistantOptions = {
   telemetry?: EdgeTelemetrySink
@@ -109,7 +110,9 @@ function createSiteAssistantStream(basePath: string) {
     const toolName = wantsDemos ? 'listDemos' : 'searchDocs'
     const toolInput = wantsDemos ? {} : { query: input }
     const outputPromise = executeTool(options.tools?.[toolName], toolInput)
-    const textPromise = outputPromise.then(output => wantsDemos ? formatDemoAnswer(output, basePath) : formatDocsAnswer(output))
+    const textPromise = outputPromise.then(output =>
+      wantsDemos ? formatDemoAnswer(output, basePath) : formatDocsAnswer(output, input),
+    )
 
     return {
       fullStream: (async function* () {
@@ -117,7 +120,7 @@ function createSiteAssistantStream(basePath: string) {
         yield { type: 'tool-call', toolCallId, toolName, input: toolInput }
         const output = await outputPromise
         yield { type: 'tool-result', toolCallId, toolName, output }
-        yield { type: 'text-delta', delta: wantsDemos ? formatDemoAnswer(output, basePath) : formatDocsAnswer(output) }
+        yield { type: 'text-delta', delta: wantsDemos ? formatDemoAnswer(output, basePath) : formatDocsAnswer(output, input) }
       })(),
       response: textPromise.then(text => ({
         messages: [{ role: 'assistant', content: [{ type: 'text', text }] }],
@@ -138,14 +141,15 @@ function formatDemoAnswer(output: unknown, basePath: string) {
   ].join('\n')
 }
 
-function formatDocsAnswer(output: unknown) {
+function formatDocsAnswer(output: unknown, input: string) {
   const results = isRecord(output) && Array.isArray(output.results) ? output.results : []
   if (results.length === 0) return 'I did not find a matching EdgeKit docs section.'
-  return results
-    .filter(isRecord)
-    .slice(0, 3)
-    .map(result => `${String(result.title)}: ${String(result.body)}`)
-    .join('\n\n')
+  return composeEdgekitAnswer({
+    input,
+    results: results.filter(isRecord).slice(0, 3),
+    mode: 'site-assistant',
+    currentPage: currentPageSummary(),
+  })
 }
 
 async function executeTool(toolDefinition: unknown, input: Record<string, unknown>) {
@@ -182,13 +186,12 @@ function answerSiteQuestion(input: string, basePath: string) {
     return 'Local browser AI is unavailable here, and the dogfood assistant did not find a matching docs section.'
   }
 
-  return [
-    'Local browser AI is unavailable here, so the dogfood assistant used the same docs-search fallback exposed to adopters.',
-    '',
-    `Current page: ${currentPageSummary()}`,
-    '',
-    ...matches.map(match => `${match.title}: ${match.body}`),
-  ].join('\n\n')
+  return composeEdgekitAnswer({
+    input,
+    results: matches,
+    mode: 'site-assistant',
+    currentPage: currentPageSummary(),
+  })
 }
 
 function currentPageSummary() {

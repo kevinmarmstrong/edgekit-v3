@@ -34,6 +34,7 @@ This repo is designed to be worked on by coding agents. Keep changes aligned wit
 - Tool repair: use `toolRepair` for schema/validation self-correction loops. Keep repair bounded and invisible until the retry limit is exhausted.
 - Activity states: emit/render `activity` events for safe orchestration progress. Do not expose hidden reasoning or chain-of-thought.
 - Response cache: use `responseCache` only for read-only, state-keyed answers with clear TTL/invalidation. Do not cache mutations or approval outcomes.
+- Dynamic tool exposure: use `toolProvider({ input, session, phase })` to expose read tools broadly and hydrate mutation tools only when the user intent, role, and workflow state justify them.
 - Parallel tools: use `executeParallelTools()` only for app-owned batches whose manifests are both `readOnly` and `parallelSafe`.
 - Offline tools: use `createOfflineTool()` plus a mutation journal for approved, idempotent mutations that can queue while offline and sync later. Add Yjs/Automerge through adapters, not core assumptions.
 - Tool policy: use `createToolPolicyExecutor()` or `executeToolWithPolicy()` before running third-party or dynamic tools. Start with allowlists, timeouts, payload limits, and workers before adding WASM.
@@ -54,6 +55,7 @@ pnpm typecheck
 pnpm build
 pnpm test:e2e
 pnpm eval:models
+pnpm eval:adoption
 pnpm research:agents
 pnpm research:env
 pnpm research:suite
@@ -62,9 +64,11 @@ pnpm research:full
 
 `pnpm eval:models` may report local model unavailable on machines without Chrome AI/WebLLM support. That is acceptable unless `EDGEKIT_REQUIRE_REAL_MODEL=1` is set.
 
+`pnpm eval:adoption` is the developer-answer-quality loop. It opens the docs Q&A and dogfood assistant, asks implementation and safety questions, rejects stock docs-search snippets, records transcripts, and requires answers to explain the integration path, host-app authority, local-first value, and security boundaries.
+
 `pnpm research:agents` is the product-readiness loop. It runs realistic prompts across the docs, ecommerce, AG-UI, admin, mission-control, and agent-readable docs surfaces; records transcripts and screenshots; and scores answer quality, workflow state, safety, observability, and integration transparency.
 
-`pnpm research:env` writes machine/browser preflight evidence to `research-results/research-env.*`. `pnpm research:suite` is the expansive outcome loop. It loads `evals/agent-suite/scenarios.json` and `evals/agent-suite/rubric.json`, runs seeded prompt variants, provider fallback probes, loaded-page offline checks, and core architecture probes for routing, handoff, cache, repair, MCP, policy, offline sync, parallel tools, redaction, and no-model fallback. `pnpm research:full` runs build, env preflight, and the expansive suite in one pass. Prefer adding scenario variants and rubric checks over narrow demo-specific patches.
+`pnpm research:env` writes machine/browser preflight evidence to `research-results/research-env.*`. `pnpm research:suite` is the expansive outcome loop. It loads `evals/agent-suite/scenarios.json` and `evals/agent-suite/rubric.json`, runs seeded prompt variants, provider fallback probes, loaded-page offline checks, and core architecture probes for routing, handoff, cache, repair, MCP, policy, offline sync, parallel tools, redaction, and no-model fallback. `pnpm research:full` runs build, env preflight, the expansive suite, and the adoption-quality eval in one pass. Prefer adding scenario variants and rubric checks over narrow demo-specific patches.
 
 ## Public Release Loop
 

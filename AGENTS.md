@@ -54,9 +54,12 @@ pnpm typecheck
 pnpm build
 pnpm test:e2e
 pnpm eval:models
+pnpm research:agents
 ```
 
 `pnpm eval:models` may report local model unavailable on machines without Chrome AI/WebLLM support. That is acceptable unless `EDGEKIT_REQUIRE_REAL_MODEL=1` is set.
+
+`pnpm research:agents` is the product-readiness loop. It runs realistic prompts across the docs, ecommerce, AG-UI, admin, mission-control, and agent-readable docs surfaces; records transcripts and screenshots; and scores answer quality, workflow state, safety, observability, and integration transparency.
 
 ## Public Release Loop
 

@@ -14,6 +14,7 @@ pnpm build
 pnpm test
 pnpm test:e2e
 pnpm eval:models
+pnpm research:agents
 pnpm dev:ecommerce
 ```
 
@@ -162,6 +163,19 @@ The ecommerce demo includes a deterministic test model at `/?agentMode=scripted`
 
 Use `pnpm test:workflows` while tuning app workflows. Use real Chrome AI/WebLLM sessions separately for model quality, prompt tuning, and provider behavior.
 
+## Research Agent Loops
+
+`pnpm research:agents` runs the higher-signal loop for product readiness. It opens the docs site and demos in Chromium, sends realistic user prompts, checks answer quality, verifies guarded mutations, probes AG-UI rendering, confirms dogfooding, and writes JSON plus Markdown evidence to `research-results/agent-research-loop.*`.
+
+```bash
+pnpm research:agents
+EDGEKIT_RESEARCH_TARGET=live pnpm research:agents
+EDGEKIT_RESEARCH_HEADLESS=0 pnpm research:agents
+EDGEKIT_RESEARCH_STRICT=0 pnpm research:agents
+```
+
+Use this when tuning the real solution surface, not just the fixtures. Fix failures in EdgeKit contracts, harnesses, prompts, or reusable demo integration patterns before adding demo-specific patches.
+
 ## Release Checks
 
 - `pnpm test`: unit coverage for model cascade, approval resume, and docs indexing.
@@ -170,6 +184,7 @@ Use `pnpm test:workflows` while tuning app workflows. Use real Chrome AI/WebLLM 
 - `pnpm test:e2e`: browser smoke for the ecommerce demo, scripted agent workflows, and graceful no-model fallback.
 - `pnpm test:workflows`: focused Playwright coverage for the ecommerce workflow suite.
 - `pnpm eval:models`: real-browser model cascade evals for Chrome AI/WebLLM prompt quality. See `MODEL_EVALS.md`.
+- `pnpm research:agents`: research loop for answer quality, workflow state, safety, docs exports, and deployed demo behavior.
 
 ## Notes
 

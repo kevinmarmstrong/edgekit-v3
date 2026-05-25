@@ -942,10 +942,22 @@ chat?.useAgent(agent)`,
         },
       },
       {
+        id: 'research-loops',
+        title: 'Research loops',
+        body: [
+          '`pnpm research:agents` is the end-to-end product research harness. It opens the docs site and demos in Chromium, sends real user prompts, scores answer quality, verifies approval boundaries, checks app state after mutations, probes AG-UI component rendering, confirms dogfooding, and captures transcripts plus screenshots.',
+          'Run it locally before release work and against GitHub Pages after deploy. The goal is to tune EdgeKit contracts, reusable harnesses, prompts, and integration guidance. Do not use it as an excuse to add hardcoded patches that only satisfy one demo fixture.',
+        ],
+        code: {
+          language: 'bash',
+          text: 'pnpm research:agents\nEDGEKIT_RESEARCH_TARGET=live pnpm research:agents\nEDGEKIT_RESEARCH_HEADLESS=0 pnpm research:agents\nEDGEKIT_RESEARCH_STRICT=0 pnpm research:agents',
+        },
+      },
+      {
         id: 'release-gates',
         title: 'Release gates',
         body: ['Run the full gates before publishing a public release.'],
-        bullets: ['`pnpm test`', '`pnpm typecheck`', '`pnpm build`', '`pnpm test:e2e`'],
+        bullets: ['`pnpm test`', '`pnpm typecheck`', '`pnpm build`', '`pnpm test:e2e`', '`pnpm research:agents`'],
       },
     ],
   },

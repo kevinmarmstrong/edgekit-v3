@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { chromium } from '@playwright/test'
+import { browserMode, launchEdgekitBrowser } from './playwright-browser.mjs'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const port = Number(process.env.EDGEKIT_EVAL_PORT ?? 4183)
@@ -70,6 +70,7 @@ try {
     modes,
     downloadPolicy,
     requireRealModel,
+    browserMode: browserMode({ headless }),
     summary,
     reports,
   }
@@ -87,11 +88,7 @@ try {
 }
 
 async function launchBrowser() {
-  try {
-    return await chromium.launch({ channel: 'chrome', headless })
-  } catch {
-    return chromium.launch({ headless })
-  }
+  return launchEdgekitBrowser({ headless })
 }
 
 async function runScenario(browser, mode, scenario) {

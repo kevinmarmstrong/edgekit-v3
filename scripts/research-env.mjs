@@ -1,9 +1,10 @@
 import { execFile } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
+import { createServer } from 'node:http'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
-import { chromium } from '@playwright/test'
+import { browserMode, launchEdgekitBrowser } from './playwright-browser.mjs'
 
 const execFileAsync = promisify(execFile)
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -12,6 +13,7 @@ const markdownPath = outputPath.replace(/\.json$/i, '.md')
 const strict = process.env.EDGEKIT_ENV_STRICT === '1'
 const requireRealProviders = process.env.EDGEKIT_REQUIRE_REAL_PROVIDERS === '1'
 const siteURL = process.env.EDGEKIT_SUITE_SITE_URL ?? 'http://127.0.0.1:4174/edgekit'
+const headless = process.env.EDGEKIT_ENV_HEADLESS !== '0'
 
 const checks = []
 const startedAt = Date.now()
@@ -32,6 +34,7 @@ const environment = {
     mcpProxyURL: Boolean(process.env.EDGEKIT_SUITE_MCP_PROXY_URL),
     requireRealProviders,
   },
+  browserMode: browserMode({ headless }),
 }
 
 await checkCommand('node is available', 'node', ['--version'], value => value.trim() === process.version)
@@ -76,10 +79,12 @@ async function checkCommand(label, cmd, args, validate) {
 
 async function checkBrowserCapabilities() {
   let browser
+  let probeServer
   try {
+    probeServer = await startCapabilityProbeServer()
     browser = await launchBrowser()
     const page = await browser.newPage()
-    await page.goto('data:text/html,<html><body>edgekit env</body></html>')
+    await page.goto(probeServer.url, { waitUntil: 'domcontentloaded' })
     const capabilities = await page.evaluate(async () => {
       const globalScope = globalThis
       return {
@@ -106,15 +111,33 @@ async function checkBrowserCapabilities() {
     addCheck('environment', 'Playwright Chromium launches', false, { details: readableError(error) })
   } finally {
     await browser?.close()
+    await probeServer?.close()
+  }
+}
+
+async function startCapabilityProbeServer() {
+  const html = '<!doctype html><meta charset="utf-8"><title>edgekit env</title><body>edgekit env</body>'
+  const server = createServer((request, response) => {
+    response.writeHead(200, {
+      'content-type': 'text/html',
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    })
+    response.end(html)
+  })
+  await new Promise((resolveListen, rejectListen) => {
+    server.once('error', rejectListen)
+    server.listen(0, '127.0.0.1', resolveListen)
+  })
+  const address = server.address()
+  return {
+    url: `http://127.0.0.1:${address.port}`,
+    close: () => new Promise(resolveClose => server.close(resolveClose)),
   }
 }
 
 async function launchBrowser() {
-  try {
-    return await chromium.launch({ channel: 'chrome', headless: true })
-  } catch {
-    return chromium.launch({ headless: true })
-  }
+  return launchEdgekitBrowser({ headless })
 }
 
 function addCheck(category, label, passed, options = {}) {

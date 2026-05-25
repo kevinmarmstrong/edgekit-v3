@@ -1,8 +1,9 @@
 import { spawn } from 'node:child_process'
 import { readFile, mkdir, writeFile } from 'node:fs/promises'
+import { createServer } from 'node:http'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { chromium } from '@playwright/test'
+import { browserMode, launchEdgekitBrowser } from './playwright-browser.mjs'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const target = process.env.EDGEKIT_SUITE_TARGET ?? 'local'
@@ -74,6 +75,7 @@ try {
     scenarioPack: scenarioPack.version,
     rubric: rubric.version,
     requireRealProviders,
+    browserMode: browserMode({ headless }),
     summary,
     results,
   }
@@ -133,12 +135,13 @@ async function runBrowserSuite(browser, suite, prompt) {
 
 async function runEnvironmentProbe(browser) {
   const page = await browser.newPage()
+  const probeServer = await startCapabilityProbeServer()
   const checks = []
   const startedAt = Date.now()
   let transcript = ''
   let notes = ''
   try {
-    await page.goto('data:text/html,<html><body>edgekit suite env</body></html>')
+    await page.goto(probeServer.url, { waitUntil: 'domcontentloaded' })
     const capabilities = await page.evaluate(() => {
       const scope = globalThis
       return {
@@ -172,6 +175,7 @@ async function runEnvironmentProbe(browser) {
     notes = readableError(error)
   } finally {
     await page.close()
+    await probeServer.close()
   }
 
   return makeResult({
@@ -187,6 +191,27 @@ async function runEnvironmentProbe(browser) {
     notes,
     durationMs: Date.now() - startedAt,
   })
+}
+
+async function startCapabilityProbeServer() {
+  const html = '<!doctype html><meta charset="utf-8"><title>edgekit suite env</title><body>edgekit suite env</body>'
+  const server = createServer((request, response) => {
+    response.writeHead(200, {
+      'content-type': 'text/html',
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    })
+    response.end(html)
+  })
+  await new Promise((resolveListen, rejectListen) => {
+    server.once('error', rejectListen)
+    server.listen(0, '127.0.0.1', resolveListen)
+  })
+  const address = server.address()
+  return {
+    url: `http://127.0.0.1:${address.port}`,
+    close: () => new Promise(resolveClose => server.close(resolveClose)),
+  }
 }
 
 async function runSurface(page, surface, prompt, checks) {
@@ -959,11 +984,7 @@ async function waitForServer(url) {
 }
 
 async function launchBrowser() {
-  try {
-    return await chromium.launch({ channel: 'chrome', headless })
-  } catch {
-    return chromium.launch({ headless })
-  }
+  return launchEdgekitBrowser({ headless })
 }
 
 async function saveScreenshot(page, id) {

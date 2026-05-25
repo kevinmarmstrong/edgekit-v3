@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { chromium } from '@playwright/test'
+import { browserMode, launchEdgekitBrowser } from './playwright-browser.mjs'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const target = process.env.EDGEKIT_RESEARCH_TARGET ?? 'local'
@@ -142,6 +142,7 @@ try {
     siteURL,
     ecommerceURL: target === 'live' ? null : ecommerceURL,
     strict,
+    browserMode: browserMode({ headless }),
     summary,
     results,
   }
@@ -474,11 +475,7 @@ async function waitForServer(url) {
 }
 
 async function launchBrowser() {
-  try {
-    return await chromium.launch({ channel: 'chrome', headless })
-  } catch {
-    return chromium.launch({ headless })
-  }
+  return launchEdgekitBrowser({ headless })
 }
 
 async function saveScreenshot(page, id) {

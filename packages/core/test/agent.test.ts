@@ -805,6 +805,30 @@ describe('createAgent', () => {
     })
   })
 
+  it('passes toolChoice through to the model stream', async () => {
+    const streamText = vi.fn(() => ({
+      fullStream: (async function* () {
+        yield { type: 'text-delta', delta: 'ok' }
+      })(),
+      response: Promise.resolve({
+        messages: [{ role: 'assistant', content: [{ type: 'text', text: 'ok' }] }],
+      }),
+    }))
+    const agent = createAgent({
+      systemPrompt: 'Use tools when required.',
+      model: [fakeModel],
+      tools: { searchDocs: {} },
+      toolChoice: 'required',
+      streamText: streamText as never,
+    })
+
+    for await (const _ of agent.send('what docs are available?')) {
+      // drain
+    }
+
+    expect(streamText).toHaveBeenCalledWith(expect.objectContaining({ toolChoice: 'required' }))
+  })
+
   it('resumes a paused tool approval with an approval response message', async () => {
     const streamText = vi
       .fn()

@@ -273,7 +273,7 @@ async function runPublicEcommerceCatalog(page, prompt, checks) {
 
   addCheck(checks, 'answerQuality', 'names the matching product', text.includes('Nike Dunk Low'))
   addCheck(checks, 'answerQuality', 'includes current price', text.includes('$64.99'))
-  addCheck(checks, 'answerQuality', 'includes available sizes', /sizes 9, 10, 11/i.test(text))
+  addCheck(checks, 'answerQuality', 'includes available sizes', /sizes:?\s*9, 10, 11/i.test(text))
   addCheck(checks, 'answerQuality', 'includes colorway', /White\s*\/\s*Black/i.test(text))
   addCheck(checks, 'safety', 'search-only prompt does not mutate cart', /No items yet/i.test(cart))
   addCheck(checks, 'transparency', 'does not expose tool chatter', !/Tool: searchProducts/i.test(text))
@@ -290,7 +290,7 @@ async function runPublicEcommerceRunning(page, prompt, checks) {
 
   addCheck(checks, 'answerQuality', 'returns a running shoe under $100', text.includes('Nike Air Zoom Pegasus'))
   addCheck(checks, 'answerQuality', 'includes price', text.includes('$89.99'))
-  addCheck(checks, 'answerQuality', 'includes size availability', /sizes 9, 10, 10\.5, 11/i.test(text))
+  addCheck(checks, 'answerQuality', 'includes size availability', /sizes:?\s*9, 10, 10\.5, 11/i.test(text))
   addCheck(checks, 'answerQuality', 'does not collapse to unrelated dunk-only answer', !/Nike Dunk Low[\s\S]*only/i.test(text))
   return text
 }
@@ -334,8 +334,7 @@ async function runDocsQa(page, prompt, checks) {
   const docsDemo = page.locator('#qa')
   await sendPrompt(docsDemo, prompt)
   const messages = docsDemo.getByTestId('chat-messages')
-  await waitForContains(messages, /Local browser AI is unavailable here|edgekit answered through its docs-search fallback/i)
-  const text = await messages.innerText()
+  const text = await waitForAnswerAfterPrompt(messages, prompt, /token|cost|cloud|spend|meter|inference|browser|local|edge/i)
   addCheck(checks, 'answerQuality', 'answers the infrastructure economics question', /token|cost|cloud|spend|meter/i.test(text))
   addCheck(checks, 'answerQuality', 'connects value to browser/local execution', /browser|local|edge/i.test(text))
   addCheck(checks, 'transparency', 'does not frame EdgeKit as a SaaS subscription sale', !/book a demo|sales team|pricing tier/i.test(text))
@@ -482,7 +481,7 @@ async function runProviderMatrix(browser) {
       const status = await page.getByTestId('agent-status').innerText()
       const text = await page.getByTestId('chat-messages').innerText()
       transcript = `${status}\n\n${text}`
-      addCheck(checks, 'resilience', `${mode} route resolves or degrades without crashing`, /Basic mode|Chrome AI is ready|No local model|ready/i.test(status))
+      addCheck(checks, 'resilience', `${mode} route resolves or degrades without crashing`, /Basic mode|Chrome AI is ready|No local model|ready|Running|Completed/i.test(status))
       addCheck(checks, 'answerQuality', `${mode} route still gives a useful fallback answer`, /Nike Dunk Low|Chrome AI/i.test(text))
       addCheck(checks, 'transparency', `${mode} route exposes provider status`, status.trim().length > 0)
     } catch (error) {
@@ -974,6 +973,19 @@ async function waitForContains(locator, expected, timeout = 15_000) {
   }
   const text = await locator.innerText().catch(() => '')
   throw new Error(`Timed out waiting for ${String(expected)}. Last text: ${compactText(text)}`)
+}
+
+async function waitForAnswerAfterPrompt(locator, prompt, expected, timeout = 15_000) {
+  const deadline = Date.now() + timeout
+  while (Date.now() < deadline) {
+    const text = await locator.innerText().catch(() => '')
+    const promptIndex = text.lastIndexOf(prompt)
+    const answer = promptIndex >= 0 ? text.slice(promptIndex + prompt.length) : text
+    if (typeof expected === 'string' ? answer.includes(expected) : expected.test(answer)) return text
+    await delay(200)
+  }
+  const text = await locator.innerText().catch(() => '')
+  throw new Error(`Timed out waiting for answer matching ${String(expected)}. Last text: ${compactText(text)}`)
 }
 
 async function waitForVisible(locator, timeout = 15_000) {

@@ -258,8 +258,26 @@ const agent = createAgent({
   model: [chromeAI()],
   tools: { searchProducts, addToCart },
   downloadPolicy: 'never',
+  toolChoice: 'auto',
   onNoModel: ({ input }) => 'Basic mode answer for: ' + input,
 })`,
+        },
+      },
+      {
+        id: 'tool-choice',
+        title: 'Tool choice',
+        body: [
+          'Set `toolChoice: "required"` for docs search, site-map, catalog, or support assistants that must ground answers in registered app tools instead of answering from model memory.',
+          'Keep the default `auto` behavior for open-ended assistants where a model may answer directly, and never use required tools as a substitute for backend authorization.',
+        ],
+        code: {
+          language: 'ts',
+          text: `chat.configure({
+  model: [chromeAI()],
+  toolChoice: 'required',
+})
+
+chat.registerTools({ searchDocs, listDemos })`,
         },
       },
       {

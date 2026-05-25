@@ -618,6 +618,7 @@ export interface CreateAgentOptions {
   downloadPolicy?: DownloadPolicy
   maxSteps?: number
   modelResolveTimeoutMs?: number
+  toolChoice?: 'auto' | 'required' | 'none' | Record<string, unknown>
   sessionId?: string
   telemetry?: EdgeTelemetrySink | EdgeTelemetrySink[]
   auditTrail?: EdgeAuditTrail
@@ -1606,6 +1607,7 @@ export function createAgent(options: CreateAgentOptions): EdgeAgent {
         system,
         messages: [...messages, ...repairMessages],
         tools: contextualTools,
+        toolChoice: options.toolChoice,
         stopWhen: stepCountIs(maxSteps),
       })
 

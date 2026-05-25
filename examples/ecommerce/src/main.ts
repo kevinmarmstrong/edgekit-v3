@@ -20,6 +20,13 @@ type CartItem = {
   size?: string
 }
 
+type ProductSearchInput = {
+  query: string
+  maxPrice?: number
+  size?: string
+  color?: string
+}
+
 const products: Product[] = [
   {
     id: 'pegasus',
@@ -78,21 +85,7 @@ const searchProducts = tool({
     size: modelOptional(z.string()).describe('Shoe size'),
     color: modelOptional(z.string()).describe('Requested product color'),
   }),
-  execute: async ({ query, maxPrice, size, color }) => {
-    const normalizedQuery = query.toLowerCase()
-    const normalizedColor = color?.toLowerCase()
-    const results = products.filter(product => {
-      const matchesQuery =
-        product.name.toLowerCase().includes(normalizedQuery) ||
-        product.category.toLowerCase().includes(normalizedQuery) ||
-        product.support.toLowerCase().includes(normalizedQuery)
-      const matchesPrice = maxPrice == null || product.price <= maxPrice
-      const matchesSize = size == null || product.sizes.includes(size)
-      const matchesColor = normalizedColor == null || product.color.toLowerCase().includes(normalizedColor)
-      return matchesQuery && matchesPrice && matchesSize && matchesColor
-    })
-    return { results, total: results.length }
-  },
+  execute: async input => searchProductCatalog(input),
 })
 
 const addToCart = tool({
@@ -140,7 +133,7 @@ chat?.registerActions(({ toolName, output }) => {
     id: `add-${product.id}`,
     label: `Add ${product.name} to cart`,
     toolName: 'addToCart',
-    description: `$${product.price.toFixed(2)}. Choose a size and add it directly from the sidecar.`,
+    description: `$${product.price.toFixed(2)}. Available sizes: ${product.sizes.join(', ')}. Color: ${product.color}. Choose a size and add it directly from the sidecar.`,
     input: { productId: product.id, quantity: 1 },
     fields: [
       {
@@ -188,22 +181,11 @@ function answerFromCatalog(input: string) {
   const maxPrice = input.match(/under\s+\$?(\d+)/i)?.[1]
   const requestedSize = extractSize(input)
   const requestedColor = input.match(/\b(white|black|blue|green|volt)\b/i)?.[1]?.toLowerCase()
-  const normalizedInput = input.toLowerCase()
-  const wantsDunks = normalizedInput.includes('dunk')
-  const wantsRunning =
-    normalizedInput.includes('shoe') ||
-    normalizedInput.includes('running') ||
-    normalizedInput.includes('trainer') ||
-    normalizedInput.includes('daily')
-  const results = products.filter(product => {
-    const productName = product.name.toLowerCase()
-    const matchesQuery =
-      (wantsDunks && productName.includes('dunk')) ||
-      (!wantsDunks && (wantsRunning || productName.includes(normalizedInput)))
-    const matchesPrice = maxPrice == null || product.price <= Number(maxPrice)
-    const matchesSize = requestedSize == null || product.sizes.includes(requestedSize)
-    const matchesColor = requestedColor == null || product.color.toLowerCase().includes(requestedColor)
-    return matchesQuery && matchesPrice && matchesSize && matchesColor
+  const { results } = searchProductCatalog({
+    query: input,
+    maxPrice: maxPrice == null ? undefined : Number(maxPrice),
+    size: requestedSize,
+    color: requestedColor,
   })
 
   if (results.length === 0) {
@@ -465,24 +447,8 @@ function parseShoppingRequest(input: string): ShoppingRequest {
 }
 
 function selectProductForRequest(request: ShoppingRequest) {
-  return products.find(product => {
-    const productName = product.name.toLowerCase()
-    const productCategory = product.category.toLowerCase()
-    const query = request.searchInput.query.toLowerCase()
-    const matchesQuery =
-      product.id === request.productId ||
-      productName.includes(query) ||
-      productCategory.includes(query) ||
-      query
-        .split(/\s+/)
-        .filter(Boolean)
-        .every(term => productName.includes(term) || productCategory.includes(term))
-    const matchesPrice = request.searchInput.maxPrice == null || product.price <= request.searchInput.maxPrice
-    const matchesSize = request.searchInput.size == null || product.sizes.includes(request.searchInput.size)
-    const matchesColor =
-      request.searchInput.color == null || product.color.toLowerCase().includes(request.searchInput.color)
-    return matchesQuery && matchesPrice && matchesSize && matchesColor
-  })
+  return searchProductCatalog(request.searchInput).results.find(product => product.id === request.productId) ??
+    searchProductCatalog(request.searchInput).results[0]
 }
 
 function latestUserInput(messages: unknown[]) {
@@ -534,20 +500,114 @@ function extractProducts(output: unknown): Product[] {
   })
 }
 
-function extractSize(input: string) {
-  const numeric = input.match(/size\s+([\d.]+)/i)?.[1]
-  if (numeric) return numeric
+function searchProductCatalog(input: ProductSearchInput) {
+  const requestedSize = normalizeSize(input.size ?? extractSize(input.query))
+  const requestedColors = colorTokens(input.color ?? input.query)
+  const queryTokens = queryTokensForCatalog(input.query)
+  const exact = rankedProducts(queryTokens, requestedSize, requestedColors, input.maxPrice)
+  const relaxedColor = exact.length > 0 ? exact : rankedProducts(queryTokens, requestedSize, [], input.maxPrice)
+  const relaxedSize = relaxedColor.length > 0 ? relaxedColor : rankedProducts(queryTokens, undefined, requestedColors, input.maxPrice)
+  const relaxedQuery = relaxedSize.length > 0 ? relaxedSize : rankedProducts([], requestedSize, requestedColors, input.maxPrice)
+  const results = relaxedQuery.map(result => result.product)
+  const strategy = exact.length > 0
+    ? 'strict'
+    : relaxedColor.length > 0
+      ? 'relaxed-color'
+      : relaxedSize.length > 0
+        ? 'relaxed-size'
+        : relaxedQuery.length > 0
+          ? 'relaxed-query'
+          : 'no-match'
 
+  return {
+    results,
+    total: results.length,
+    strategy,
+    summary: results.map(productSummary),
+  }
+}
+
+function rankedProducts(queryTokens: string[], size: string | undefined, colors: string[], maxPrice: number | undefined) {
+  return products
+    .map(product => ({ product, score: productScore(product, queryTokens) }))
+    .filter(({ product, score }) => {
+      const requiredTokens = queryTokens.filter(token => !brandTokens().has(token))
+      const matchesQuery =
+        queryTokens.length === 0 ||
+        (requiredTokens.length > 0
+          ? requiredTokens.every(token => productSearchTokens(product).includes(token))
+          : score > 0)
+      const matchesPrice = maxPrice == null || product.price <= maxPrice
+      const matchesSize = size == null || product.sizes.includes(size)
+      const matchesColor = colors.length === 0 || colors.every(color => colorTokens(product.color).includes(color))
+      return matchesQuery && matchesPrice && matchesSize && matchesColor
+    })
+    .sort((a, b) => b.score - a.score || a.product.price - b.product.price)
+}
+
+function productScore(product: Product, queryTokens: string[]) {
+  const searchable = productSearchTokens(product)
+  const searchableText = searchable.join(' ')
+  return queryTokens.reduce((score, token) => {
+    if (searchable.includes(token)) return score + 2
+    if (searchableText.includes(token)) return score + 1
+    return score
+  }, 0)
+}
+
+function productSearchTokens(product: Product) {
+  return queryTokensForCatalog(`${product.name} ${product.category} ${product.support} ${product.color}`)
+}
+
+function brandTokens() {
+  return new Set(['adidas', 'brooks', 'balance', 'new', 'nike'])
+}
+
+function productSummary(product: Product) {
+  return `${product.name} costs $${product.price.toFixed(2)}; available sizes: ${product.sizes.join(', ')}; color: ${product.color}; ${product.support}.`
+}
+
+function queryTokensForCatalog(value: string) {
+  const stopWords = new Set([
+    'a', 'an', 'and', 'are', 'available', 'below', 'carry', 'carried', 'cheaper', 'cost', 'costs', 'dollar',
+    'dollars', 'find', 'for', 'has', 'have', 'how', 'info', 'is', 'me', 'option', 'options', 'price', 'show',
+    'size', 'sizes', 'the', 'under', 'what', 'with',
+  ])
+  return normalizeText(value)
+    .split(' ')
+    .map(token => singularize(token))
+    .filter(token => token.length > 1 && !stopWords.has(token) && !colorTokens(token).includes(token) && !normalizeSize(token))
+}
+
+function colorTokens(value: string) {
+  const colors = new Set(['black', 'blue', 'green', 'lime', 'sea', 'salt', 'volt', 'white'])
+  return normalizeText(value).split(' ').filter(token => colors.has(token))
+}
+
+function normalizeText(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9.]+/g, ' ').trim()
+}
+
+function singularize(token: string) {
+  return token.length > 3 && token.endsWith('s') ? token.slice(0, -1) : token
+}
+
+function normalizeSize(value?: string) {
+  if (!value) return undefined
+  const numeric = value.match(/\d+(?:\.\d+)?/)?.[0]
+  if (numeric) return numeric
   const wordSizes: Record<string, string> = {
     nine: '9',
     ten: '10',
     eleven: '11',
     twelve: '12',
   }
-  return input.match(/\b(nine|ten|eleven|twelve)\b/i)?.[1]?.toLowerCase().replace(
-    /nine|ten|eleven|twelve/,
-    match => wordSizes[match],
-  )
+  return wordSizes[value.toLowerCase()]
+}
+
+function extractSize(input: string) {
+  return normalizeSize(input.match(/size\s+([\d.]+)/i)?.[1]) ??
+    normalizeSize(input.match(/\b(nine|ten|eleven|twelve)\b/i)?.[1])
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

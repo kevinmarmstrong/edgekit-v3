@@ -58,6 +58,8 @@ chat?.registerActions(({ toolName, output }) => {
 })
 ```
 
+For docs search, site-map, catalog, or support assistants that must ground answers in app-owned tools, configure `toolChoice: 'required'`. Keep the default `auto` behavior for open-ended assistants.
+
 AG-UI-compatible backends can drive the same component:
 
 ```ts

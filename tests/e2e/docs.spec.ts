@@ -122,6 +122,8 @@ test('docs pages expose core documentation sections and navigation', async ({ pa
   await expect(page.locator('pre code').filter({ hasText: 'pnpm eval:models' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Research loops' })).toBeVisible()
   await expect(page.locator('pre code').filter({ hasText: 'pnpm research:agents' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Expansive outcome suite' })).toBeVisible()
+  await expect(page.locator('pre code').filter({ hasText: 'pnpm research:suite' })).toBeVisible()
 
   await page.getByRole('link', { name: 'Enterprise' }).click()
   await expect(page).toHaveURL(/\/edgekit\/docs\/advanced\/$/)

@@ -15,6 +15,7 @@ pnpm test
 pnpm test:e2e
 pnpm eval:models
 pnpm research:agents
+pnpm research:suite
 pnpm dev:ecommerce
 ```
 
@@ -176,6 +177,18 @@ EDGEKIT_RESEARCH_STRICT=0 pnpm research:agents
 
 Use this when tuning the real solution surface, not just the fixtures. Fix failures in EdgeKit contracts, harnesses, prompts, or reusable demo integration patterns before adding demo-specific patches.
 
+`pnpm research:suite` is the broader confidence loop. It reads `evals/agent-suite/scenarios.json` and `evals/agent-suite/rubric.json`, runs seeded prompt variants across browser demos, then runs architecture probes for hybrid routing, supervisor handoffs, response cache, tool repair, MCP adapters, guarded tool policy, offline journals, parallel-safe tools, PII redaction, provider fallback, and loaded-page offline behavior.
+
+```bash
+pnpm research:suite
+EDGEKIT_SUITE_TARGET=live pnpm research:suite
+EDGEKIT_SUITE_PROMPT_LIMIT=2 pnpm research:suite
+EDGEKIT_SUITE_SEED=42 pnpm research:suite
+EDGEKIT_SUITE_HEADLESS=0 pnpm research:suite
+```
+
+Use `research:agents` as the fast public-surface check and `research:suite` as the expandable tuning loop. Add new prompt variants or scenario packs before adding narrow code fixes.
+
 ## Release Checks
 
 - `pnpm test`: unit coverage for model cascade, approval resume, and docs indexing.
@@ -185,6 +198,7 @@ Use this when tuning the real solution surface, not just the fixtures. Fix failu
 - `pnpm test:workflows`: focused Playwright coverage for the ecommerce workflow suite.
 - `pnpm eval:models`: real-browser model cascade evals for Chrome AI/WebLLM prompt quality. See `MODEL_EVALS.md`.
 - `pnpm research:agents`: research loop for answer quality, workflow state, safety, docs exports, and deployed demo behavior.
+- `pnpm research:suite`: expansive outcome suite with rubric thresholds, prompt variants, architecture probes, and resilience checks.
 
 ## Notes
 

@@ -308,7 +308,7 @@ type AdminRequest = {
 function parseAdminRequest(input: string): AdminRequest {
   const normalized = input.toLowerCase()
   const isGlobex = normalized.includes('globex')
-  const action = normalized.includes('suspend') ? 'suspend' : 'update-plan'
+  const action = /\b(suspend|suspension|disable|deactivate)\b/.test(normalized) ? 'suspend' : 'update-plan'
   return {
     action,
     accountId: isGlobex ? 'globex' : 'northwind',

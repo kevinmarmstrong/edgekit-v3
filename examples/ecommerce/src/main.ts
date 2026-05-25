@@ -190,14 +190,16 @@ function answerFromCatalog(input: string) {
   const requestedColor = input.match(/\b(white|black|blue|green|volt)\b/i)?.[1]?.toLowerCase()
   const normalizedInput = input.toLowerCase()
   const wantsDunks = normalizedInput.includes('dunk')
+  const wantsRunning =
+    normalizedInput.includes('shoe') ||
+    normalizedInput.includes('running') ||
+    normalizedInput.includes('trainer') ||
+    normalizedInput.includes('daily')
   const results = products.filter(product => {
     const productName = product.name.toLowerCase()
     const matchesQuery =
       (wantsDunks && productName.includes('dunk')) ||
-      (!wantsDunks &&
-        (normalizedInput.includes('shoe') ||
-          normalizedInput.includes('running') ||
-          productName.includes(normalizedInput)))
+      (!wantsDunks && (wantsRunning || productName.includes(normalizedInput)))
     const matchesPrice = maxPrice == null || product.price <= Number(maxPrice)
     const matchesSize = requestedSize == null || product.sizes.includes(requestedSize)
     const matchesColor = requestedColor == null || product.color.toLowerCase().includes(requestedColor)
@@ -448,7 +450,7 @@ function parseShoppingRequest(input: string): ShoppingRequest {
   const requestedSize = extractSize(normalized)
   const color = normalized.match(/\b(white|black|blue|green|volt)\b/)?.[1]
   const wantsDunks = normalized.includes('dunk')
-  const addToCart = /\b(cart|bag|checkout|buy)\b/.test(normalized)
+  const addToCart = /\b(cart|bag|checkout|buy)\b/.test(normalized) || normalized.includes('addtocart')
 
   return {
     searchInput: {

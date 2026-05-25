@@ -18,6 +18,7 @@
     "test:workflows": "pnpm build && EDGEKIT_E2E_FRESH=1 playwright test tests/e2e/ecommerce.spec.ts tests/e2e/admin.spec.ts tests/e2e/docs.spec.ts",
     "eval:models": "pnpm --filter @kevinmarmstrong/edgekit build && pnpm --filter @kevinmarmstrong/edgekit-ui build && pnpm --filter @edgekit/ecommerce-demo build && node scripts/eval-model-cascade.mjs",
     "research:agents": "pnpm build && node scripts/research-agent-loops.mjs",
+    "research:suite": "pnpm build && node scripts/research-suite.mjs",
     "deploy:cloudflare": "pnpm build && pnpm --dir site dlx wrangler pages deploy dist --project-name edgekit",
     "dev:ecommerce": "pnpm --filter @edgekit/ecommerce-demo dev",
     "dev:site": "pnpm --filter @edgekit/site dev",

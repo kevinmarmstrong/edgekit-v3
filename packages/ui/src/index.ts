@@ -317,16 +317,14 @@ export class EdgeChat extends LitElement {
   @property({ attribute: 'placeholder' })
   placeholder = 'Ask the agent...'
 
+  @property({ attribute: 'ready-message' })
+  readyMessage = 'Ready. Ask for product help and the agent will use registered tools.'
+
   @property({ type: Boolean, attribute: 'show-tool-events' })
   showToolEvents = false
 
   @state()
-  private messages: ChatMessage[] = [
-    {
-      role: 'system',
-      text: 'Ready. Ask for product help and the agent will use registered tools.',
-    },
-  ]
+  private messages: ChatMessage[] = []
 
   @state()
   private statusText = 'Browser agent'
@@ -351,6 +349,13 @@ export class EdgeChat extends LitElement {
   private config: Partial<CreateAgentOptions> = {}
   private agent: EdgeAgent | null = null
   private agentIsExternal = false
+
+  connectedCallback() {
+    super.connectedCallback()
+    if (this.messages.length === 0) {
+      this.messages = [{ role: 'system', text: this.readyMessage }]
+    }
+  }
 
   configure(options: Partial<CreateAgentOptions>) {
     this.config = { ...this.config, ...options }

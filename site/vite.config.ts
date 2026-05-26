@@ -15,6 +15,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         'demo-ecommerce': resolve(__dirname, 'demos/ecommerce/index.html'),
+        'demo-operations': resolve(__dirname, 'demos/operations/index.html'),
         'demo-docs': resolve(__dirname, 'demos/docs/index.html'),
         'demo-ag-ui': resolve(__dirname, 'demos/ag-ui/index.html'),
         'demo-admin': resolve(__dirname, 'demos/admin/index.html'),

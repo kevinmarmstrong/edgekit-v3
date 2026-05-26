@@ -483,6 +483,7 @@ dl {
 .docs-section,
 .demos-section,
 .ecommerce-demo,
+.ops-demo,
 .admin-demo,
 .mission-section,
 .split-section {
@@ -502,6 +503,30 @@ dl {
 .section-heading {
   display: grid;
   gap: 8px;
+}
+
+.ops-brief {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(280px, 1fr);
+  gap: 18px;
+  align-items: end;
+  padding-bottom: 2px;
+}
+
+.ops-brief h2,
+.ops-brief p {
+  margin: 0;
+}
+
+.ops-brief h2 {
+  font-size: clamp(30px, 4vw, 46px);
+}
+
+.ops-brief > p {
+  max-width: 620px;
+  justify-self: end;
+  color: var(--muted);
+  font-size: 15px;
 }
 
 .production-notes {
@@ -783,7 +808,8 @@ select:focus-visible {
 }
 
 .commerce-layout,
-.admin-layout {
+.admin-layout,
+.ops-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
   gap: 20px;
@@ -834,12 +860,124 @@ dd {
 }
 
 .commerce-agent,
-.admin-agent {
+.admin-agent,
+.ops-agent {
   position: sticky;
   top: 86px;
   display: grid;
   gap: 14px;
   align-self: start;
+}
+
+.ops-board {
+  display: grid;
+  gap: 14px;
+}
+
+.ops-command-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--line);
+}
+
+.ops-command-strip article,
+.ops-card,
+.tech-row {
+  background: var(--panel);
+}
+
+.ops-command-strip article {
+  display: grid;
+  gap: 8px;
+  min-height: 130px;
+  padding: 18px;
+  align-content: end;
+}
+
+.ops-command-strip span,
+.status-chip {
+  width: fit-content;
+  color: var(--accent);
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.ops-command-strip strong {
+  font-size: clamp(30px, 4vw, 52px);
+  line-height: 0.95;
+}
+
+.ops-command-strip p {
+  margin: 0;
+}
+
+.ops-work-orders {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ops-card {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  margin: 0 6px 6px 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 4px 7px;
+  background: #11150f;
+}
+
+.status-chip.danger {
+  color: var(--danger);
+}
+
+.status-chip.warn {
+  color: var(--accent-2);
+}
+
+.status-chip.ok {
+  color: var(--accent);
+}
+
+.ops-lower-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+  gap: 14px;
+}
+
+.tech-list {
+  display: grid;
+  gap: 10px;
+}
+
+.tech-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+.tech-row h3,
+.tech-row p {
+  margin: 0;
 }
 
 .cart,
@@ -1035,8 +1173,11 @@ pre code {
 @media (max-width: 1100px) {
   .hero,
   .split-section,
+  .ops-brief,
   .commerce-layout,
   .admin-layout,
+  .ops-layout,
+  .ops-lower-grid,
   .account-row,
   .frame-body,
   .docs-shell {
@@ -1045,8 +1186,13 @@ pre code {
 
   .commerce-agent,
   .admin-agent,
+  .ops-agent,
   .docs-sidebar {
     position: static;
+  }
+
+  .ops-work-orders {
+    grid-template-columns: 1fr;
   }
 
   .mission-grid {
@@ -1089,6 +1235,7 @@ pre code {
   .demos-section,
   .demo-hero,
   .ecommerce-demo,
+  .ops-demo,
   .admin-demo,
   .mission-section,
   .split-section {
@@ -1100,6 +1247,8 @@ pre code {
   .doc-card-grid,
   .steps-grid,
   .catalog,
+  .ops-command-strip,
+  .ops-work-orders,
   .mission-grid,
   .context-grid {
     grid-template-columns: 1fr;

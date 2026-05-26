@@ -1,6 +1,6 @@
 import './styles.css'
 
-type DemoSlug = 'ecommerce' | 'docs' | 'ag-ui' | 'admin' | 'mission-control'
+type DemoSlug = 'ecommerce' | 'operations' | 'docs' | 'ag-ui' | 'admin' | 'mission-control'
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '')
 const root = document.querySelector<HTMLElement>('#demo-root')
@@ -11,6 +11,11 @@ const demoMeta: Record<DemoSlug, { title: string; label: string; summary: string
     title: 'Ecommerce retrofit demo',
     label: 'Live ecommerce',
     summary: 'Product search, selectable CTAs, and guarded cart mutation inside a storefront workflow.',
+  },
+  operations: {
+    title: 'Field ops ERP demo',
+    label: 'Field ops ERP',
+    summary: 'Work-order triage, inventory reservation, and technician dispatch inside an operational ERP surface.',
   },
   docs: {
     title: 'Docs Q&A demo',
@@ -85,6 +90,7 @@ function renderDemo(slug: DemoSlug) {
   if (slug === 'docs') return docsDemo()
   if (slug === 'ag-ui') return agUiDemo()
   if (slug === 'admin') return adminDemo()
+  if (slug === 'operations') return operationsDemo()
   if (slug === 'mission-control') return missionDemo()
   return ecommerceDemo()
 }
@@ -150,6 +156,57 @@ function ecommerceDemo() {
           <section class="cart" aria-live="polite">
             <div class="cart-title">Cart</div>
             <div id="cart-state">No items yet</div>
+          </section>
+        </aside>
+      </div>
+    </section>
+  `
+}
+
+function operationsDemo() {
+  return `
+    <section class="ops-demo" id="operations">
+      <div class="ops-brief">
+        <div>
+          <p class="section-label">Internal operations demo</p>
+          <h2>Field-service ERP dispatch surface.</h2>
+        </div>
+        <p>
+          Work orders, inventory, technician availability, and approval-gated actions in one app-owned surface.
+        </p>
+      </div>
+      <div class="ops-layout">
+        <section class="ops-board" aria-label="Field service work orders">
+          <div class="ops-command-strip">
+            <article><span>Critical SLA</span><strong>4h</strong><p>Riverside Clinic compressor outage</p></article>
+            <article><span>Available HVAC techs</span><strong>2</strong><p>East region dispatch pool</p></article>
+            <article><span>Compressor stock</span><strong id="ops-cmp-stock">2</strong><p>CMP-44 modules available</p></article>
+          </div>
+          <div id="ops-work-orders" class="ops-work-orders"></div>
+          <div class="ops-lower-grid">
+            <section class="mission-table">
+              <div class="cart-title">Inventory</div>
+              <table>
+                <thead><tr><th>SKU</th><th>Part</th><th>Available</th><th>Reserved</th></tr></thead>
+                <tbody id="ops-inventory"></tbody>
+              </table>
+            </section>
+            <section>
+              <div class="cart-title">Technicians</div>
+              <div id="ops-technicians" class="tech-list"></div>
+            </section>
+          </div>
+        </section>
+        <aside class="ops-agent">
+          <edge-chat
+            id="ops-chat"
+            system-prompt="You are a field-service ERP assistant. Search work orders before recommending inventory reservation or technician assignment. Ask for approval before changing inventory or dispatch state."
+            placeholder="Try: reserve a compressor for Riverside"
+            ready-message="Ready. Ask for field-service triage, inventory reservation, or dispatch help."
+          ></edge-chat>
+          <section class="activity-log" aria-live="polite">
+            <div class="cart-title">Dispatch log</div>
+            <ul id="ops-activity"></ul>
           </section>
         </aside>
       </div>

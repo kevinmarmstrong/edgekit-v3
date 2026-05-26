@@ -96,6 +96,24 @@
       ]
     },
     {
+      "id": "field-ops-reserve-inventory",
+      "surface": "field-ops-inventory-reservation",
+      "required": true,
+      "prompts": [
+        "reserve a compressor for Riverside",
+        "hold one CMP-44 for WO-1842"
+      ]
+    },
+    {
+      "id": "field-ops-dispatch-rejection",
+      "surface": "field-ops-dispatch-reject",
+      "required": true,
+      "prompts": [
+        "assign Ava to Riverside",
+        "dispatch a technician to Riverside Clinic"
+      ]
+    },
+    {
       "id": "profile-adoption-guidance",
       "surface": "profile-adoption-guidance",
       "required": true,

@@ -16,13 +16,17 @@ test('homepage links into the full documentation site', async ({ page }) => {
   await expect(page.getByRole('link', { name: /Skill Optimization/ })).toHaveAttribute('href', /\/edgekit\/docs\/skill-optimization\/$/)
   await expect(page.getByRole('link', { name: /Production/ })).toHaveAttribute('href', /\/edgekit\/docs\/production\/$/)
   await expect(page.getByRole('link', { name: /Outcome Quality/ })).toHaveAttribute('href', /\/edgekit\/docs\/outcome-quality\/$/)
-  await expect(page.locator('.demo-grid a.demo-card')).toHaveCount(5)
+  await expect(page.locator('.demo-grid a.demo-card')).toHaveCount(6)
   await expect(page.locator('.site-header nav').getByRole('link', { name: 'Admin' })).toHaveCount(0)
   await expect(page.locator('edge-chat')).toHaveCount(1)
   await expect(page.locator('#site-assistant')).toBeVisible()
   await expect(page.getByRole('link', { name: 'Live ecommerce Product search and guarded add-to-cart' })).toHaveAttribute(
     'href',
     'demos/ecommerce/',
+  )
+  await expect(page.getByRole('link', { name: 'Field ops ERP Work orders, inventory reservation, and technician dispatch' })).toHaveAttribute(
+    'href',
+    'demos/operations/',
   )
 
   await page.getByRole('link', { name: 'Read the docs' }).click()

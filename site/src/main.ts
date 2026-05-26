@@ -2,6 +2,7 @@ import '@kevinmarmstrong/edgekit-ui'
 import { chromeAI, createAgUiAgent, createMissionControl, createModelProvider, modelOptional, tool } from '@kevinmarmstrong/edgekit'
 import { publicCatalogShoppingProfile } from './profiles/public-catalog-shopping'
 import { docsQaProfile } from './profiles/docs-qa'
+import { mountOpsDemo } from './opsDemo'
 import type { AgUiRunInput, EdgeViewNode, LanguageModelV3, MissionControlSnapshot } from '@kevinmarmstrong/edgekit'
 import type { EdgeChat } from '@kevinmarmstrong/edgekit-ui'
 import { z } from 'zod'
@@ -229,6 +230,7 @@ renderCart()
 renderMissionControl()
 wireDocSearch()
 mountAdminDemo()
+mountOpsDemo()
 mountSiteAssistant({ telemetry: missionControl })
 
 function renderDocCards() {

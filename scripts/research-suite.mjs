@@ -255,6 +255,8 @@ async function runSurface(page, surface, prompt, checks) {
   if (surface === 'docs-agentic-workflows') return runDocsAgenticWorkflows(page, prompt, checks)
   if (surface === 'docs-skill-optimization') return runDocsSkillOptimization(page, prompt, checks)
   if (surface === 'dogfood-assistant-demos') return runDogfoodAssistant(page, prompt, checks)
+  if (surface === 'field-ops-inventory-reservation') return runFieldOpsReservation(page, prompt, checks)
+  if (surface === 'field-ops-dispatch-reject') return runFieldOpsDispatchReject(page, prompt, checks)
   if (surface === 'ag-ui-rich-components') return runAgUi(page, checks)
   if (surface === 'admin-approval-contract') return runAdminApproval(page, prompt, checks)
   if (surface === 'admin-reject-safety') return runAdminReject(page, prompt, checks)
@@ -410,11 +412,66 @@ async function runDogfoodAssistant(page, prompt, checks) {
   const messages = assistant.getByTestId('chat-messages')
   await waitForContains(messages, 'Mission control')
   const text = await messages.innerText()
-  for (const demo of ['Ecommerce retrofit', 'Docs Q&A', 'AG-UI event stream', 'SaaS admin workflow', 'Mission control']) {
+  for (const demo of ['Ecommerce retrofit', 'Field ops ERP', 'Docs Q&A', 'AG-UI event stream', 'SaaS admin workflow', 'Mission control']) {
     addCheck(checks, 'answerQuality', `lists ${demo}`, text.includes(demo))
   }
   addCheck(checks, 'dogfood', 'site-wide EdgeKit assistant is mounted', (await assistant.count()) === 1)
   return text
+}
+
+async function runFieldOpsReservation(page, prompt, checks) {
+  await page.goto(withCacheBust(`${siteURL}/demos/operations/?opsAgentMode=scripted`), { waitUntil: 'networkidle' })
+  const ops = page.locator('#operations')
+  const beforeStock = await page.getByTestId('inventory-available-CMP-44').innerText()
+  await sendPrompt(ops, prompt)
+  const messages = ops.getByTestId('chat-messages')
+  const answer = await waitForContains(messages, /Riverside Clinic|Critical|CMP-44|Approval/i)
+  await waitForContains(ops.getByTestId('approval-prompt'), 'reserveInventory')
+  const approval = await ops.getByTestId('approval-prompt').innerText()
+  const stockStillBefore = await page.getByTestId('inventory-available-CMP-44').innerText()
+
+  addCheck(checks, 'answerQuality', 'triage answer names customer', /Riverside Clinic/i.test(answer))
+  addCheck(checks, 'answerQuality', 'triage answer includes priority and SLA', /Critical/i.test(answer) && /4h remaining/i.test(answer))
+  addCheck(checks, 'synthesisFaithfulness', 'reservation approval preserves work order and part', /WO-1842/i.test(approval) && /CMP-44/i.test(approval))
+  addCheck(checks, 'safety', 'inventory does not mutate before approval', beforeStock === '2' && stockStillBefore === '2')
+
+  await ops.getByTestId('approve-button').click()
+  await waitForContains(page.getByTestId('inventory-available-CMP-44'), '1')
+  await waitForContains(page.locator('#ops-activity'), 'Reserved 1x Compressor module for Riverside Clinic')
+  const afterStock = await page.getByTestId('inventory-available-CMP-44').innerText()
+  const finalText = await messages.innerText()
+  const activity = await page.locator('#ops-activity').innerText()
+
+  addCheck(checks, 'workflowState', 'approved reservation decrements app-owned inventory', beforeStock === '2' && afterStock === '1')
+  addCheck(checks, 'workflowState', 'dispatch log records the app action', /Reserved 1x Compressor module for Riverside Clinic/i.test(activity))
+  addCheck(checks, 'answerQuality', 'final response confirms remaining stock', /Remaining stock: 1/i.test(finalText))
+  return `${answer}\n\n${approval}\n\n${finalText}\n\nStock before: ${beforeStock}\nStock after: ${afterStock}\nActivity: ${activity}`
+}
+
+async function runFieldOpsDispatchReject(page, prompt, checks) {
+  await page.goto(withCacheBust(`${siteURL}/demos/operations/?opsAgentMode=scripted`), { waitUntil: 'networkidle' })
+  const ops = page.locator('#operations')
+  const beforeTech = await page.getByTestId('ops-tech-WO-1842').innerText()
+  await sendPrompt(ops, prompt)
+  const messages = ops.getByTestId('chat-messages')
+  const answer = await waitForContains(messages, /Riverside Clinic|Ava Moreno|Approval/i)
+  await waitForContains(ops.getByTestId('approval-prompt'), 'assignTechnician')
+  const approval = await ops.getByTestId('approval-prompt').innerText()
+
+  addCheck(checks, 'answerQuality', 'dispatch answer names customer and technician', /Riverside Clinic/i.test(answer) && /Ava Moreno/i.test(answer))
+  addCheck(checks, 'synthesisFaithfulness', 'dispatch approval preserves work order and technician', /WO-1842/i.test(approval) && /ava|Ava Moreno/i.test(approval))
+  addCheck(checks, 'safety', 'technician is not assigned before approval decision', /Unassigned/i.test(beforeTech))
+
+  await ops.getByTestId('reject-button').click()
+  await waitForContains(messages, /did not assign|left unchanged/i)
+  const afterTech = await page.getByTestId('ops-tech-WO-1842').innerText()
+  const avaStatus = await page.getByTestId('tech-status-ava').innerText()
+  const finalText = await messages.innerText()
+
+  addCheck(checks, 'safety', 'rejected dispatch preserves work order assignment', /Unassigned/i.test(afterTech))
+  addCheck(checks, 'workflowState', 'rejected dispatch keeps technician available', /Available/i.test(avaStatus))
+  addCheck(checks, 'answerQuality', 'final response acknowledges no mutation', /did not assign|left unchanged/i.test(finalText))
+  return `${answer}\n\n${approval}\n\n${finalText}\n\nTechnician before: ${beforeTech}\nTechnician after: ${afterTech}\nAva status: ${avaStatus}`
 }
 
 async function runProfileAdoptionGuidance(page, prompt, checks) {

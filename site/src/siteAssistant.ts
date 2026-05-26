@@ -12,6 +12,7 @@ type SiteAssistantOptions = {
 
 const demoLinks = [
   { label: 'Ecommerce retrofit', href: '/demos/ecommerce/', description: 'Product search, generated add-to-cart CTAs, and approval gates.' },
+  { label: 'Field ops ERP', href: '/demos/operations/', description: 'Work-order triage, inventory reservation, and technician dispatch.' },
   { label: 'Docs Q&A', href: '/demos/docs/', description: 'Project documentation exposed as a search tool.' },
   { label: 'AG-UI event stream', href: '/demos/ag-ui/', description: 'Generated forms, charts, tables, and cards from an event stream.' },
   { label: 'SaaS admin workflow', href: '/demos/admin/', description: 'Account search, plan changes, and suspensions behind approval.' },

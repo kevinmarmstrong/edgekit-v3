@@ -80,10 +80,47 @@ test('docs Q&A and dogfood assistant answer project questions instead of generic
 
   const assistantMessages = assistant.getByTestId('chat-messages')
   await expect(assistantMessages).toContainText('Ecommerce retrofit')
+  await expect(assistantMessages).toContainText('Field ops ERP')
   await expect(assistantMessages).toContainText('Docs Q&A')
   await expect(assistantMessages).toContainText('AG-UI event stream')
   await expect(assistantMessages).toContainText('SaaS admin workflow')
   await expect(assistantMessages).toContainText('Mission control')
+})
+
+test('field ops ERP demo gates inventory reservation and dispatch actions', async ({ page }) => {
+  await page.goto(`${siteURL}demos/operations/?opsAgentMode=scripted&cacheBust=${Date.now()}`)
+
+  const ops = page.locator('#operations')
+  await expect(page.getByTestId('inventory-available-CMP-44')).toHaveText('2')
+
+  await ops.getByTestId('chat-input').fill('reserve a compressor for Riverside')
+  await ops.getByTestId('send-button').click()
+
+  await expect(ops.getByTestId('chat-messages')).toContainText('Riverside Clinic')
+  await expect(ops.getByTestId('chat-messages')).toContainText('Critical')
+  await expect(ops.getByTestId('approval-prompt')).toContainText('reserveInventory')
+  await expect(page.getByTestId('inventory-available-CMP-44')).toHaveText('2')
+
+  await ops.getByTestId('approve-button').click()
+  await expect(page.getByTestId('inventory-available-CMP-44')).toHaveText('1')
+  await expect(page.locator('#ops-cmp-stock')).toHaveText('1')
+  await expect(page.locator('#ops-activity')).toContainText('Reserved 1x Compressor module for Riverside Clinic')
+  await expect(ops.getByTestId('chat-messages')).toContainText('Remaining stock: 1')
+
+  await page.goto(`${siteURL}demos/operations/?opsAgentMode=scripted&cacheBust=${Date.now()}`)
+  const rejectOps = page.locator('#operations')
+  await expect(page.getByTestId('ops-tech-WO-1842')).toContainText('Unassigned')
+
+  await rejectOps.getByTestId('chat-input').fill('assign Ava to Riverside')
+  await rejectOps.getByTestId('send-button').click()
+
+  await expect(rejectOps.getByTestId('chat-messages')).toContainText('Ava Moreno')
+  await expect(rejectOps.getByTestId('approval-prompt')).toContainText('assignTechnician')
+  await rejectOps.getByTestId('reject-button').click()
+
+  await expect(rejectOps.getByTestId('chat-messages')).toContainText(/did not assign|left unchanged/i)
+  await expect(page.getByTestId('ops-tech-WO-1842')).toContainText('Unassigned')
+  await expect(page.getByTestId('tech-status-ava')).toHaveText('Available')
 })
 
 test('AG-UI demo loop explains scripted boundary and renders form, table, and chart states', async ({ page }) => {

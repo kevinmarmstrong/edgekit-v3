@@ -47,6 +47,16 @@
       "skillIds": ["list-demos"],
       "heldOut": true
     },
+    "field-ops-reserve-inventory": {
+      "profileId": "field-ops-dispatch-v1",
+      "skillIds": ["search-work-orders", "reserve-inventory"],
+      "heldOut": true
+    },
+    "field-ops-dispatch-rejection": {
+      "profileId": "field-ops-dispatch-v1",
+      "skillIds": ["search-work-orders", "assign-technician"],
+      "heldOut": true
+    },
     "profile-adoption-guidance": {
       "profileId": "site-dogfood-v1",
       "skillIds": ["search-docs"],

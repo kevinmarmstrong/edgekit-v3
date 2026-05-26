@@ -55,6 +55,7 @@ This repo is designed to be worked on by coding agents. Keep changes aligned wit
 - Offline tools: use `createOfflineTool()` plus a mutation journal for approved, idempotent mutations that can queue while offline and sync later. Add Yjs/Automerge through adapters, not core assumptions.
 - Tool policy: use `createToolPolicyExecutor()` or `executeToolWithPolicy()` before running third-party or dynamic tools. Start with allowlists, timeouts, payload limits, and workers before adding WASM.
 - MCP: use `loadMcpTools()` or `mcpToolsFromDefinitions()` against a safe backend/proxy catalog.
+- Agent adoption kit: use `docs/agent-skills/*/SKILL.md` when another coding agent needs procedural help implementing, testing, optimizing, or security-reviewing Edgekit. Use recipes through `edgekit-init mission --recipe ...` for repeatable app/framework starts such as support workflows, Knowledge Access, and Astro intake plus knowledge.
 - Telemetry: pass `telemetry` to `createAgent()`, `createAgUiAgent()`, or `chat.configure()`.
 - Audit: pass `auditTrail: createAuditTrail(...)`; production compliance should provide a cryptographic hash/signing function and persist entries server-side.
 - Identity: use `identityProvider`/`sessionProvider` to pass public user, tenant, roles, and permissions into Edgekit.

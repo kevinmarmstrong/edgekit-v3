@@ -10,6 +10,8 @@ Release candidate scaffold. The Phase 0 spike is validated, the core package, do
 - [WORLD-CLASS-DEFINITION.md](./WORLD-CLASS-DEFINITION.md) — What "ready for real production use" means for both elite developers and agent-assisted teams.
 - [docs/GETTING-STARTED-REAL-APPS.md](./docs/GETTING-STARTED-REAL-APPS.md) — The recommended path to shipping a high-quality, localized sidecar with excellent outcome quality.
 - [docs/30-MINUTE-PRODUCTION-SIDECAR.md](./docs/30-MINUTE-PRODUCTION-SIDECAR.md) — The fastest guided path from starter profile to tested sidecar.
+- [docs/AGENT-ADOPTION-KIT.md](./docs/AGENT-ADOPTION-KIT.md) — Coding-agent skills, recipe scaffolds, and outcome loops for low-friction implementation.
+- [docs/RECIPE-CATALOG.md](./docs/RECIPE-CATALOG.md) — Opinionated install paths such as support workflow, Knowledge Access, and Astro intake plus knowledge.
 - [docs/RUNTIME-GUARANTEES.md](./docs/RUNTIME-GUARANTEES.md) — What Edgekit enforces at runtime vs. what is an authoring/harness contract.
 - [docs/DISTRIBUTION-READINESS.md](./docs/DISTRIBUTION-READINESS.md) — Package, fresh-app, and public release readiness.
 - [docs/PRODUCTION-RECIPES.md](./docs/PRODUCTION-RECIPES.md) — Telemetry, audit, RBAC, state, and escalation recipes.
@@ -118,6 +120,7 @@ edgekit stays small by exposing contracts instead of shipping a required cloud s
 - Audit trails: `createAuditTrail()` records tool calls, approval requests, approval decisions, UI actions, and errors in a hash chain. Bring your own signing or cryptographic hash for strict compliance environments.
 - Identity and RBAC: `sessionProvider`, `identityProvider`, `stateProvider`, `toolManifests`, `filterToolManifestsForSession()`, and `withToolContext()` bridge app identity and state into Edgekit without putting auth secrets in the model prompt.
 - Coding-agent handoff: `AGENTS.md` documents the architecture, commands, and guardrails for implementation agents.
+- Agent adoption kit: `docs/agent-skills/*/SKILL.md` gives coding agents procedural implementation, testing, optimization, and security-review workflows. `edgekit-init` scaffolds repeatable recipes such as `support-workflow`, `knowledge-skill`, and `astro-intake-knowledge`.
 
 ```ts
 chat.configure({

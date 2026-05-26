@@ -47,7 +47,7 @@ export function composeEdgekitAnswer({ input, results, mode = 'docs-demo', curre
     return [
       'Use the concrete support-workflow starter, not a blank prompt.',
       '',
-      'Copy `docs/templates/mission-profile-starter/profile.ts`, keep the two Skills (`support-case-search` and `create-support-ticket`), keep the `support-workflow-v1` Mission Profile, replace the sample tool `execute` bodies with your app APIs, and mount it behind `<edge-chat>`.',
+      'Copy `docs/templates/mission-profile-starter/profile.ts`, or scaffold it with `edgekit-init mission --recipe support-workflow --out edgekit/support`. Keep the two Skills (`support-case-search` and `create-support-ticket`), keep the `support-workflow-v1` Mission Profile, replace the sample tool `execute` bodies with your app APIs, and mount it behind `<edge-chat>`.',
       '',
       'Then validate with `validateMissionProfile(profile, { registeredTools })` and run the starter outcome scenarios from `docs/templates/mission-profile-starter/harness-scenarios.json`. Passing means the read prompt surfaces case facts, ticket creation requires approval, rejection preserves state, and no tool chatter leaks to the user.',
       sourceNote,
@@ -127,6 +127,21 @@ export function composeEdgekitAnswer({ input, results, mode = 'docs-demo', curre
       .join('\n')
   }
 
+  if (intent === 'adoption-kit') {
+    return [
+      'Use the Adoption Kit when you want a developer or coding agent to implement EdgeKit with less friction and fewer wrong turns.',
+      '',
+      'The kit has four layers: human docs, coding-agent `SKILL.md` files, recipe scaffolds, and outcome harnesses. The current agent skills are `edgekit-implementer`, `edgekit-outcome-tester`, `edgekit-skill-optimizer`, and `edgekit-security-review`.',
+      '',
+      'Recipes keep opinionated install paths out of the core quick start. Start with `edgekit-init --list`, then scaffold a focused path such as `support-workflow`, `knowledge-skill`, or `astro-intake-knowledge`. The Astro recipe mounts `<edge-chat>`, wires a Knowledge Access Skill, and keeps intake submission behind an approval-gated app-owned tool.',
+      '',
+      'This is the scalable direction: recipes can grow by framework or workflow, while Skills, Mission Profiles, app-owned tools, approvals, citations, and outcome tests stay consistent.',
+      sourceNote,
+    ]
+      .filter(Boolean)
+      .join('\n')
+  }
+
   return [
     'EdgeKit helps you add an agent to an app by giving you the browser-native sidecar, model cascade, tool loop, and approval/UI contracts so you do not have to rebuild those pieces from scratch.',
     '',
@@ -144,6 +159,7 @@ export function composeEdgekitAnswer({ input, results, mode = 'docs-demo', curre
 export function detectAnswerIntent(input: string) {
   const normalized = input.toLowerCase()
   if (/\b(jwt|cookie|token|database|db|credential|secret)\b/.test(normalized)) return 'unsafe-secrets-or-database'
+  if (/\b(adoption kit|agent skills?|skill\.md|recipes?|edgekit-init|astro|intake|scaffold|scaffolding|onboarding)\b/.test(normalized)) return 'adoption-kit'
   if (/\b(starter|template|30.minute|thirty.minute|new mission|first sidecar|support workflow)\b/.test(normalized)) return 'starter-path'
   if (/\b(chatbot|chat bot|different|instead of chat)\b/.test(normalized)) return 'chatbot-difference'
   if (/\b(knowledge|retrieval|vector|embeddings|graph|graphrag|llamaindex|langchain|qdrant|neo4j|citation|citations)\b/.test(normalized)) return 'knowledge-access'

@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { describe, expect, it } from 'vitest'
-import { collectInputFiles, createDocsIndex, stripMarkup } from '../src/index'
+import { collectInputFiles, createDocsIndex, initRecipe, recipeCatalog, stripMarkup } from '../src/index'
 
 describe('stripMarkup', () => {
   it('turns markdown and html into searchable plain text', () => {
@@ -60,6 +60,31 @@ describe('createDocsIndex', () => {
 
       const payload = JSON.parse(await readFile(output, 'utf8')) as { chunks: unknown[] }
       expect(payload.chunks).toHaveLength(1)
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('recipe scaffolding', () => {
+  it('lists recipe definitions for framework and mission starters', () => {
+    expect(recipeCatalog.map(recipe => recipe.id)).toEqual(['support-workflow', 'knowledge-skill', 'astro-intake-knowledge'])
+  })
+
+  it('writes an Astro intake and knowledge recipe without overwriting by default', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'edgekit-cli-'))
+    try {
+      const result = await initRecipe('astro-intake-knowledge', { cwd: root, out: 'edgekit/intake' })
+      expect(result.files.map(file => file.split('/').pop())).toContain('KnowledgeSidecar.astro')
+
+      const profile = await readFile(join(root, 'edgekit/intake/edgekit-profile.ts'), 'utf8')
+      expect(profile).toContain('createKnowledgeSkill')
+      expect(profile).toContain('submitIntake')
+
+      const manifest = JSON.parse(await readFile(join(root, 'edgekit/intake/edgekit-recipe.json'), 'utf8')) as { id: string }
+      expect(manifest.id).toBe('astro-intake-knowledge')
+
+      await expect(initRecipe('astro-intake-knowledge', { cwd: root, out: 'edgekit/intake' })).rejects.toThrow(/Refusing to overwrite/)
     } finally {
       await rm(root, { recursive: true, force: true })
     }

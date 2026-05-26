@@ -23,6 +23,8 @@ export default defineConfig({
         docs: resolve(__dirname, 'docs/index.html'),
         'docs-getting-started': resolve(__dirname, 'docs/getting-started/index.html'),
         'docs-30-minute-sidecar': resolve(__dirname, 'docs/30-minute-sidecar/index.html'),
+        'docs-adoption-kit': resolve(__dirname, 'docs/adoption-kit/index.html'),
+        'docs-recipes': resolve(__dirname, 'docs/recipes/index.html'),
         'docs-concepts': resolve(__dirname, 'docs/concepts/index.html'),
         'docs-knowledge-access': resolve(__dirname, 'docs/knowledge-access/index.html'),
         'docs-api': resolve(__dirname, 'docs/api/index.html'),
@@ -76,6 +78,8 @@ ${links}
 
 - [Full documentation export](/llms-full.txt)
 - [Overview Markdown](/docs.md)
+- [Adoption Kit Markdown](/docs/adoption-kit.md)
+- [Recipe Catalog Markdown](/docs/recipes.md)
 - [Enterprise controls Markdown](/docs/advanced.md)
 - [Ecosystem Markdown](/docs/ecosystem.md)
 - [Knowledge Access Markdown](/docs/knowledge-access.md)

@@ -269,6 +269,7 @@ async function runSurface(page, surface, prompt, checks) {
   if (surface === 'docs-qa-token-cost') return runDocsQa(page, prompt, checks)
   if (surface === 'docs-agentic-workflows') return runDocsAgenticWorkflows(page, prompt, checks)
   if (surface === 'docs-knowledge-access') return runDocsKnowledgeAccess(page, prompt, checks)
+  if (surface === 'docs-adoption-kit-recipes') return runDocsAdoptionKitRecipes(page, prompt, checks)
   if (surface === 'docs-skill-optimization') return runDocsSkillOptimization(page, prompt, checks)
   if (surface === 'dogfood-assistant-demos') return runDogfoodAssistant(page, prompt, checks)
   if (surface === 'field-ops-inventory-reservation') return runFieldOpsReservation(page, prompt, checks)
@@ -419,6 +420,20 @@ async function runDocsKnowledgeAccess(page, prompt, checks) {
   addCheck(checks, 'integration', 'names knowledge contracts', /EdgeKnowledgeSource|createKnowledgeTool|createKnowledgeSkill/i.test(text))
   addCheck(checks, 'integration', 'names mature retrieval ecosystems', /LlamaIndex|LangChain|Qdrant|Neo4j|GraphRAG/i.test(text))
   addCheck(checks, 'knowledgeGrounding', 'mentions citations and freshness', /citations?|freshness|stale/i.test(text))
+  return text
+}
+
+async function runDocsAdoptionKitRecipes(page, prompt, checks) {
+  await page.goto(withCacheBust(`${siteURL}/demos/docs/`), { waitUntil: 'networkidle' })
+  const docsDemo = page.locator('#qa')
+  await sendPrompt(docsDemo, prompt)
+  const messages = docsDemo.getByTestId('chat-messages')
+  const text = await waitForAnswerAfterPrompt(messages, prompt, /Adoption Kit|edgekit-init|astro-intake-knowledge|SKILL\.md|edgekit-implementer/i)
+  addCheck(checks, 'answerQuality', 'answers the adoption kit or recipe question directly', /Adoption Kit|recipes?|edgekit-init/i.test(text))
+  addCheck(checks, 'integration', 'names coding-agent skills', /SKILL\.md|edgekit-implementer|edgekit-outcome-tester|edgekit-security-review/i.test(text))
+  addCheck(checks, 'integration', 'names recipe scaffold command or recipe id', /edgekit-init|astro-intake-knowledge|support-workflow|knowledge-skill/i.test(text))
+  addCheck(checks, 'architecture', 'keeps recipes additive and scalable', /scalable|recipes can grow|out of the core quick start|consistent/i.test(text))
+  addCheck(checks, 'safety', 'keeps recipe mutations app-owned and approval gated', /approval-gated|app-owned tool|host app/i.test(text))
   return text
 }
 

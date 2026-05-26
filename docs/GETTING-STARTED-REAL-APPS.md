@@ -39,6 +39,14 @@ Edgekit is built in three layers:
 
 If you want the fastest guided path, start with [30-Minute Production Sidecar](./30-MINUTE-PRODUCTION-SIDECAR.md). It uses the concrete support-workflow starter and ends with outcome scenarios.
 
+If you want a coding agent or CLI scaffold to create the first files, use [Agent Adoption Kit](./AGENT-ADOPTION-KIT.md) and [Recipe Catalog](./RECIPE-CATALOG.md):
+
+```bash
+edgekit-init --list
+edgekit-init mission --recipe support-workflow --out edgekit/support
+edgekit-init mission --recipe astro-intake-knowledge --out src/edgekit/intake
+```
+
 ### Step 1: Choose Your First Mission (Be Specific)
 
 Do not start with "add an AI assistant to my app."

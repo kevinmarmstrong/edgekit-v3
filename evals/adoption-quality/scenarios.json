@@ -137,6 +137,22 @@
       "forbidden": [
         { "category": "architecture", "label": "does not say Edgekit ships its own RAG database", "pattern": "EdgeKit ships (a )?(vector database|graph database|RAG database)" }
       ]
+    },
+    {
+      "id": "agent-adoption-kit-recipes",
+      "surface": "site-assistant",
+      "prompt": "do you provide coding-agent skills and recipes for an Astro intake pipeline with a knowledge base?",
+      "required": [
+        { "category": "directness", "label": "answers with the Adoption Kit", "pattern": "Adoption Kit" },
+        { "category": "integration", "label": "names coding-agent skills", "pattern": "SKILL\\.md|edgekit-implementer|edgekit-outcome-tester|edgekit-security-review" },
+        { "category": "integration", "label": "names recipe scaffolding", "pattern": "edgekit-init|astro-intake-knowledge|recipes?" },
+        { "category": "integration", "label": "names Astro intake plus knowledge path", "pattern": "Astro[\\s\\S]{0,160}(Knowledge Access|intake)|astro-intake-knowledge" },
+        { "category": "architecture", "label": "keeps recipes additive instead of core clutter", "pattern": "recipes?[\\s\\S]{0,180}(core|quick start|scalable|grow)|scalable direction" },
+        { "category": "safety", "label": "keeps intake app-owned and approval gated", "pattern": "approval-gated|approval[\\s\\S]{0,120}app-owned|app-owned tool" }
+      ],
+      "forbidden": [
+        { "category": "architecture", "label": "does not turn recipes into a separate hosted runtime", "pattern": "hosted recipe runtime|recipes replace Edgekit core" }
+      ]
     }
   ]
 }

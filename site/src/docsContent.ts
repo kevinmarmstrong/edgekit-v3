@@ -176,6 +176,108 @@ document.querySelector('edge-chat')?.registerTools({ searchProducts })`,
     ],
   },
   {
+    slug: 'adoption-kit',
+    navLabel: 'Adoption Kit',
+    title: 'Agent Adoption Kit',
+    summary: 'Guides, coding-agent skills, recipes, scaffolds, and outcome loops for fast high-confidence Edgekit implementation.',
+    sections: [
+      {
+        id: 'purpose',
+        title: 'Purpose',
+        body: [
+          'The Adoption Kit turns Edgekit from documented infrastructure into a repeatable implementation path. It gives humans the architecture, gives coding agents procedural skills, gives teams recipe scaffolds, and gives everyone outcome tests.',
+          'The goal is not to hide Edgekit. The goal is to make the correct path obvious: one narrow mission, Skills, one Mission Profile, app-owned tools, approvals, Knowledge Access when needed, and a harness score before release.',
+        ],
+      },
+      {
+        id: 'layers',
+        title: 'Layers',
+        body: ['Use the smallest layer that solves the current adoption problem.'],
+        bullets: [
+          'Guides: architecture, production, runtime guarantees, security, and getting started.',
+          'Agent skills: `edgekit-implementer`, `edgekit-outcome-tester`, `edgekit-skill-optimizer`, and `edgekit-security-review`.',
+          'Recipes: support workflow, Knowledge Access, Astro intake plus knowledge, and future framework/app recipes.',
+          'Harnesses: adoption evals, research agents, research suite, provider matrix, and live Pages verification.',
+        ],
+      },
+      {
+        id: 'agent-skills',
+        title: 'Agent skills',
+        body: [
+          'Agent-readable docs help retrieval. Agent skills add procedure. The `docs/agent-skills/*/SKILL.md` files tell a coding agent exactly what to inspect, create, test, and avoid.',
+        ],
+        bullets: [
+          '`edgekit-implementer`: build Skills, a Mission Profile, tools, approvals, telemetry, and mount code.',
+          '`edgekit-outcome-tester`: add outcome scenarios and score final visible behavior.',
+          '`edgekit-skill-optimizer`: tune Skill/Profile text through bounded, held-out improvements.',
+          '`edgekit-security-review`: review auth, RBAC, secrets, approvals, audit, MCP, and Knowledge Access boundaries.',
+        ],
+      },
+      {
+        id: 'cli',
+        title: 'CLI path',
+        body: ['Use `edgekit-init` when a team or coding agent needs files on disk immediately.'],
+        code: {
+          language: 'bash',
+          text: `edgekit-init --list
+edgekit-init mission --recipe support-workflow --out edgekit/support
+edgekit-init mission --recipe knowledge-skill --out edgekit/policy
+edgekit-init mission --recipe astro-intake-knowledge --out src/edgekit/intake`,
+        },
+      },
+    ],
+  },
+  {
+    slug: 'recipes',
+    navLabel: 'Recipes',
+    title: 'Recipe catalog',
+    summary: 'Opinionated install paths for common app, framework, workflow, and knowledge patterns.',
+    sections: [
+      {
+        id: 'model',
+        title: 'Recipe model',
+        body: [
+          'Recipes are additive adoption paths. They can know about Astro, support workflows, intake pipelines, or Knowledge Access, but they do not create a separate runtime or weaken host-app authority.',
+          'Each recipe should include a mission, Skills, one Mission Profile, app-owned tool placeholders, approval policy, mounting code, outcome scenarios, and replacement notes.',
+        ],
+      },
+      {
+        id: 'available',
+        title: 'Available recipes',
+        body: ['The first recipes cover the highest-value onboarding paths.'],
+        bullets: [
+          '`support-workflow`: support case search plus approval-gated ticket creation.',
+          '`knowledge-skill`: cited retrieval over app-owned policy, docs, manuals, graph, vector, or private APIs.',
+          '`astro-intake-knowledge`: Astro component, Knowledge Access Skill, and approval-gated intake submission.',
+        ],
+      },
+      {
+        id: 'astro',
+        title: 'Astro intake and knowledge',
+        body: [
+          'The Astro recipe mounts `<edge-chat>` in a component, routes site/CMS/KB search through a Knowledge Access Skill, and submits intake only through an approval-gated app-owned tool.',
+          'The app replaces `/api/edgekit/knowledge/search` and `/api/edgekit/intake` with its own retrieval, persistence, CRM, email, spam control, and authorization. Secrets stay out of prompts.',
+        ],
+        code: {
+          language: 'bash',
+          text: 'edgekit-init mission --recipe astro-intake-knowledge --out src/edgekit/intake',
+        },
+      },
+      {
+        id: 'quality-bar',
+        title: 'Quality bar',
+        body: ['Add a recipe only when it represents a reusable adoption path, not a demo patch.'],
+        bullets: [
+          'Generated files are small and inspectable.',
+          'Risky mutations are approval-gated.',
+          'Knowledge answers cite source and freshness when retrieval is present.',
+          'Host-app ownership boundaries are explicit.',
+          'Outcome scenarios can be copied and extended.',
+        ],
+      },
+    ],
+  },
+  {
     slug: 'concepts',
     navLabel: 'Architecture',
     title: 'Core architecture',

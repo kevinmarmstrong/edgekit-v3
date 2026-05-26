@@ -84,6 +84,20 @@ export const docChunks: DocChunk[] = [
       'Edgekit adopter simulation has two paths: a 30-minute agent-assisted path to choose a mission, create Skills and a Mission Profile, register tools, add approvals, and run outcome prompts; and a 90-minute elite programmer path to inspect architecture, wire providers, add telemetry and audit, and run the full battery.',
   },
   {
+    slug: 'adoption-kit',
+    title: 'Agent Adoption Kit',
+    tags: ['onboarding', 'agent skills', 'recipes', 'cli', 'implementation'],
+    body:
+      'The Edgekit Adoption Kit combines human guides, coding-agent SKILL.md files, recipe scaffolds, and outcome harnesses. It includes edgekit-implementer, edgekit-outcome-tester, edgekit-skill-optimizer, and edgekit-security-review so coding agents follow the intended Skills and Mission Profiles implementation path.',
+  },
+  {
+    slug: 'recipes',
+    title: 'Recipe Catalog',
+    tags: ['recipes', 'astro', 'framework', 'intake', 'knowledge'],
+    body:
+      'Edgekit recipes are opinionated install paths for repeatable app patterns without cluttering core docs. Available recipes include support-workflow, knowledge-skill, and astro-intake-knowledge. Recipes create small inspectable files, app-owned tool placeholders, approval policy, Knowledge Access when needed, and outcome scenarios.',
+  },
+  {
     slug: 'overview',
     title: 'Latency and Resilience',
     tags: ['latency', 'cache', 'parallel', 'offline'],

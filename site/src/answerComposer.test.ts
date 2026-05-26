@@ -75,4 +75,18 @@ describe('composeEdgekitAnswer', () => {
     expect(answer).toMatch(/citations|freshness|stale/i)
     expect(answer).not.toMatch(/EdgeKit core.*vector database/i)
   })
+
+  it('explains the adoption kit and recipe path without cluttering the core runtime', () => {
+    const answer = composeEdgekitAnswer({
+      input: 'do you have agent skills and recipes for an Astro intake pipeline and KB?',
+      results: searchDocs('agent adoption kit recipes astro intake knowledge'),
+      mode: 'site-assistant',
+    })
+
+    expect(answer).toMatch(/Adoption Kit/i)
+    expect(answer).toMatch(/SKILL\.md|edgekit-implementer|edgekit-outcome-tester/i)
+    expect(answer).toMatch(/edgekit-init|astro-intake-knowledge/i)
+    expect(answer).toMatch(/Knowledge Access Skill/i)
+    expect(answer).toMatch(/approval-gated app-owned tool|app-owned tool/i)
+  })
 })

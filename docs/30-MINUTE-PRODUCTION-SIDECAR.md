@@ -22,6 +22,12 @@ This sidecar helps [user] do [read task] and [risky task] inside [app surface].
 
 Copy `docs/templates/mission-profile-starter/profile.ts` into your app as `edgekit/support-profile.ts`.
 
+Or scaffold the same shape with the CLI:
+
+```bash
+edgekit-init mission --recipe support-workflow --out edgekit/support
+```
+
 Keep these parts:
 
 - `supportSearchSkill`

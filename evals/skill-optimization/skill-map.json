@@ -37,6 +37,11 @@
       "skillIds": ["search-docs"],
       "heldOut": true
     },
+    "docs-adoption-kit-recipes": {
+      "profileId": "docs-qa-v1",
+      "skillIds": ["search-docs"],
+      "heldOut": true
+    },
     "docs-skill-optimization": {
       "profileId": "docs-qa-v1",
       "skillIds": ["search-docs"],

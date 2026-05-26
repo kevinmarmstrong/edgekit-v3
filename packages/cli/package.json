@@ -8,7 +8,8 @@
   },
   "license": "MIT",
   "bin": {
-    "edgekit-index": "./dist/index.js"
+    "edgekit-index": "./dist/index.js",
+    "edgekit-init": "./dist/index.js"
   },
   "repository": {
     "type": "git",
@@ -29,6 +30,6 @@
     "build": "tsc -p tsconfig.build.json",
     "index": "node dist/index.js",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run --root ../.. packages/cli/test/index.test.ts"
   }
 }

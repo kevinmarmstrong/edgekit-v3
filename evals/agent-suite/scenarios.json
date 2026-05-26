@@ -86,6 +86,16 @@
       ]
     },
     {
+      "id": "docs-adoption-kit-recipes",
+      "surface": "docs-adoption-kit-recipes",
+      "required": true,
+      "prompts": [
+        "how should a coding agent use Edgekit's adoption kit?",
+        "do you have scalable recipes for an Astro intake pipeline and knowledge base?",
+        "how do recipes avoid cluttering the core quick start?"
+      ]
+    },
+    {
       "id": "docs-skill-optimization",
       "surface": "docs-skill-optimization",
       "required": true,

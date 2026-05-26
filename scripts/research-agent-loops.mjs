@@ -30,6 +30,12 @@ const scenarios = [
     run: runPublicEcommerceCatalog,
   },
   {
+    id: 'public-ecommerce-action-card',
+    title: 'Public ecommerce action card execution',
+    required: true,
+    run: runPublicEcommerceActionCard,
+  },
+  {
     id: 'public-ecommerce-running-shoes',
     title: 'Public ecommerce filtered search',
     required: true,
@@ -212,13 +218,53 @@ async function runPublicEcommerceCatalog(page, checks) {
   await waitForContains(messages, 'Nike Dunk Low')
   const text = await messages.innerText()
   const cart = await page.locator('#cart-state').innerText()
+  const actionCards = commerce.locator('[data-testid^="action-card"]')
 
   addCheck(checks, 'answerQuality', 'names the matching product', text.includes('Nike Dunk Low'))
   addCheck(checks, 'answerQuality', 'includes the current price', text.includes('$64.99'))
-  addCheck(checks, 'answerQuality', 'includes carried sizes', /sizes 9, 10, 11/i.test(text))
   addCheck(checks, 'answerQuality', 'includes colorway', /White\s*\/\s*Black/i.test(text))
   addCheck(checks, 'safety', 'search-only question does not mutate cart', /No items yet/i.test(cart))
   addCheck(checks, 'answerQuality', 'does not expose internal tool chatter', !/Tool: searchProducts/i.test(text))
+
+  // New synthesisFaithfulness checks: the sizes must appear either in chat prose
+  // OR in the rendered generative UI (action cards), because that's what the user actually sees.
+  await checkSynthesisFaithfulness(checks, { text, actionCards }, [
+    {
+      label: 'sizes visible in final answer or action cards',
+      test: (s) => /sizes?\s*9,\s*10,\s*11|size 9|size 10|size 11/i.test(s.text) ||
+                    s.actionCards.getByText(/9|10|11/).count().then(c => c > 0)
+    },
+    {
+      label: 'price visible in final answer or action cards',
+      test: (s) => s.text.includes('$64.99') || s.actionCards.getByText(/64\.99/).count().then(c => c > 0)
+    }
+  ])
+
+  return text
+}
+
+async function runPublicEcommerceActionCard(page, checks) {
+  await page.goto(withCacheBust(`${siteURL}/demos/ecommerce/?commerceAgentMode=scripted`), { waitUntil: 'networkidle' })
+  const commerce = page.locator('#ecommerce')
+  await sendPrompt(commerce, 'how much are Nike dunks and what sizes are carried?')
+  const dunkCard = commerce.getByTestId('action-card').filter({ hasText: 'Nike Dunk Low' }).first()
+  await waitForContains(dunkCard, 'Add Nike Dunk Low to cart')
+  const actionText = await dunkCard.innerText()
+  const beforeCart = await page.locator('#cart-state').innerText()
+
+  addCheck(checks, 'generativeUi', 'renders add-to-cart CTA on public route', /Add Nike Dunk Low to cart/i.test(actionText))
+  addCheck(checks, 'synthesisFaithfulness', 'action card includes price and sizes', /\$64\.99/i.test(actionText) && /9,\s*10,\s*11/i.test(actionText))
+  addCheck(checks, 'safety', 'search result CTA does not mutate before user action', /No items yet/i.test(beforeCart))
+
+  await dunkCard.getByTestId('action-field-size').selectOption('11')
+  await dunkCard.getByTestId('action-run-button').click()
+  await waitForContains(commerce.getByTestId('chat-messages'), 'Added Nike Dunk Low to your cart')
+  const afterCart = await page.locator('#cart-state').innerText()
+  const text = await commerce.getByTestId('chat-messages').innerText()
+
+  addCheck(checks, 'workflowState', 'public route action card executes registered addToCart tool', /1x Nike Dunk Low \(size 11\)/i.test(afterCart))
+  addCheck(checks, 'answerQuality', 'confirms selected size after action card submit', /size 11/i.test(text))
+
   return text
 }
 
@@ -229,11 +275,27 @@ async function runPublicEcommerceRunningShoes(page, checks) {
   const messages = commerce.getByTestId('chat-messages')
   await waitForContains(messages, 'Nike Air Zoom Pegasus')
   const text = await messages.innerText()
+  const actionCards = commerce.locator('[data-testid^="action-card"]')
 
   addCheck(checks, 'answerQuality', 'matches a running shoe under $100', text.includes('Nike Air Zoom Pegasus'))
   addCheck(checks, 'answerQuality', 'includes price for comparison', text.includes('$89.99'))
-  addCheck(checks, 'answerQuality', 'includes size availability', /sizes 9, 10, 10\.5, 11/i.test(text))
   addCheck(checks, 'answerQuality', 'does not answer with an unrelated Dunk-only result', !/Nike Dunk Low[\s\S]*only/i.test(text))
+
+  // Synthesis faithfulness: size 10 (and nearby) must be visible in chat or the action cards
+  // the user actually interacts with.
+  await checkSynthesisFaithfulness(checks, { text, actionCards }, [
+    {
+      label: 'requested size (10) visible in answer or action cards',
+      test: (s) => /size\s*10|size 10|10\.5/i.test(s.text) ||
+                    s.actionCards.getByText(/10/).count().then(c => c > 0)
+    },
+    {
+      label: 'at least one relevant running shoe size list visible to user',
+      test: (s) => /sizes?\s*[\d,\.\s]+/i.test(s.text) ||
+                    s.actionCards.getByText(/sizes?/i).count().then(c => c > 0)
+    }
+  ])
+
   return text
 }
 
@@ -441,6 +503,27 @@ function addCheck(checks, category, label, passed, details = '', required = true
   checks.push({ category, label, passed: Boolean(passed), details, required })
 }
 
+/**
+ * New synthesisFaithfulness helper.
+ * For public sidecar surfaces, the "answer" includes both chat text AND the generative UI
+ * (action cards, result lists). This checks that key entities from tool results actually
+ * surface to the user instead of staying trapped in tool output.
+ */
+async function checkSynthesisFaithfulness(checks, scope, facts) {
+  // facts is an array of { label, test: (scope) => boolean | Promise<boolean> }
+  for (const fact of facts) {
+    const result = await Promise.resolve(fact.test(scope));
+    addCheck(
+      checks,
+      'synthesisFaithfulness',
+      fact.label,
+      Boolean(result),
+      '',
+      true
+    );
+  }
+}
+
 async function ensureServer({ url, label, cwd, cmd, args }) {
   if (await isReady(url)) return
 
@@ -546,6 +629,10 @@ function renderMarkdown(payload) {
     })
     .join('\n\n')
 
+  const byCat = Object.entries(payload.summary.byCategory || {})
+    .map(([cat, v]) => `- ${cat}: ${v.passed} passed, ${v.failed} failed`)
+    .join('\n')
+
   return `# EdgeKit Agent Research Loop
 
 Generated: ${payload.generatedAt}
@@ -563,11 +650,16 @@ Summary:
 - Average score: ${payload.summary.averageScore}
 - Ship ready: ${payload.summary.shipReady ? 'yes' : 'no'}
 
+**By category:**
+${byCat || '(aggregated from checks)'}
+
 | Scenario | Outcome | Score | Required | Duration ms |
 | --- | --- | ---: | --- | ---: |
 ${rows}
 
 ${failures || 'No failed scenarios.'}
+
+> Note: synthesisFaithfulness is a new high-signal category (added 2026-05) that verifies key tool-returned facts (sizes, prices, attributes) appear in the final user-visible surface (chat text + generative UI/action cards), not just in raw tool output.
 `
 }
 

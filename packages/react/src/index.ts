@@ -1,6 +1,12 @@
 import { createElement, useMemo, useSyncExternalStore } from 'react'
 import type { ReactElement } from 'react'
-import type { AgentEvent, EdgeActivityEvent, EdgeAgent } from '@kevinmarmstrong/edgekit'
+import type {
+  AgentEvent,
+  EdgeActivityEvent,
+  EdgeAgent,
+  EdgeMissionProfile,
+  EdgeProfileValidationResult,
+} from '@kevinmarmstrong/edgekit'
 
 export interface EdgeAgentState {
   status: 'idle' | 'streaming' | 'awaiting-approval' | 'done' | 'error'
@@ -106,6 +112,8 @@ export function useEdgeActivity(agent: EdgeAgent): EdgeActivityEvent[] {
 
 export interface EdgeChatElement extends HTMLElement {
   configure?: (options: unknown) => void
+  applyMissionProfile?: (profile: EdgeMissionProfile) => void
+  validateMissionProfile?: (profile: EdgeMissionProfile) => EdgeProfileValidationResult
   registerTools?: (tools: Record<string, unknown>) => void
   registerActions?: (resolver: unknown) => void
   useAgent?: (agent: EdgeAgent) => void
@@ -113,6 +121,7 @@ export interface EdgeChatElement extends HTMLElement {
 
 export interface EdgeChatProps {
   systemPrompt?: string
+  missionProfile?: EdgeMissionProfile
   placeholder?: string
   showToolEvents?: boolean
   className?: string
@@ -126,7 +135,10 @@ export function EdgeChat(props: EdgeChatProps): ReactElement {
     className: props.className,
     placeholder: props.placeholder,
     ref: (element: EdgeChatElement | null) => {
-      if (element) props.onReady?.(element)
+      if (element) {
+        if (props.missionProfile) element.applyMissionProfile?.(props.missionProfile)
+        props.onReady?.(element)
+      }
     },
   }
   if (props.systemPrompt) elementProps['system-prompt'] = props.systemPrompt

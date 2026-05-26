@@ -935,6 +935,318 @@ chat?.useAgent(agent)`,
     ],
   },
   {
+    slug: 'mission-profiles',
+    navLabel: 'Mission Profiles',
+    title: 'Mission Profile authoring',
+    summary: 'Design Skills and Mission Profiles that localize one sidecar mission while executable tools remain app-owned.',
+    sections: [
+      {
+        id: 'belongs-where',
+        title: 'What belongs where',
+        body: [
+          'Primitives are Edgekit-owned runtime capabilities: model routing, execution, telemetry, audit, redaction, rendering, memory, and provider adapters.',
+          'Skills describe one capability with examples, approval posture, required facts, and UI hints. Mission Profiles assemble those Skills into one app-owned sidecar mission.',
+        ],
+      },
+      {
+        id: 'minimal-profile',
+        title: 'Minimal profile',
+        body: [
+          'Profiles should name a narrow mission, list expected app-owned tools with `requiredTools`, set local-first defaults, and spell out synthesis rules that the harness can test.',
+        ],
+        code: {
+          language: 'ts',
+          text: `const profile = createMissionProfile({
+  id: 'support-queue-v1',
+  mission: 'support-workflow',
+  version: '1.0.0',
+  systemPrompt: 'Search the support queue before answering. Ask for approval before creating tickets.',
+  requiredTools: ['searchTickets', 'createTicket'],
+  defaults: { toolChoice: 'required', downloadPolicy: 'never' },
+  synthesis: { requiredAttributes: ['ticketId', 'status', 'owner'], style: 'explicit' },
+})`,
+        },
+      },
+      {
+        id: 'executable-tools',
+        title: 'Executable tools stay app-owned',
+        body: [
+          'A profile declares expected tools. The host app still registers executable implementations, owns authorization, and remains the source of truth for state changes.',
+        ],
+        code: {
+          language: 'ts',
+          text: `chat.applyMissionProfile(profile)
+chat.registerTools({ searchTickets, createTicket })`,
+        },
+      },
+      {
+        id: 'validation',
+        title: 'Validate before mounting',
+        body: [
+          '`validateMissionProfile()` catches structural foot-guns before users hit the sidecar: missing ids, duplicate required tools, `toolChoice: "required"` with no tool contract, and required tools that were never registered.',
+        ],
+        code: {
+          language: 'ts',
+          text: `const validation = validateMissionProfile(profile, {
+  registeredTools: ['searchTickets', 'createTicket'],
+})
+
+if (!validation.ok) {
+  throw new Error(validation.errors.map(issue => issue.message).join('\\n'))
+}`,
+        },
+      },
+      {
+        id: 'quality-checklist',
+        title: 'Quality checklist',
+        body: ['Use this checklist before treating a profile as production-ready.'],
+        bullets: [
+          'The profile names a narrow mission.',
+          'Each expected tool maps to a real app-owned implementation.',
+          '`validateMissionProfile(profile, { registeredTools })` passes with zero errors.',
+          'Risky tools require approval.',
+          'Required facts are tested in final user-visible output.',
+          'Telemetry and audit are wired before release.',
+          'State and identity providers summarize context without exposing secrets.',
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'skill-optimization',
+    navLabel: 'Skill Optimization',
+    title: 'Skill optimization',
+    summary: 'Use bounded, validation-gated Skill edits to improve agent outcomes without changing runtime model weights.',
+    sections: [
+      {
+        id: 'research-basis',
+        title: 'Research basis',
+        body: [
+          'Edgekit treats Skills and Mission Profiles as inspectable artifacts that can improve without changing runtime model weights.',
+          'This direction is inspired by SkillOpt: Executive Strategy for Self-Evolving Agent Skills.',
+        ],
+        bullets: [
+          'Paper: https://arxiv.org/pdf/2605.23904',
+          'Related ecosystem release: https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering/releases/tag/v2.3.0',
+        ],
+      },
+      {
+        id: 'two-surfaces',
+        title: 'Description and body are separate surfaces',
+        body: [
+          'The Skill `description` is router-visible. The `instructions` body is activated after selection.',
+          'Outcome tests must catch disagreement between these two surfaces.',
+        ],
+        code: {
+          language: 'ts',
+          text: `const searchSkill = createSkill({
+  id: 'catalog-search-v1',
+  name: 'Catalog Search',
+  description: 'Answer catalog availability, exact price, size, color, and stock questions.',
+  instructions: 'Always restate price, sizes, color, and stock signals from tool results.',
+  protectedSections: ['policy', 'instructions.safety'],
+  requiredTools: ['searchProducts'],
+})`,
+        },
+      },
+      {
+        id: 'protected-state',
+        title: 'Fast state and slow state',
+        body: [
+          'Fast state includes recent failures, traces, prompt variants, rejected patches, and score deltas.',
+          'Slow state includes safety invariants, host-app authority boundaries, tone, tool policies, and durable synthesis rules.',
+        ],
+      },
+      {
+        id: 'acceptance-gate',
+        title: 'Acceptance gate',
+        body: [
+          'Held-out validation is the gate. Candidate edits must strictly improve the score; ties are rejected.',
+          'Patch size should be bounded, usually 4-8 operations.',
+        ],
+        code: {
+          language: 'ts',
+          text: `const candidate = validateSkillOptimizationCandidate({
+  skillId: 'catalog-search-v1',
+  baselineScore: 0.94,
+  candidateScore: 0.97,
+  protectedPaths: ['policy', 'instructions.safety'],
+  patch: [
+    {
+      op: 'replace',
+      path: 'description',
+      value: 'Answer product availability, exact price, size, color, and stock questions.',
+    },
+  ],
+})`,
+        },
+      },
+      {
+        id: 'per-skill-effect-size',
+        title: 'Per-skill effect size',
+        body: [
+          'Do not rely only on aggregate score. Report per-skill baseline, candidate score, and improvement.',
+        ],
+        code: {
+          language: 'ts',
+          text: `const report = summarizeSkillOptimizationScores([
+  { skillId: 'catalog-search-v1', baselineScore: 0.72, candidateScore: 0.95 },
+  { skillId: 'admin-update-v1', baselineScore: 0.98, candidateScore: 0.99 },
+])`,
+        },
+      },
+      {
+        id: 'recommended-loop',
+        title: 'Recommended loop',
+        body: ['Run optimization as a development or CI loop, not as inference-time behavior.'],
+        bullets: [
+          'Split prompts into train, selection, and held-back test sets.',
+          'Collect transcripts, tool calls, UI state, approval events, and rubric failures.',
+          'Ask an optimizer model for a bounded patch, not a full rewrite.',
+          'Validate the candidate with `validateSkillOptimizationCandidate()`.',
+          'Accept only strict improvements with safety, workflow state, and answer faithfulness green.',
+          'Store accepted and rejected patch history.',
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'production',
+    navLabel: 'Production',
+    title: 'Production readiness',
+    summary: 'Security, telemetry, local/cloud routing, approvals, and release checks for real deployments.',
+    sections: [
+      {
+        id: 'local-first',
+        title: 'Local-first defaults',
+        body: [
+          'Use Chrome AI or WebLLM for low-cost, private, low-latency work. Escalate only when task complexity, policy, or model availability requires it.',
+        ],
+        bullets: [
+          'Use local models for intent classification, simple tool extraction, local app navigation, and privacy-sensitive page context.',
+          'Escalate for deep multi-source reasoning, regulated workflows that require approved server routes, explicit cloud-capable synthesis, or server-side logging policy.',
+        ],
+      },
+      {
+        id: 'tool-ownership',
+        title: 'Tool ownership',
+        body: [
+          'The host app owns state, authorization, and business logic. Edgekit calls registered tools; it does not replace backend authorization.',
+        ],
+      },
+      {
+        id: 'risk-telemetry-security',
+        title: 'Risk, telemetry, and security',
+        body: [
+          'Every risky mutation must use approval, audit, and telemetry. Rejections must preserve state.',
+          'Capture run start, run finish, tool call, approval, rejection, model status, and error events.',
+          'Do not put JWTs, cookies, API keys, payment data, or regulated records into system prompts, memory, or state summaries.',
+        ],
+      },
+      {
+        id: 'profile-validation',
+        title: 'Profile validation',
+        body: [
+          'Run `validateMissionProfile(profile, { registeredTools })` in local development, CI, or app startup diagnostics. Validation proves the profile is structurally executable; the outcome harness proves the agent made the right decisions and produced faithful user-visible output.',
+        ],
+      },
+      {
+        id: 'release-checklist',
+        title: 'Release checklist',
+        body: ['Run the release battery before shipping a public release.'],
+        bullets: [
+          '`pnpm test`',
+          '`pnpm typecheck`',
+          '`pnpm build`',
+          '`pnpm test:e2e`',
+          '`pnpm eval:adoption`',
+          '`pnpm research:agents`',
+          '`pnpm research:suite`',
+          'strict real-provider run when available',
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'outcome-quality',
+    navLabel: 'Outcome Quality',
+    title: 'Testing outcome quality',
+    summary: 'Measure whether the agent achieved the workflow and answer quality the user needed.',
+    sections: [
+      {
+        id: 'do-not-stop-at-code-ran',
+        title: 'Do not stop at code ran',
+        body: [
+          'Agent tests must verify the final user-visible answer, generated UI, approval boundary, telemetry, and app state. A green tool call is not enough if the user-visible answer drops the facts the user asked for.',
+        ],
+        bullets: [
+          '`answerQuality`',
+          '`synthesisFaithfulness`',
+          '`safety`',
+          '`workflowState`',
+          '`generativeUi`',
+          '`observability`',
+          '`integrationTransparency`',
+        ],
+      },
+      {
+        id: 'catalog-example',
+        title: 'Catalog example',
+        body: ['For `how much are Nike dunks and what sizes are carried?`, passing output must show Nike Dunk Low, $64.99, sizes 9, 10, 11, White / Black, and no cart mutation.'],
+      },
+      {
+        id: 'mutation-example',
+        title: 'Mutating workflow example',
+        body: [
+          'For `find me size nine white nike dunks and put in cart`, passing output must search first, request approval before `addToCart`, add size 9 only after approval, and leave cart unchanged after rejection.',
+        ],
+      },
+      {
+        id: 'harness-rule',
+        title: 'Harness rule',
+        body: [
+          'Add or update scenario and rubric checks before tuning a demo-specific response. Prefer reusable Edgekit fixes over narrow demo patches.',
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'adopter-simulation',
+    navLabel: 'Adopter Simulation',
+    title: 'Adopter simulation',
+    summary: 'Time-boxed loops for proving both elite programmers and agent-assisted builders can reach production-grade sidecars.',
+    sections: [
+      {
+        id: 'agent-assisted-path',
+        title: '30-minute agent-assisted path',
+        body: [
+          'An agent-assisted builder should be able to choose one mission, define 2-5 Skills, create one Mission Profile, register real app tools, add approval gates, and run outcome-quality prompts.',
+        ],
+      },
+      {
+        id: 'elite-programmer-path',
+        title: '90-minute elite programmer path',
+        body: [
+          'An expert developer should be able to read the architecture, inspect extension points, build a profile-owned sidecar, add telemetry/audit/state/identity providers, add a harness scenario, and run the full test battery.',
+        ],
+      },
+      {
+        id: 'starter-kit',
+        title: 'Mission Profile starter kit',
+        body: [
+          'Use `docs/templates/mission-profile-starter/profile.ts` and `docs/templates/mission-profile-starter/harness-scenarios.json` as the copyable starting point for a new mission.',
+        ],
+      },
+      {
+        id: 'passing-standard',
+        title: 'Passing standard',
+        body: [
+          'The sidecar must reach average score >= 0.95 on its first serious harness run after reasonable tuning. The evaluation must include answer quality, generated UI, approval boundaries, telemetry, and app state.',
+        ],
+      },
+    ],
+  },
+  {
     slug: 'testing',
     navLabel: 'Testing',
     title: 'Testing agent workflows',

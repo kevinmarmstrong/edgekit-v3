@@ -2,6 +2,7 @@ import { chromeAI, createModelProvider, tool } from '@kevinmarmstrong/edgekit'
 import type { LanguageModelV3 } from '@kevinmarmstrong/edgekit'
 import type { EdgeChat } from '@kevinmarmstrong/edgekit-ui'
 import { z } from 'zod'
+import { adminWorkflowProfile } from './profiles/admin-workflow'
 
 type Account = {
   id: string
@@ -60,8 +61,9 @@ export function mountAdminDemo() {
           toolChoice: 'required',
           toolProvider: ({ input }) => adminToolsForInput(input),
           onNoModel: ({ input }) => answerFromAccounts(input),
-        },
+      },
   )
+  chat?.applyMissionProfile(adminWorkflowProfile)
   chat?.registerTools({ searchAccounts, updatePlan, suspendAccount })
 }
 

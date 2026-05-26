@@ -6,6 +6,8 @@ test('public site exposes the SaaS admin workflow demo', async ({ page }) => {
   await page.goto(`${siteURL}demos/admin/`)
 
   await expect(page.getByText('SaaS admin workflow demo.')).toBeVisible()
+  await expect(page.getByRole('complementary', { name: 'Production notes' })).toBeVisible()
+  await expect(page.getByText('Bind tool manifests to the signed-in user and tenant.')).toBeVisible()
   await expect(page.getByTestId('account-row')).toHaveCount(3)
   await expect(page.getByTestId('plan-northwind')).toContainText('Pro')
 })

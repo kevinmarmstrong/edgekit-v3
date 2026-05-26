@@ -28,13 +28,17 @@ export function composeEdgekitAnswer({ input, results, mode = 'docs-demo', curre
 
   if (intent === 'first-step') {
     return [
-      'First add `<edge-chat>` where the agent should live in your app, then configure it with your local-first model path and registered tools.',
+      'First choose the mission for the sidecar, then add `<edge-chat>` where that agent should live in your app.',
       '',
-      'The minimum integration is: import `@kevinmarmstrong/edgekit-ui`, render `<edge-chat>`, call `chat.configure({ model: [chromeAI()], ... })`, and use `chat.registerTools({ ... })` to expose existing app functions such as search, checkout, account lookup, or support-ticket creation.',
-      '',
-      'Keep business logic in the existing app. EdgeKit provides the sidecar UI, model cascade, tool orchestration, approvals, activity events, telemetry, and fallbacks; the host app keeps state, auth, permissions, and API execution.',
-      sourceNote,
-    ]
+    'The recommended integration is: define 2-5 Skills, create a Mission Profile for the app surface, import `@kevinmarmstrong/edgekit-ui`, render `<edge-chat>`, call `chat.configure({ model: [chromeAI()], ... })`, apply the profile with `chat.applyMissionProfile(profile)`, and use `chat.registerTools({ ... })` to expose existing app functions such as search, checkout, account lookup, or support-ticket creation.',
+    '',
+    'Validate the shape with `validateMissionProfile(profile, { registeredTools })` so missing required tools or unsafe profile defaults fail before users hit the sidecar.',
+    '',
+    'Keep business logic in the existing app. EdgeKit provides the sidecar UI, model cascade, tool orchestration, approvals, activity events, telemetry, and fallbacks; the host app keeps state, auth, permissions, and API execution.',
+    '',
+    'Then run outcome harness prompts before release to prove tool decisions, approvals, answer faithfulness, generated UI actions, hostile inputs, and fallback behavior.',
+    sourceNote,
+  ]
       .filter(Boolean)
       .join('\n')
   }
@@ -83,9 +87,11 @@ export function composeEdgekitAnswer({ input, results, mode = 'docs-demo', curre
   return [
     'EdgeKit helps you add an agent to an app by giving you the browser-native sidecar, model cascade, tool loop, and approval/UI contracts so you do not have to rebuild those pieces from scratch.',
     '',
-    'A practical path is: add `<edge-chat>`, configure Chrome AI/WebLLM plus any explicit fallback, register existing app functions with `registerTools()`, turn tool results into CTAs or forms with `registerActions()`, and mark risky tools with `needsApproval` plus telemetry/audit.',
+    'A practical path is: define Skills for the app capabilities, create a Mission Profile for the sidecar, add `<edge-chat>`, configure Chrome AI/WebLLM plus any explicit fallback, apply the profile with `chat.applyMissionProfile(profile)`, register existing app functions with `registerTools()`, validate the shape with `validateMissionProfile(profile, { registeredTools })`, turn tool results into CTAs or forms with `registerActions()`, and mark risky tools with `needsApproval` plus telemetry/audit.',
     '',
     'The host app keeps ownership of state, auth, permissions, business logic, and backend execution. EdgeKit stays as the configurable runtime that lets the agent reason over current app context and call only the capabilities you expose.',
+    '',
+    'Before calling it production-grade, run the outcome harness against realistic prompts: verify tool decisions, approvals, final answer faithfulness, generated UI actions, hostile inputs, and fallback behavior.',
     sourceNote,
   ]
     .filter(Boolean)

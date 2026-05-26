@@ -2,12 +2,16 @@ import { css, html, LitElement } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
 import {
   actionsToEdgeView,
+  applyMissionProfile,
   applyRedactors,
   createAgent,
   resolveSessionContext,
+  validateMissionProfile as validateEdgeMissionProfile,
   type AgentEvent,
   type EdgeActivityEvent,
   type EdgeAction,
+  type EdgeMissionProfile,
+  type EdgeProfileValidationResult,
   type EdgeActionContext,
   type EdgeField,
   type EdgeToolExecutionContext,
@@ -357,6 +361,21 @@ export class EdgeChat extends LitElement {
   registerTools(tools: CreateAgentOptions['tools']) {
     this.tools = tools
     if (!this.agentIsExternal) this.agent = null
+  }
+
+  /**
+   * applyMissionProfile
+   *
+   * Preferred high-level API for applying a Mission Profile.
+   * Safer than manually calling configure(profileToAgentOptions(profile))
+   * because it uses the hardened merging logic.
+   */
+  applyMissionProfile(profile: EdgeMissionProfile) {
+    this.configure(applyMissionProfile(profile))
+  }
+
+  validateMissionProfile(profile: EdgeMissionProfile): EdgeProfileValidationResult {
+    return validateEdgeMissionProfile(profile, { registeredTools: this.tools ?? {} })
   }
 
   useAgent(agent: EdgeAgent) {

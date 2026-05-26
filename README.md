@@ -6,6 +6,13 @@ Browser-native agent runtime for adding an AI sidecar to an existing web app. Th
 
 Release candidate scaffold. The Phase 0 spike is validated, the core package, docs index CLI, and web component build, and the ecommerce/docs demos have automated browser smoke coverage.
 
+**Important**: For production use, we strongly recommend the **Skills + Mission Profiles** pattern over raw `configure()` + tools. See:
+- [WORLD-CLASS-DEFINITION.md](./WORLD-CLASS-DEFINITION.md) — What "ready for real production use" means for both elite developers and agent-assisted teams.
+- [docs/GETTING-STARTED-REAL-APPS.md](./docs/GETTING-STARTED-REAL-APPS.md) — The recommended path to shipping a high-quality, localized sidecar with excellent outcome quality.
+- [docs/SKILL-OPTIMIZATION.md](./docs/SKILL-OPTIMIZATION.md) — SkillOpt-inspired guidance for improving Skills through bounded patches, held-out validation, protected slow-state sections, and per-skill scoring.
+- [ARCHITECTURE.md](./ARCHITECTURE.md) — The three-layer model (Primitives → Skills → Profiles) that enables safe, rapid evolution.
+- [LOOP-STATUS.md](./LOOP-STATUS.md) — Live status of the current world-class iteration loop (what we're actively working on right now).
+
 ## Quick Start
 
 ```bash
@@ -181,6 +188,18 @@ EDGEKIT_RESEARCH_STRICT=0 pnpm research:agents
 ```
 
 Use this when tuning the real solution surface, not just the fixtures. Fix failures in EdgeKit contracts, harnesses, prompts, or reusable demo integration patterns before adding demo-specific patches.
+
+## Skill Optimization
+
+Edgekit Skills are inspectable context artifacts that can be improved without changing runtime model weights. Inspired by [SkillOpt: Executive Strategy for Self-Evolving Agent Skills](https://arxiv.org/pdf/2605.23904), Edgekit supports bounded, validation-gated Skill optimization contracts:
+
+- keep router-visible `description` separate from activated `instructions`
+- cap optimizer patches instead of allowing full rewrites
+- reject ties and accept only strict held-out improvement
+- protect slow-state paths such as safety policy and host-app authority boundaries
+- report per-skill effect sizes instead of hiding movement in aggregate scores
+
+See [docs/SKILL-OPTIMIZATION.md](./docs/SKILL-OPTIMIZATION.md).
 
 `pnpm research:env` checks the local machine and browser preconditions. `pnpm research:suite` is the broader confidence loop. It reads `evals/agent-suite/scenarios.json` and `evals/agent-suite/rubric.json`, runs seeded prompt variants across browser demos, then runs architecture probes for hybrid routing, supervisor handoffs, response cache, tool repair, MCP adapters, guarded tool policy, offline journals, parallel-safe tools, PII redaction, provider fallback, and loaded-page offline behavior.
 

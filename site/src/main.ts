@@ -1,6 +1,8 @@
 import '@kevinmarmstrong/edgekit-ui'
-import { chromeAI, createAgUiAgent, createMissionControl, modelOptional, tool } from '@kevinmarmstrong/edgekit'
-import type { AgUiRunInput, EdgeViewNode, MissionControlSnapshot } from '@kevinmarmstrong/edgekit'
+import { chromeAI, createAgUiAgent, createMissionControl, createModelProvider, modelOptional, tool } from '@kevinmarmstrong/edgekit'
+import { publicCatalogShoppingProfile } from './profiles/public-catalog-shopping'
+import { docsQaProfile } from './profiles/docs-qa'
+import type { AgUiRunInput, EdgeViewNode, LanguageModelV3, MissionControlSnapshot } from '@kevinmarmstrong/edgekit'
 import type { EdgeChat } from '@kevinmarmstrong/edgekit-ui'
 import { z } from 'zod'
 import { mountAdminDemo } from './adminDemo'
@@ -85,6 +87,7 @@ const cart: CartItem[] = []
 const missionControl = createMissionControl()
 missionControl.subscribe((_event, snapshot) => renderMissionControl(snapshot))
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '')
+const scriptedCommerceMode = new URLSearchParams(window.location.search).get('commerceAgentMode') === 'scripted'
 
 const searchDocsTool = tool({
   description: 'Search edgekit project documentation by natural language query.',
@@ -154,27 +157,45 @@ const submitDemoRequest = tool({
 })
 
 const docsChat = document.querySelector<EdgeChat>('edge-chat#docs-chat')
+// Docs Q&A mission (defined in ./profiles/docs-qa.ts using the recommended pattern)
 docsChat?.configure({
   sessionId: 'site-docs-demo',
   telemetry: missionControl,
   model: [chromeAI()],
-  downloadPolicy: 'never',
-  toolChoice: 'required',
   streamText: createDocsSearchStream() as never,
   onNoModel: ({ input }) => answerFromDocs(input),
 })
+docsChat?.applyMissionProfile(docsQaProfile)
 docsChat?.registerTools({ searchDocs: searchDocsTool })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Demo Surface Initialization — Skills + Mission Profile Pattern (Recommended)
+// 
+// Both live demos below are intentionally driven primarily through Mission Profiles
+// rather than raw configure() calls. This is the pattern we want adopters to follow.
+// See ARCHITECTURE.md and docs/GETTING-STARTED-REAL-APPS.md for rationale.
+// ─────────────────────────────────────────────────────────────────────────────
+
 const commerceChat = document.querySelector<EdgeChat>('edge-chat#commerce-chat')
+
 commerceChat?.configure({
   sessionId: 'site-commerce-demo',
   telemetry: missionControl,
-  model: [chromeAI()],
-  downloadPolicy: 'never',
-  toolChoice: 'required',
-  toolProvider: ({ input }) => commerceToolsForInput(input),
-  onNoModel: ({ input }) => answerFromCatalog(input),
+  model: scriptedCommerceMode ? [scriptedCommerceProvider()] : [chromeAI()],
+  ...(scriptedCommerceMode
+    ? { streamText: createScriptedCommerceStream() as never }
+    : {
+        toolProvider: ({ input }) => commerceToolsForInput(input),
+        onNoModel: ({ input }) => answerFromCatalog(input),
+      }),
 })
+commerceChat?.applyMissionProfile(publicCatalogShoppingProfile)
+
+// Explicitly register the executable tools for action card execution on the public site.
+// This ensures EdgeView forms (add-to-cart CTAs) have real implementations even when
+// most other config comes from the Mission Profile.
 commerceChat?.registerTools({ searchProducts, addToCart })
+
 commerceChat?.registerActions(({ toolName, output }) => {
   if (toolName !== 'searchProducts') return []
   return extractProducts(output).map(product => ({
@@ -332,6 +353,56 @@ function answerFromCatalog(input: string) {
     '',
     'Enable Chrome AI for tool-calling recommendations and guarded add-to-cart actions.',
   ].join('\n')
+}
+
+function scriptedCommerceProvider() {
+  const scriptedModel = {
+    provider: 'scripted-commerce',
+    modelId: 'public-catalog-shopping',
+    specificationVersion: 'v3',
+  } as LanguageModelV3
+
+  return createModelProvider({
+    id: 'scripted-commerce',
+    label: 'Scripted commerce agent',
+    resolve: async () => scriptedModel,
+  })
+}
+
+function createScriptedCommerceStream() {
+  return (options: { messages?: unknown[]; tools?: Record<string, unknown> }) => {
+    const input = latestUserInput(options.messages ?? [])
+    const maxPrice = input.match(/under\s+\$?(\d+)/i)?.[1]
+    const requestedSize = extractSize(input)
+    const requestedColor = input.match(/\b(white|black|blue|green|volt)\b/i)?.[1]?.toLowerCase()
+    const toolInput = {
+      query: input,
+      maxPrice: maxPrice == null ? undefined : Number(maxPrice),
+      size: requestedSize,
+      color: requestedColor,
+    }
+    const outputPromise = executeTool(options.tools?.searchProducts, toolInput)
+    const textPromise = outputPromise.then(formatCatalogToolAnswer)
+
+    return {
+      fullStream: (async function* () {
+        const toolCallId = 'site-commerce-search'
+        yield { type: 'tool-call', toolCallId, toolName: 'searchProducts', input: toolInput }
+        const output = await outputPromise
+        yield { type: 'tool-result', toolCallId, toolName: 'searchProducts', output }
+        yield { type: 'text-delta', delta: formatCatalogToolAnswer(output) }
+      })(),
+      response: textPromise.then(text => ({
+        messages: [{ role: 'assistant', content: [{ type: 'text', text }] }],
+      })),
+    }
+  }
+}
+
+function formatCatalogToolAnswer(output: unknown) {
+  const products = extractProducts(output)
+  if (products.length === 0) return 'I did not find a matching product in the catalog.'
+  return products.map(productSummary).join('\n')
 }
 
 function commerceToolsForInput(input: string) {

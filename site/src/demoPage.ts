@@ -100,6 +100,11 @@ function docsDemo() {
           Chrome AI can answer using local model calls; unsupported browsers switch into basic
           docs mode and keep the docs searchable below.
         </p>
+        ${productionNotes([
+          'Replace the in-memory docs index with your own search or retrieval API.',
+          'Keep the docs search tool read-only and cacheable when possible.',
+          'Use outcome-quality tests to reject generic docs-search snippets.',
+        ])}
         <div class="quick-search">
           <label for="doc-search">Basic docs search</label>
           <div class="search-row">
@@ -128,13 +133,18 @@ function ecommerceDemo() {
           The storefront exposes searchProducts and addToCart tools. edgekit handles the sidecar UI,
           local model cascade, approval gates, generated CTAs, and graceful fallback.
         </p>
+        <p><strong>Architecture note:</strong> This sidecar is localized via an <code>EdgeMissionProfile</code> (defined in the consuming page). Edgekit provides the runtime; the app owns the mission-specific behavior.</p>
+        ${productionNotes([
+          'Replace the sample catalog with your app-owned product search API.',
+          'Keep checkout and cart mutations behind explicit approval.',
+          'Use telemetry to track searches, action-card clicks, approvals, and failures.',
+        ])}
       </div>
       <div class="commerce-layout">
         <section class="catalog" aria-label="Product catalog" id="catalog"></section>
         <aside class="commerce-agent">
           <edge-chat
             id="commerce-chat"
-            system-prompt="You are a concise shopping assistant. Always search products before recommending. Ask for approval before adding anything to cart."
             placeholder="Try: find running shoes under $100 in size 10"
           ></edge-chat>
           <section class="cart" aria-live="polite">
@@ -158,6 +168,11 @@ function agUiDemo() {
           a backend. Production apps replace the script with an AG-UI endpoint while keeping the same
           EdgeView renderer for charts, tables, cards, and forms.
         </p>
+        ${productionNotes([
+          'Serve AG-UI events from a backend route that owns provider secrets and rate limits.',
+          'Map provider events into EdgeView or A2UI-compatible payloads.',
+          'Keep submitted forms wired to app-owned tools rather than provider-owned side effects.',
+        ])}
       </div>
       <edge-chat
         id="agui-chat"
@@ -178,6 +193,11 @@ function adminDemo() {
           The admin console exposes account search, plan updates, and suspension tools. edgekit keeps
           high-impact account changes behind explicit approval.
         </p>
+        ${productionNotes([
+          'Bind tool manifests to the signed-in user and tenant.',
+          'Keep account mutations behind approval, audit, and backend authorization.',
+          'Never place tokens or secret claims in state summaries or prompts.',
+        ])}
       </div>
       <div class="admin-layout">
         <section class="account-list" aria-label="Customer accounts" id="admin-accounts"></section>
@@ -207,6 +227,11 @@ function missionDemo() {
           This dashboard is powered by local telemetry hooks from the site-wide dogfood assistant.
           In production, send the same events to your analytics, logging, or compliance backend.
         </p>
+        ${productionNotes([
+          'Forward telemetry to your observability stack with tenant and session identifiers.',
+          'Track tool calls, approvals, rejections, model availability, and errors.',
+          'Keep mission-control visibility separate from user-facing agent behavior.',
+        ])}
       </div>
       <div class="mission-grid">
         <article><span>Runs</span><strong id="mc-runs">0</strong></article>
@@ -237,6 +262,15 @@ function missionDemo() {
         </article>
       </div>
     </section>
+  `
+}
+
+function productionNotes(items: string[]) {
+  return `
+    <aside class="production-notes" aria-label="Production notes">
+      <h3>Production notes</h3>
+      <ul>${items.map(item => `<li>${item}</li>`).join('')}</ul>
+    </aside>
   `
 }
 

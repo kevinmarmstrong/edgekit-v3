@@ -24,6 +24,25 @@ test('public ecommerce agent answers catalog questions with actionable product f
   await expect(messages).toContainText('sizes 9, 10, 10.5, 11')
 })
 
+test('public ecommerce sidecar executes generated add-to-cart action card', async ({ page }) => {
+  await page.goto(`${siteURL}demos/ecommerce/?commerceAgentMode=scripted&cacheBust=${Date.now()}`)
+
+  const commerce = page.locator('#ecommerce')
+  await commerce.getByTestId('chat-input').fill('how much are Nike dunks and what sizes are carried?')
+  await commerce.getByTestId('send-button').click()
+
+  const dunkCard = commerce.getByTestId('action-card').filter({ hasText: 'Nike Dunk Low' }).first()
+  await expect(dunkCard).toContainText('Add Nike Dunk Low to cart')
+  await expect(dunkCard).toContainText('$64.99')
+  await expect(page.locator('#cart-state')).toContainText('No items yet')
+
+  await dunkCard.getByTestId('action-field-size').selectOption('11')
+  await dunkCard.getByTestId('action-run-button').click()
+
+  await expect(commerce.getByTestId('chat-messages')).toContainText('Added Nike Dunk Low to your cart')
+  await expect(page.locator('#cart-state')).toContainText('1x Nike Dunk Low (size 11)')
+})
+
 test('standalone ecommerce scripted loop searches, renders CTA, and mutates only after user action', async ({ page }) => {
   await page.goto('/?agentMode=scripted')
 

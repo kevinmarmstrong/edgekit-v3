@@ -1,0 +1,14 @@
+[
+  {
+    "id": "read-question",
+    "prompt": "Ask a realistic read-only question here",
+    "mustInclude": ["expected fact"],
+    "mustNotInclude": ["internal tool chatter"]
+  },
+  {
+    "id": "approved-mutation",
+    "prompt": "Ask for a realistic risky action here",
+    "mustRequireApproval": true,
+    "expectedStateAfterApproval": "describe state"
+  }
+]

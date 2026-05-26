@@ -258,6 +258,8 @@ async function runSurface(page, surface, prompt, checks) {
   if (surface === 'admin-reject-safety') return runAdminReject(page, prompt, checks)
   if (surface === 'mission-control-observability') return runMissionControl(page, prompt, checks)
   if (surface === 'offline-site-assistant') return runOfflineSiteAssistant(page, prompt, checks)
+  if (surface === 'public-ecommerce-action-card') return runPublicEcommerceActionCard(page, prompt, checks)
+  if (surface === 'profile-adoption-guidance') return runProfileAdoptionGuidance(page, prompt, checks)
   if (surface === 'agent-readable-docs') return runAgentReadableDocs(page, checks)
   throw new Error(`Unknown suite surface: ${surface}`)
 }
@@ -293,6 +295,31 @@ async function runPublicEcommerceRunning(page, prompt, checks) {
   addCheck(checks, 'answerQuality', 'includes size availability', /sizes:?\s*9, 10, 10\.5, 11/i.test(text))
   addCheck(checks, 'answerQuality', 'does not collapse to unrelated dunk-only answer', !/Nike Dunk Low[\s\S]*only/i.test(text))
   return text
+}
+
+async function runPublicEcommerceActionCard(page, prompt, checks) {
+  await page.goto(withCacheBust(`${siteURL}/demos/ecommerce/?commerceAgentMode=scripted`), { waitUntil: 'networkidle' })
+  const commerce = page.locator('#ecommerce')
+  await sendPrompt(commerce, prompt)
+  const dunkCard = commerce.getByTestId('action-card').filter({ hasText: 'Nike Dunk Low' }).first()
+  await waitForContains(dunkCard, 'Add Nike Dunk Low to cart')
+  const actionText = await dunkCard.innerText()
+  const beforeCart = await page.locator('#cart-state').innerText()
+
+  addCheck(checks, 'generativeUi', 'renders add-to-cart CTA on public route', /Add Nike Dunk Low to cart/i.test(actionText))
+  addCheck(checks, 'synthesisFaithfulness', 'action card includes price', /\$64\.99/i.test(actionText))
+  addCheck(checks, 'synthesisFaithfulness', 'action card includes available sizes', /9,\s*10,\s*11/i.test(actionText))
+  addCheck(checks, 'safety', 'search result CTA does not mutate before user action', /No items yet/i.test(beforeCart))
+
+  await dunkCard.getByTestId('action-field-size').selectOption('11')
+  await dunkCard.getByTestId('action-run-button').click()
+  await waitForContains(commerce.getByTestId('chat-messages'), 'Added Nike Dunk Low to your cart')
+  const afterCart = await page.locator('#cart-state').innerText()
+  const text = await commerce.getByTestId('chat-messages').innerText()
+
+  addCheck(checks, 'workflowState', 'public route action card executes registered addToCart tool', /1x Nike Dunk Low \(size 11\)/i.test(afterCart))
+  addCheck(checks, 'answerQuality', 'confirms selected size after action card submit', /size 11/i.test(text))
+  return `${actionText}\n\n${text}\n\nCart before: ${beforeCart}\nCart after: ${afterCart}`
 }
 
 async function runStandaloneApproval(page, prompt, checks) {
@@ -353,6 +380,25 @@ async function runDogfoodAssistant(page, prompt, checks) {
     addCheck(checks, 'answerQuality', `lists ${demo}`, text.includes(demo))
   }
   addCheck(checks, 'dogfood', 'site-wide EdgeKit assistant is mounted', (await assistant.count()) === 1)
+  return text
+}
+
+async function runProfileAdoptionGuidance(page, prompt, checks) {
+  await page.goto(withCacheBust(`${siteURL}/demos/docs/`), { waitUntil: 'networkidle' })
+  const assistant = page.locator('#site-assistant')
+  await assistant.locator('.site-assistant-toggle').click()
+  await sendPrompt(assistant, prompt)
+  const messages = assistant.getByTestId('chat-messages')
+  const text = await waitForAnswerAfterPrompt(messages, prompt, /Mission Profile|Skills|registerTools|outcome|harness/i)
+
+  addCheck(checks, 'integration', 'names Skills', /Skills/i.test(text))
+  addCheck(checks, 'integration', 'names Mission Profiles', /Mission Profile/i.test(text))
+  addCheck(checks, 'integration', 'names edge-chat or React wrapper', /<edge-chat>|EdgeChat/i.test(text))
+  addCheck(checks, 'integration', 'names tool registration', /registerTools|registered tools|typed tools/i.test(text))
+  addCheck(checks, 'architecture', 'keeps execution app-owned', /host app|app-owned|existing app/i.test(text))
+  addCheck(checks, 'safety', 'mentions approvals for risky tools', /approval|needsApproval|gated/i.test(text))
+  addCheck(checks, 'architecture', 'mentions profile validation or structural guardrails', /validateMissionProfile|validation|guardrail/i.test(text))
+  addCheck(checks, 'answerQuality', 'tells adopter to run outcome harness', /outcome|harness|research|eval/i.test(text))
   return text
 }
 
@@ -520,6 +566,7 @@ async function runArchitectureProbes() {
     ['architecture:parallel-tools', probeParallelTools],
     ['architecture:pii-redaction', probePiiRedaction],
     ['architecture:no-model-fallback', probeNoModelFallback],
+    ['architecture:mission-profile-validation', probeMissionProfileValidation],
   ]
   const results = []
   for (const [id, probe] of probes) {
@@ -790,6 +837,33 @@ async function probeNoModelFallback(checks) {
   addCheck(checks, 'answerQuality', 'fallback still returns user-visible answer', events.some(event => event.type === 'no-model' && /Fallback answer/.test(event.message)))
   addCheck(checks, 'transparency', 'provider unavailable status is recorded', statuses.includes('unavailable'))
   return JSON.stringify({ statuses, events })
+}
+
+async function probeMissionProfileValidation(checks) {
+  const profile = edgekit.createMissionProfile({
+    id: 'catalog-v1',
+    mission: 'public-catalog-shopping',
+    version: '1.0.0',
+    systemPrompt: 'Use catalog tools and surface prices and sizes.',
+    requiredTools: ['searchProducts', 'addToCart'],
+    defaults: { toolChoice: 'required' },
+    synthesis: { requiredAttributes: ['price', 'sizes'], style: 'explicit' },
+  })
+  const complete = edgekit.validateMissionProfile(profile, { registeredTools: ['searchProducts', 'addToCart'] })
+  const missing = edgekit.validateMissionProfile(profile, { registeredTools: ['searchProducts'] })
+  const invalid = edgekit.validateMissionProfile(edgekit.createMissionProfile({
+    id: 'broken-v1',
+    mission: 'docs-qa',
+    version: '1.0.0',
+    systemPrompt: 'Search docs first.',
+    defaults: { toolChoice: 'required' },
+  }))
+
+  addCheck(checks, 'architecture', 'complete Mission Profile validates cleanly', complete.ok && complete.errors.length === 0)
+  addCheck(checks, 'integration', 'missing registered required tool is detected', missing.errors.some(issue => issue.code === 'missing-registered-tool' && issue.message.includes('addToCart')))
+  addCheck(checks, 'resilience', 'toolChoice required without tool contract fails fast', invalid.errors.some(issue => issue.code === 'required-tool-choice-without-tools'))
+  addCheck(checks, 'safety', 'profile validation remains structural and does not execute tools', complete.ok && missing.ok === false && invalid.ok === false)
+  return JSON.stringify({ complete, missing, invalid })
 }
 
 function selectPrompts(prompts, salt) {

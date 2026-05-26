@@ -49,6 +49,41 @@ export const docChunks: DocChunk[] = [
       'Edgekit can use search and RAG tools, but the solution stack is for agentic app workflows: registered tools, state hydration, generated CTAs and forms, approval-gated mutations, telemetry, audit, and app-owned execution.',
   },
   {
+    slug: 'mission-profiles',
+    title: 'Skills and Mission Profiles',
+    tags: ['skills', 'mission profile', 'authoring', 'agentic'],
+    body:
+      'The recommended production path is Primitives to Skills to Mission Profiles. Skills describe reusable capabilities, examples, approval posture, required facts, and UI hints. Mission Profiles assemble those Skills for one localized sidecar mission. Executable tools remain app-owned and are registered with registerTools. Use validateMissionProfile(profile, { registeredTools }) to catch missing required tools and unsafe profile shape before runtime.',
+  },
+  {
+    slug: 'skill-optimization',
+    title: 'Skill Optimization',
+    tags: ['skills', 'optimization', 'skillopt', 'validation', 'router'],
+    body:
+      'Edgekit treats Skills and Mission Profiles as inspectable trainable context artifacts. Skill optimization happens at dev time with bounded patches, held-out validation, strict improvement gates, protected slow-state paths, and per-skill effect-size reporting. This follows lessons from SkillOpt: Executive Strategy for Self-Evolving Agent Skills.',
+  },
+  {
+    slug: 'production',
+    title: 'Production Readiness',
+    tags: ['production', 'security', 'telemetry', 'approval', 'routing'],
+    body:
+      'Production Edgekit deployments should keep local-first defaults, explicit cloud escalation routes, app-owned tool authorization, Mission Profile validation, approval gates for risky mutations, telemetry for runs and tool calls, audit trails for approvals, and secrets out of prompts, memory, and state summaries.',
+  },
+  {
+    slug: 'outcome-quality',
+    title: 'Outcome Quality Testing',
+    tags: ['testing', 'rubric', 'quality', 'harness'],
+    body:
+      'Edgekit quality tests must measure outcomes, not just whether a call returned. Required categories include answerQuality, synthesisFaithfulness, safety, workflowState, generativeUi, observability, and integrationTransparency.',
+  },
+  {
+    slug: 'adopter-simulation',
+    title: 'Adopter Simulation',
+    tags: ['onboarding', 'vibe coder', 'elite programmer', 'starter kit'],
+    body:
+      'Edgekit adopter simulation has two paths: a 30-minute agent-assisted path to choose a mission, create Skills and a Mission Profile, register tools, add approvals, and run outcome prompts; and a 90-minute elite programmer path to inspect architecture, wire providers, add telemetry and audit, and run the full battery.',
+  },
+  {
     slug: 'overview',
     title: 'Latency and Resilience',
     tags: ['latency', 'cache', 'parallel', 'offline'],

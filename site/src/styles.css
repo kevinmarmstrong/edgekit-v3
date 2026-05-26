@@ -504,6 +504,31 @@ dl {
   gap: 8px;
 }
 
+.production-notes {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-2);
+}
+
+.production-notes h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.production-notes ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+}
+
+.production-notes li + li {
+  margin-top: 4px;
+}
+
 .steps-grid article {
   display: grid;
   gap: 10px;

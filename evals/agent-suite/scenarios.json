@@ -35,6 +35,15 @@
       ]
     },
     {
+      "id": "public-ecommerce-action-card",
+      "surface": "public-ecommerce-action-card",
+      "required": true,
+      "prompts": [
+        "how much are Nike dunks and what sizes are carried?",
+        "do you carry size 11 white/black dunk lows and can I add one?"
+      ]
+    },
+    {
       "id": "standalone-hostile-cart",
       "surface": "standalone-ecommerce-hostile",
       "required": "local-only",
@@ -62,6 +71,15 @@
       "prompts": [
         "what demos can I try?",
         "show me the available EdgeKit demo surfaces"
+      ]
+    },
+    {
+      "id": "profile-adoption-guidance",
+      "surface": "profile-adoption-guidance",
+      "required": true,
+      "prompts": [
+        "I am using an AI coding agent. How do I add a production-grade sidecar to my app with edgekit?",
+        "what should a coding agent create first for a real EdgeKit integration?"
       ]
     },
     {

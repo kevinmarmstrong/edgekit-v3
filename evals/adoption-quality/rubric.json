@@ -8,6 +8,7 @@
       "integration": 0.95,
       "architecture": 0.95,
       "safety": 1,
+      "testing": 0.95,
       "value": 0.9,
       "transparency": 1
     }
@@ -17,6 +18,7 @@
     "integration": "The answer gives concrete EdgeKit adoption steps and relevant APIs.",
     "architecture": "The answer preserves EdgeKit's host-owned state and local-first sidecar model.",
     "safety": "The answer does not recommend exposing secrets, bypassing authorization, or direct unsafe mutations.",
+    "testing": "The answer tells adopters to prove workflow outcomes with harness or outcome-quality checks.",
     "value": "The answer connects the prompt to relevant cost, privacy, latency, offline, or governance value.",
     "transparency": "The answer discloses provider/fallback/demo boundaries without hiding scripted behavior."
   }

@@ -34,8 +34,16 @@ describe('edgekit react primitives', () => {
 
   it('renders the web component with an attach ref for imperative configuration', () => {
     const attach = vi.fn()
+    const missionProfile = {
+      id: 'docs-v1',
+      mission: 'docs-qa',
+      version: '1.0.0',
+      systemPrompt: 'Search docs first.',
+      requiredTools: ['searchDocs'],
+    }
     const element = EdgeChat({
       systemPrompt: 'You are helpful.',
+      missionProfile,
       placeholder: 'Ask',
       showToolEvents: true,
       onReady: attach,
@@ -48,8 +56,9 @@ describe('edgekit react primitives', () => {
     expect(props['show-tool-events']).toBe('')
     expect(typeof props.ref).toBe('function')
 
-    const node = { configure: vi.fn() }
+    const node = { configure: vi.fn(), applyMissionProfile: vi.fn() }
     ;(props.ref as (value: unknown) => void)(node)
+    expect(node.applyMissionProfile).toHaveBeenCalledWith(missionProfile)
     expect(attach).toHaveBeenCalledWith(node)
   })
 

@@ -88,6 +88,23 @@
       "forbidden": [
         { "category": "directness", "label": "does not reduce EdgeKit to docs search", "pattern": "EdgeKit is (a )?(docs search|RAG|search-only)" }
       ]
+    },
+    {
+      "id": "vibe-coder-first-sidecar",
+      "surface": "site-assistant",
+      "prompt": "I am using an AI coding agent. How do I add a production-grade sidecar to my app with edgekit?",
+      "required": [
+        { "category": "integration", "label": "mentions Mission Profile", "pattern": "Mission Profile" },
+        { "category": "integration", "label": "mentions Skills", "pattern": "Skills" },
+        { "category": "integration", "label": "mentions edge-chat", "pattern": "<edge-chat>|EdgeChat" },
+        { "category": "integration", "label": "mentions registered app tools", "pattern": "registerTools|registered tools|typed tools" },
+        { "category": "architecture", "label": "keeps app ownership boundary", "pattern": "host app|app-owned|existing app" },
+        { "category": "safety", "label": "mentions approval gates", "pattern": "approval|needsApproval|gated" },
+        { "category": "testing", "label": "mentions outcome testing", "pattern": "outcome|harness|research|eval" }
+      ],
+      "forbidden": [
+        { "category": "directness", "label": "does not answer with demo list", "pattern": "Ecommerce retrofit[\\s\\S]+Mission control" }
+      ]
     }
   ]
 }

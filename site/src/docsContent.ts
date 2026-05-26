@@ -127,6 +127,23 @@ const searchProducts = tool({
 document.querySelector('edge-chat')?.registerTools({ searchProducts })`,
         },
       },
+      {
+        id: 'knowledge-skill',
+        title: 'Add knowledge as a Skill',
+        body: [
+          'When the sidecar needs docs, policy, manuals, graph relationships, account history, or another dynamic knowledge base, use a Knowledge Access Skill. Edgekit should not own the vector database, graph database, crawler, reranker, or document pipeline; the app or chosen retrieval library owns those.',
+          'Wrap the source with `EdgeKnowledgeSource`, expose it through `createKnowledgeTool()` or `createKnowledgeSkill()`, compose it into the Mission Profile, and test that citations, freshness, and retrieved facts appear in the final visible answer.',
+        ],
+        code: {
+          language: 'ts',
+          text: `const knowledgeSkill = createKnowledgeSkill({
+  id: 'support-policy',
+  name: 'Support Policy Knowledge',
+  description: 'Search support policy with citations and freshness labels.',
+  source: policySource,
+})`,
+        },
+      },
     ],
   },
   {
@@ -230,6 +247,79 @@ document.querySelector('edge-chat')?.registerTools({ searchProducts })`,
     ],
   },
   {
+    slug: 'knowledge-access',
+    navLabel: 'Knowledge',
+    title: 'Knowledge Access Skills',
+    summary: 'Treat retrieval, RAG, graph search, and knowledge APIs as app-owned Skills with citations and freshness metadata.',
+    sections: [
+      {
+        id: 'principle',
+        title: 'Principle',
+        body: [
+          'Edgekit does not own retrieval infrastructure. A vector database, graph database, reranker, embedding model, SQL query, or external search API belongs to the host app or an adapter the host app chooses.',
+          'Edgekit owns the sidecar contract around that retrieval: when the Skill activates, which tool is visible, what citations must be surfaced, how stale knowledge is labeled, what telemetry is emitted, and how outcome tests prove the final answer stayed faithful.',
+        ],
+        bullets: [
+          'Memory is for user/session/workflow context.',
+          'Knowledge Access Skills are for larger, changing, source-owned information.',
+          'Retrieval tools should be read-only and parallel-safe unless the host app explicitly says otherwise.',
+          'Permission filtering belongs inside the source or backend tool, not inside model instructions.',
+        ],
+      },
+      {
+        id: 'contract',
+        title: 'Core contract',
+        body: [
+          '`EdgeKnowledgeSource` exposes `search(query, context)` plus optional `write`, `invalidate`, and `freshness` hooks. `createKnowledgeTool()` wraps the source as a normal Edgekit tool. `createKnowledgeSkill()` packages the router description, instructions, synthesis requirements, protected sections, and executable tool.',
+        ],
+        code: {
+          language: 'ts',
+          text: `const policySource = {
+  id: 'support-policy-kb',
+  label: 'Support policy',
+  async search(query, context) {
+    return searchPolicyIndex({
+      query,
+      userId: context.session.identity?.id,
+      roles: context.session.identity?.roles,
+      topK: context.topK ?? 4,
+    })
+  },
+  freshness: () => ({ stale: false, updatedAt: policyIndexVersion }),
+}
+
+const policySkill = createKnowledgeSkill({
+  id: 'support-policy',
+  name: 'Support Policy Knowledge',
+  description: 'Search support policies with citations and freshness labels.',
+  source: policySource,
+  requiredFacts: ['policy title', 'effective date', 'approval requirement'],
+})`,
+        },
+      },
+      {
+        id: 'recommended-paths',
+        title: 'Recommended paths',
+        body: ['Choose the retrieval implementation by scale and domain. Keep the Edgekit-facing contract stable while you swap the underlying source.'],
+        bullets: [
+          'Simple local: Markdown, JSON, or the Edgekit docs index for small docs, preferences, playbooks, and demo data.',
+          'Browser semantic: local embeddings plus IndexedDB or OPFS when data should stay on the device.',
+          'Production vector/hybrid: LlamaIndex.TS, LangChain.js retrievers, Qdrant, pgvector, Pinecone, Weaviate, or similar behind an app-owned tool.',
+          'Graph/GraphRAG: Neo4j GraphRAG, FalkorDB, or a domain graph API when relationships and multi-hop evidence matter.',
+          'Agentic retrieval: expose multiple read tools and let the model choose, but keep each tool scoped, cited, and permission-filtered.',
+        ],
+      },
+      {
+        id: 'faithfulness',
+        title: 'Faithfulness and citations',
+        body: [
+          'A retrieval call passing is not enough. The user-visible answer or generated UI must include the source-backed facts the user asked for, cite the source labels or URIs, and admit when no source supports the answer.',
+          'Use `synthesisFaithfulness` and knowledge-grounding scenarios to test that source facts survive out of the tool result and into the actual sidecar output.',
+        ],
+      },
+    ],
+  },
+  {
     slug: 'api',
     navLabel: 'API Reference',
     title: 'API reference',
@@ -246,6 +336,9 @@ document.querySelector('edge-chat')?.registerTools({ searchProducts })`,
           '`createHybridModelRouter(routes)`: route simple work to local models and complex work to developer-provided models.',
           '`createSupervisorRouter(options)`: route by lightweight intent patterns before falling back to the default model cascade.',
           '`createMarkdownMemoryStore(options)`: hydrate relevant Markdown-backed memory into the run context.',
+          '`EdgeKnowledgeSource`: stable adapter contract for app-owned retrieval, RAG, vector search, graph search, or private knowledge APIs.',
+          '`createKnowledgeTool(options)`: wrap an app-owned knowledge source as a read-only citation-ready Edgekit tool.',
+          '`createKnowledgeSkill(options)`: package retrieval policy, activation hints, citations, freshness, protected sections, and the executable knowledge tool as a Skill.',
           '`createHandoffEnvelope(options)`: package intent, state, memory, and tool context for worker handoffs.',
           '`estimateTokens(value)`: lightweight token estimate for memory thresholds and handoff budgets.',
           '`createMemoryResponseCache()`: opt-in in-memory response cache for deterministic local reuse.',

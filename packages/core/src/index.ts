@@ -178,6 +178,75 @@ export interface EdgeMemoryStore {
   records?(): EdgeMemoryRecord[]
 }
 
+export type EdgeKnowledgeCitation = {
+  id?: string
+  label?: string
+  uri?: string
+  source?: string
+  excerpt?: string
+}
+
+export type EdgeKnowledgeResult = {
+  id: string
+  title: string
+  excerpt: string
+  source?: string
+  uri?: string
+  score?: number
+  updatedAt?: string
+  stale?: boolean
+  citations?: EdgeKnowledgeCitation[]
+  metadata?: Record<string, unknown>
+}
+
+export interface EdgeKnowledgeSearchContext extends EdgeMemorySearchContext {
+  topK?: number
+  filters?: Record<string, unknown>
+}
+
+export interface EdgeKnowledgeFreshness {
+  stale?: boolean
+  updatedAt?: string
+  maxAgeSeconds?: number
+  reason?: string
+}
+
+export interface EdgeKnowledgeSource {
+  id: string
+  label?: string
+  description?: string
+  search(query: string, context: EdgeKnowledgeSearchContext): EdgeKnowledgeResult[] | Promise<EdgeKnowledgeResult[]>
+  write?(record: EdgeKnowledgeResult, context: EdgeKnowledgeSearchContext): EdgeKnowledgeResult | Promise<EdgeKnowledgeResult>
+  invalidate?(scope?: string, context?: EdgeKnowledgeSearchContext): void | Promise<void>
+  freshness?(context: EdgeKnowledgeSearchContext): EdgeKnowledgeFreshness | Promise<EdgeKnowledgeFreshness>
+}
+
+export interface CreateKnowledgeToolOptions {
+  name: string
+  description?: string
+  source: EdgeKnowledgeSource
+  defaultTopK?: number
+  readOnly?: boolean
+  parallelSafe?: boolean
+}
+
+export interface CreateKnowledgeSkillOptions<TInput = { query: string }, TOutput = { results: EdgeKnowledgeResult[] }> {
+  id: string
+  name: string
+  description: string
+  source: EdgeKnowledgeSource
+  toolName?: string
+  instructions?: string
+  activationExamples?: string[]
+  doNotActivateWhen?: string[]
+  requiredFacts?: string[]
+  citationRequired?: boolean
+  freshnessRequired?: boolean
+  defaultTopK?: number
+  protectedSections?: string[]
+  meta?: EdgeSkill<TInput, TOutput>['meta']
+}
+
 export interface MarkdownMemoryDocument {
   id: string
   content: string
@@ -1032,6 +1101,103 @@ export function createSkill<TInput = unknown, TOutput = unknown>(
  */
 export function skillsToTools(skills: EdgeSkill[]): Record<string, unknown> {
   return skills.reduce((acc, skill) => ({ ...acc, ...(skill.tools ?? {}) }), {})
+}
+
+export function createKnowledgeTool(options: CreateKnowledgeToolOptions): Record<string, unknown> {
+  const createTool = tool as never as (config: {
+    description: string
+    inputSchema: z.ZodType
+    execute: ContextualToolExecute
+  }) => unknown
+  const toolName = options.name
+  return {
+    [toolName]: createTool({
+      description:
+        options.description ??
+        `Search ${options.source.label ?? options.source.id} and return grounded results with citations and freshness metadata.`,
+      inputSchema: z.object({
+        query: z.string().describe('Natural-language knowledge query.'),
+        topK: modelOptional(z.number()).describe('Maximum number of knowledge results to return.'),
+        filters: modelOptional(z.record(z.string(), z.unknown())).describe('Optional app-owned source filters.'),
+      }),
+      execute: async (input: Record<string, unknown>, context) => {
+        const query = typeof input.query === 'string' ? input.query : ''
+        const topK = typeof input.topK === 'number' ? input.topK : options.defaultTopK
+        const filters = isRecord(input.filters) ? input.filters : undefined
+        const session = context?.session ?? {}
+        const searchContext: EdgeKnowledgeSearchContext = {
+          input: query,
+          session,
+          state: session.state,
+          topK,
+          filters,
+        }
+        const [results, freshness] = await Promise.all([
+          options.source.search(query, searchContext),
+          options.source.freshness?.(searchContext),
+        ])
+        return {
+          source: {
+            id: options.source.id,
+            label: options.source.label,
+            description: options.source.description,
+          },
+          query,
+          freshness,
+          results: typeof topK === 'number' ? results.slice(0, topK) : results,
+        }
+      },
+    }),
+  }
+}
+
+export function createKnowledgeSkill<TInput = { query: string }, TOutput = { results: EdgeKnowledgeResult[] }>(
+  options: CreateKnowledgeSkillOptions<TInput, TOutput>,
+): EdgeSkill<TInput, TOutput> {
+  const toolName = options.toolName ?? `search${toPascalCase(options.id)}`
+  const requiredFacts = [
+    ...(options.requiredFacts ?? ['answerable facts from retrieved context']),
+    ...(options.citationRequired === false ? [] : ['source citations']),
+    ...(options.freshnessRequired === false ? [] : ['freshness or staleness status']),
+  ]
+  return createSkill<TInput, TOutput>({
+    id: options.id,
+    name: options.name,
+    description: options.description,
+    instructions:
+      options.instructions ??
+      [
+        'Use this Skill when the user needs grounded knowledge from an app-owned source.',
+        'Call the retrieval tool before answering.',
+        'Synthesize the result; do not dump raw chunks.',
+        'Surface citations and freshness when available.',
+        'If the source returns no supporting result, say the source did not contain enough evidence.',
+      ].join(' '),
+    activationExamples: options.activationExamples,
+    doNotActivateWhen: options.doNotActivateWhen,
+    requiredTools: [toolName],
+    tools: createKnowledgeTool({
+      name: toolName,
+      source: options.source,
+      defaultTopK: options.defaultTopK,
+    }),
+    policy: { needsApproval: false, riskLevel: 'low' },
+    synthesis: {
+      requiredFacts,
+      preferredStyle: 'explicit',
+    },
+    protectedSections: options.protectedSections ?? ['policy', 'instructions.safety', 'source.authorization'],
+    optimization: {
+      slowStatePaths: ['policy', 'instructions.safety', 'source.authorization'],
+      fastStatePaths: ['description', 'instructions', 'activationExamples', 'doNotActivateWhen', 'synthesis'],
+      maxPatchOperations: 8,
+    },
+    meta: {
+      category: 'knowledge-access',
+      ...(options.meta ?? {}),
+      tags: [...(options.meta?.tags ?? []), 'knowledge', 'retrieval'],
+    },
+  })
 }
 
 export type EdgeSkillPatchOperation = {
@@ -2886,6 +3052,14 @@ function jsonSchemaToZod(schema: unknown): z.ZodType {
 
 function createId(prefix: string) {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`
+}
+
+function toPascalCase(value: string) {
+  return value
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean)
+    .map(part => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join('')
 }
 
 function stableStringify(value: unknown): string {

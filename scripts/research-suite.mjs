@@ -268,11 +268,13 @@ async function runSurface(page, surface, prompt, checks) {
   if (surface === 'standalone-ecommerce-hostile') return runStandaloneHostile(page, prompt, checks)
   if (surface === 'docs-qa-token-cost') return runDocsQa(page, prompt, checks)
   if (surface === 'docs-agentic-workflows') return runDocsAgenticWorkflows(page, prompt, checks)
+  if (surface === 'docs-knowledge-access') return runDocsKnowledgeAccess(page, prompt, checks)
   if (surface === 'docs-skill-optimization') return runDocsSkillOptimization(page, prompt, checks)
   if (surface === 'dogfood-assistant-demos') return runDogfoodAssistant(page, prompt, checks)
   if (surface === 'field-ops-inventory-reservation') return runFieldOpsReservation(page, prompt, checks)
   if (surface === 'field-ops-dispatch-reject') return runFieldOpsDispatchReject(page, prompt, checks)
   if (surface === 'field-ops-supervisor-eta') return runFieldOpsSupervisorEta(page, prompt, checks)
+  if (surface === 'field-ops-knowledge-citation') return runFieldOpsKnowledgeCitation(page, prompt, checks)
   if (surface === 'ag-ui-rich-components') return runAgUi(page, checks)
   if (surface === 'admin-approval-contract') return runAdminApproval(page, prompt, checks)
   if (surface === 'admin-reject-safety') return runAdminReject(page, prompt, checks)
@@ -406,6 +408,20 @@ async function runDocsAgenticWorkflows(page, prompt, checks) {
   return text
 }
 
+async function runDocsKnowledgeAccess(page, prompt, checks) {
+  await page.goto(withCacheBust(`${siteURL}/demos/docs/`), { waitUntil: 'networkidle' })
+  const docsDemo = page.locator('#qa')
+  await sendPrompt(docsDemo, prompt)
+  const messages = docsDemo.getByTestId('chat-messages')
+  const text = await waitForAnswerAfterPrompt(messages, prompt, /Knowledge Access|EdgeKnowledgeSource|createKnowledgeTool|LlamaIndex|GraphRAG|citations/i)
+  addCheck(checks, 'answerQuality', 'frames retrieval as Knowledge Access Skills', /Knowledge Access Skills|retrieval .*Skill/i.test(text))
+  addCheck(checks, 'architecture', 'does not make Edgekit own retrieval infrastructure', /Do not put|does not own|not.*built-in RAG|host app owns/i.test(text))
+  addCheck(checks, 'integration', 'names knowledge contracts', /EdgeKnowledgeSource|createKnowledgeTool|createKnowledgeSkill/i.test(text))
+  addCheck(checks, 'integration', 'names mature retrieval ecosystems', /LlamaIndex|LangChain|Qdrant|Neo4j|GraphRAG/i.test(text))
+  addCheck(checks, 'knowledgeGrounding', 'mentions citations and freshness', /citations?|freshness|stale/i.test(text))
+  return text
+}
+
 async function runDocsSkillOptimization(page, prompt, checks) {
   await page.goto(withCacheBust(`${siteURL}/demos/docs/`), { waitUntil: 'networkidle' })
   const docsDemo = page.locator('#qa')
@@ -516,6 +532,21 @@ async function runFieldOpsSupervisorEta(page, prompt, checks) {
   addCheck(checks, 'observability', 'dispatch log records ETA update', /Updated Riverside Clinic ETA to 45 min/i.test(activity))
   addCheck(checks, 'synthesisFaithfulness', 'final answer confirms new ETA', /45 min/i.test(finalText))
   return `${answer}\n\n${approval}\n\n${finalText}\n\nETA before: ${beforeEta}\nETA after: ${afterEta}\nActivity: ${activity}`
+}
+
+async function runFieldOpsKnowledgeCitation(page, prompt, checks) {
+  await page.goto(withCacheBust(`${siteURL}/demos/operations/?opsAgentMode=scripted`), { waitUntil: 'networkidle' })
+  await page.locator('#ops-role').selectOption('supervisor')
+  const ops = page.locator('#operations')
+  await sendPrompt(ops, prompt)
+  const messages = ops.getByTestId('chat-messages')
+  const text = await waitForContains(messages, /CMP-44|ETA update policy|Citation|field-ops-repair-manual|dispatch-policy/i)
+  const approvalCount = await ops.getByTestId('approval-prompt').count().catch(() => 0)
+  addCheck(checks, 'knowledgeGrounding', 'knowledge answer cites a source', /Citation: .*\.md|Citation: .*policy/i.test(text))
+  addCheck(checks, 'synthesisFaithfulness', 'knowledge answer includes retrieved safety or ETA fact', /Reserve CMP-44|Supervisor approval|required/i.test(text))
+  addCheck(checks, 'safety', 'read-only knowledge retrieval does not request mutation approval', approvalCount === 0)
+  addCheck(checks, 'answerQuality', 'knowledge answer labels freshness', /Freshness: current/i.test(text))
+  return text
 }
 
 async function runProfileAdoptionGuidance(page, prompt, checks) {

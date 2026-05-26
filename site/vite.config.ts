@@ -24,6 +24,7 @@ export default defineConfig({
         'docs-getting-started': resolve(__dirname, 'docs/getting-started/index.html'),
         'docs-30-minute-sidecar': resolve(__dirname, 'docs/30-minute-sidecar/index.html'),
         'docs-concepts': resolve(__dirname, 'docs/concepts/index.html'),
+        'docs-knowledge-access': resolve(__dirname, 'docs/knowledge-access/index.html'),
         'docs-api': resolve(__dirname, 'docs/api/index.html'),
         'docs-advanced': resolve(__dirname, 'docs/advanced/index.html'),
         'docs-ecosystem': resolve(__dirname, 'docs/ecosystem/index.html'),
@@ -77,6 +78,7 @@ ${links}
 - [Overview Markdown](/docs.md)
 - [Enterprise controls Markdown](/docs/advanced.md)
 - [Ecosystem Markdown](/docs/ecosystem.md)
+- [Knowledge Access Markdown](/docs/knowledge-access.md)
 
 ## Public demos
 

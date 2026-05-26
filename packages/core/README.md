@@ -53,6 +53,7 @@ Use `createAgUiAgent({ endpoint })` to connect an AG-UI compatible event stream,
 Use `createHybridModelRouter()` or `createSupervisorRouter()` when an app needs cloud fallback or lightweight supervisor/worker delegation without replacing the browser-native runtime.
 Use `createHandoffEnvelope()` or supervisor `onHandoff` callbacks to pass bounded context to cloud workers without leaking secret claims.
 Use `createMarkdownMemoryStore()` for inspectable `.md`-backed memory that can later be replaced by IndexedDB, OPFS, vectors, or a server store implementing the same `search()` contract. Configure compaction thresholds when Markdown logs become append-heavy.
+Use `EdgeKnowledgeSource`, `createKnowledgeTool()`, and `createKnowledgeSkill()` when retrieval is a first-class app capability. Edgekit normalizes citations and freshness metadata while the app owns Markdown, vector, hybrid, graph, SQL, or backend knowledge infrastructure.
 Use `createMemoryResponseCache()` or `createIndexedDbResponseCache()` for opt-in state-keyed caching of read-only responses.
 Use `createOfflineTool()`, `createMemoryMutationJournal()`, `createLocalStorageMutationJournal()`, and `syncMutationJournal()` for offline-capable mutations that queue locally and sync through the original app tools later.
 Use `createToolPolicyExecutor()` or `executeToolWithPolicy()` to put timeouts, payload limits, and allowlists around dynamically loaded or third-party tools before considering heavier worker or WASM isolation.

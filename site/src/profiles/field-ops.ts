@@ -117,16 +117,43 @@ export const updateEtaSkill = createSkill({
   meta: { category: 'field-ops', version: '1.0.0' },
 })
 
+export const repairKnowledgeSkill = createSkill({
+  id: 'repair-knowledge',
+  name: 'Repair Knowledge',
+  description: 'Search role-filtered repair manuals and dispatch policy with citations before operational recommendations.',
+  instructions: [
+    'Use this Skill when the user asks about manuals, policy, safety, citations, repair guidance, or why an operational action is allowed.',
+    'Cite the source title or URI returned by the retrieval tool.',
+    'Do not use retrieved policy as permission to mutate state; mutations still require the normal approved ERP tool.',
+  ].join(' '),
+  activationExamples: [
+    'what manual applies to CMP-44?',
+    'cite the policy before changing Riverside ETA',
+    'what safety rule applies before dispatch?',
+  ],
+  requiredTools: ['searchRepairKnowledge'],
+  policy: { needsApproval: false, riskLevel: 'low' },
+  synthesis: { requiredFacts: ['source title', 'citation', 'freshness', 'policy requirement'], preferredStyle: 'explicit' },
+  protectedSections: ['policy', 'instructions.safety', 'source.authorization'],
+  optimization: {
+    slowStatePaths: ['policy', 'instructions.safety', 'source.authorization'],
+    fastStatePaths: ['description', 'instructions', 'activationExamples', 'synthesis'],
+    maxPatchOperations: 8,
+  },
+  meta: { category: 'knowledge-access', version: '1.0.0', tags: ['field-ops', 'retrieval'] },
+})
+
 export const fieldOpsProfile = createMissionProfile({
   id: 'field-ops-dispatch-v1',
   mission: 'field-service-erp-dispatch',
   version: '1.0.0',
   systemPrompt: `You are a field-service ERP sidecar for dispatch and inventory workflows.
 Always search work orders before recommending inventory reservations or technician assignment.
+Use repair knowledge when the user asks for manuals, safety policy, citations, or why an operational action is allowed.
 After tool results, restate customer, priority, SLA, part requirement, current status, and technician or inventory impact.
 Do not mutate inventory or assignments without a visible user action or approval.
 Keep the ERP system authoritative for stock counts, technician availability, work-order state, and audit events.`,
-  requiredTools: ['searchWorkOrders', 'reserveInventory', 'assignTechnician', 'updateEta'],
+  requiredTools: ['searchWorkOrders', 'searchRepairKnowledge', 'reserveInventory', 'assignTechnician', 'updateEta'],
   defaults: { downloadPolicy: 'never', toolChoice: 'required' },
   synthesis: {
     requiredAttributes: ['customer', 'priority', 'SLA', 'part', 'status', 'approval boundary'],

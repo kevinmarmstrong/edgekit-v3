@@ -182,6 +182,20 @@ export const docChunks: DocChunk[] = [
       'createMarkdownMemoryStore turns app-provided Markdown into searchable memory records. It is the simple default for persistent local memory and can be replaced by IndexedDB, OPFS, vector stores, or server-backed profile memory.',
   },
   {
+    slug: 'knowledge-access',
+    title: 'Knowledge Access Skills',
+    tags: ['knowledge', 'retrieval', 'rag', 'citations', 'graph'],
+    body:
+      'Edgekit treats retrieval as a first-class Skill category, not a built-in RAG framework. EdgeKnowledgeSource, createKnowledgeTool, and createKnowledgeSkill let apps wrap Markdown, vector, hybrid, SQL, graph, LlamaIndex, LangChain, Qdrant, Neo4j GraphRAG, or private knowledge APIs while preserving citations, freshness, RBAC, telemetry, and synthesis faithfulness.',
+  },
+  {
+    slug: 'knowledge-access',
+    title: 'Retrieval Recipes',
+    tags: ['knowledge', 'llamaindex', 'langchain', 'qdrant', 'neo4j'],
+    body:
+      'Recommended retrieval paths are simple Markdown or JSON, browser semantic retrieval with local embeddings, production vector or hybrid search with mature frameworks, graph retrieval for relationship-heavy domains, and agentic multi-tool retrieval. The host app owns indexing, permission filtering, reranking, and freshness.',
+  },
+  {
     slug: 'advanced',
     title: 'Memory Compaction',
     tags: ['memory', 'compaction', 'snapshot', 'latency'],

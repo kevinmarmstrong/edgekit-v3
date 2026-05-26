@@ -80,6 +80,14 @@ Key questions for each Skill:
 - What is the approval policy?
 - How should results be rendered?
 
+If the mission needs docs, policy, manuals, account history, graph relationships, or another changing knowledge base, make that a **Knowledge Access Skill** instead of stuffing the data into the prompt. Wrap your source with `EdgeKnowledgeSource`, expose it through `createKnowledgeTool()` or `createKnowledgeSkill()`, and return normalized results with citations and freshness metadata. The source can be Markdown, local embeddings, LlamaIndex, LangChain, Qdrant, pgvector, Pinecone, Weaviate, Neo4j GraphRAG, SQL, or a private API. Your app still owns indexing, authorization, reranking, freshness, and source permissions.
+
+Copyable starters:
+- `docs/templates/knowledge-skill-starter/simple-markdown-source.ts`
+- `docs/templates/knowledge-skill-starter/knowledge-skill.ts`
+- `docs/templates/knowledge-skill-starter/mission-profile.ts`
+- `docs/templates/knowledge-skill-starter/harness-scenarios.json`
+
 ### Step 3: Create the Mission Profile
 
 ```ts

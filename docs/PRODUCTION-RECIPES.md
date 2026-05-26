@@ -2,6 +2,14 @@
 
 These recipes show the minimum production shape for real applications.
 
+## Knowledge Access
+
+Treat retrieval as a Skill category, not as a separate chatbot mode. Wrap each knowledge source with `EdgeKnowledgeSource`, expose it through `createKnowledgeTool()` or `createKnowledgeSkill()`, and keep permissions inside the source or backend query.
+
+Use Markdown or JSON for small local knowledge. Use LlamaIndex, LangChain, Qdrant, pgvector, Pinecone, Weaviate, Neo4j GraphRAG, SQL, or private APIs when the source is larger or dynamic. Edgekit should receive normalized results with title, excerpt, source, URI, citations, score, and freshness metadata.
+
+Outcome tests should prove that retrieved facts and citations survive into the final visible answer or generated UI. A successful retrieval call is not enough.
+
 ## Telemetry
 
 ```ts

@@ -9,6 +9,8 @@ import {
   createAuditTrail,
   createHandoffEnvelope,
   createHybridModelRouter,
+  createKnowledgeSkill,
+  createKnowledgeTool,
   createMarkdownMemoryStore,
   createMemoryMutationJournal,
   createMemoryResponseCache,
@@ -649,6 +651,88 @@ Customer prefers curbside pickup and text updates.`,
     expect(records).toHaveLength(1)
     expect(records[0].body).toContain('Customer prefers curbside pickup')
     expect(search[0].title).toBe('Current state snapshot')
+  })
+})
+
+describe('knowledge access helpers', () => {
+  it('wraps app-owned knowledge sources as citation-ready read tools', async () => {
+    const searchCalls: unknown[] = []
+    const tools = createKnowledgeTool({
+      name: 'searchPolicies',
+      defaultTopK: 1,
+      source: {
+        id: 'policy-kb',
+        label: 'Policy KB',
+        search: (query, context) => {
+          searchCalls.push({ query, context })
+          return [
+            {
+              id: 'refunds',
+              title: 'Refund policy',
+              excerpt: 'Refunds require an order lookup and manager approval.',
+              source: 'support-policy.md',
+              uri: '/policy/refunds',
+              score: 0.92,
+              citations: [{ label: 'Refund policy', uri: '/policy/refunds' }],
+            },
+            {
+              id: 'shipping',
+              title: 'Shipping policy',
+              excerpt: 'Shipping upgrades are handled by support.',
+            },
+          ]
+        },
+        freshness: () => ({ stale: false, updatedAt: '2026-05-26T00:00:00.000Z' }),
+      },
+    })
+
+    const result = await (
+      tools.searchPolicies as { execute: (input: Record<string, unknown>, context: unknown) => Promise<unknown> }
+    ).execute({ query: 'refund approval' }, { session: { identity: { id: 'u1', roles: ['support'] } } })
+
+    expect(result).toMatchObject({
+      source: { id: 'policy-kb', label: 'Policy KB' },
+      query: 'refund approval',
+      freshness: { stale: false },
+      results: [
+        {
+          id: 'refunds',
+          title: 'Refund policy',
+          citations: [{ label: 'Refund policy', uri: '/policy/refunds' }],
+        },
+      ],
+    })
+    expect(searchCalls).toEqual([
+      expect.objectContaining({
+        query: 'refund approval',
+        context: expect.objectContaining({
+          topK: 1,
+          session: expect.objectContaining({ identity: expect.objectContaining({ id: 'u1' }) }),
+        }),
+      }),
+    ])
+  })
+
+  it('creates a Knowledge Access Skill with synthesis, citation, and protected-source metadata', () => {
+    const skill = createKnowledgeSkill({
+      id: 'support-policy',
+      name: 'Support Policy Knowledge',
+      description: 'Search support policies with source citations.',
+      source: {
+        id: 'support-policy-kb',
+        search: () => [],
+      },
+      requiredFacts: ['policy title', 'approval requirement'],
+    })
+
+    expect(skill.requiredTools).toEqual(['searchSupportPolicy'])
+    expect(Object.keys(skill.tools ?? {})).toEqual(['searchSupportPolicy'])
+    expect(skill.policy).toMatchObject({ needsApproval: false, riskLevel: 'low' })
+    expect(skill.synthesis?.requiredFacts).toEqual(
+      expect.arrayContaining(['policy title', 'approval requirement', 'source citations', 'freshness or staleness status']),
+    )
+    expect(skill.protectedSections).toContain('source.authorization')
+    expect(skill.meta).toMatchObject({ category: 'knowledge-access' })
   })
 })
 

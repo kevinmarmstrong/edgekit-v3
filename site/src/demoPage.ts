@@ -208,13 +208,14 @@ function operationsDemo() {
         <aside class="ops-agent">
           ${productionNotes([
             'Bind role-specific tools to the signed-in dispatcher or supervisor.',
+            'Replace the sample repair knowledge source with LlamaIndex, Qdrant, Neo4j GraphRAG, or your ERP knowledge API behind searchRepairKnowledge.',
             'Keep inventory, dispatch, and ETA mutations behind approval plus backend authorization.',
             'Forward telemetry and audit events to the ERP system of record in production.',
           ])}
           <edge-chat
             id="ops-chat"
             system-prompt="You are a field-service ERP assistant. Search work orders before recommending inventory reservation or technician assignment. Ask for approval before changing inventory or dispatch state."
-            placeholder="Try: reserve a compressor for Riverside"
+            placeholder="Try: cite the safety rule for CMP-44"
             ready-message="Ready. Ask for field-service triage, inventory reservation, or dispatch help."
           ></edge-chat>
           <section class="activity-log" aria-live="polite">

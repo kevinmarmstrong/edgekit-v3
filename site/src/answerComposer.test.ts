@@ -60,4 +60,19 @@ describe('composeEdgekitAnswer', () => {
     expect(answer).toMatch(/harness-scenarios\.json|outcome scenarios/i)
     expect(answer).toMatch(/approval|rejection preserves state/i)
   })
+
+  it('explains Knowledge Access Skills as modular retrieval instead of a built-in RAG layer', () => {
+    const answer = composeEdgekitAnswer({
+      input: 'what is the scalable approach for RAG, graph knowledge, vector search, and dynamic knowledge bases?',
+      results: searchDocs('knowledge access retrieval vector graph citations'),
+      mode: 'site-assistant',
+    })
+
+    expect(answer).toMatch(/Knowledge Access Skills/i)
+    expect(answer).toMatch(/EdgeKnowledgeSource|createKnowledgeTool|createKnowledgeSkill/)
+    expect(answer).toMatch(/LlamaIndex|LangChain|Qdrant|Neo4j/i)
+    expect(answer).toMatch(/host app owns.*indexing|host app owns/i)
+    expect(answer).toMatch(/citations|freshness|stale/i)
+    expect(answer).not.toMatch(/EdgeKit core.*vector database/i)
+  })
 })

@@ -138,6 +138,23 @@ test('field ops ERP demo gates inventory reservation and dispatch actions', asyn
   await expect(page.locator('#ops-activity')).toContainText('Updated Riverside Clinic ETA to 45 min')
 })
 
+test('field ops ERP demo retrieves cited knowledge without mutating state', async ({ page }) => {
+  await page.goto(`${siteURL}demos/operations/?opsAgentMode=scripted&cacheBust=${Date.now()}`)
+  await page.locator('#ops-role').selectOption('supervisor')
+
+  const ops = page.locator('#operations')
+  await expect(page.getByTestId('inventory-available-CMP-44')).toHaveText('2')
+  await ops.getByTestId('chat-input').fill('cite the safety rule for CMP-44')
+  await ops.getByTestId('send-button').click()
+
+  const messages = ops.getByTestId('chat-messages')
+  await expect(messages).toContainText('CMP-44 compressor replacement safety')
+  await expect(messages).toContainText('field-ops-repair-manual.md')
+  await expect(messages).toContainText('Freshness: current')
+  await expect(ops.getByTestId('approval-prompt')).toHaveCount(0)
+  await expect(page.getByTestId('inventory-available-CMP-44')).toHaveText('2')
+})
+
 test('AG-UI demo loop explains scripted boundary and renders form, table, and chart states', async ({ page }) => {
   await page.goto(`${siteURL}demos/ag-ui/?cacheBust=${Date.now()}`)
 

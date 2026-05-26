@@ -76,6 +76,16 @@
       ]
     },
     {
+      "id": "docs-knowledge-access",
+      "surface": "docs-knowledge-access",
+      "required": true,
+      "prompts": [
+        "what is Edgekit's scalable approach for RAG and dynamic knowledge bases?",
+        "how should I connect vector search, GraphRAG, citations, and permissioned docs?",
+        "should Edgekit own my retrieval stack or should I plug in LlamaIndex, Qdrant, Neo4j, or my own API?"
+      ]
+    },
+    {
       "id": "docs-skill-optimization",
       "surface": "docs-skill-optimization",
       "required": true,
@@ -120,6 +130,15 @@
       "prompts": [
         "update Riverside ETA to 45 min because traffic delay",
         "set the Riverside Clinic ETA to 45 minutes due to traffic"
+      ]
+    },
+    {
+      "id": "field-ops-knowledge-citation",
+      "surface": "field-ops-knowledge-citation",
+      "required": true,
+      "prompts": [
+        "cite the safety rule for CMP-44",
+        "what policy applies before changing Riverside ETA?"
       ]
     },
     {

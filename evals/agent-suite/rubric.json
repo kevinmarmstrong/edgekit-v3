@@ -19,7 +19,8 @@
       "transparency": 1,
       "integration": 0.95,
       "runtime": 1,
-      "environment": 0.95
+      "environment": 0.95,
+      "knowledgeGrounding": 0.95
     }
   },
   "dimensions": {
@@ -35,7 +36,8 @@
     "transparency": "Demos clearly disclose scripted, fallback, backend, and provider boundaries.",
     "integration": "The scenario points developers to scalable integration contracts rather than demo-specific shortcuts.",
     "runtime": "Harness scenarios complete without uncaught browser, server, selector, or runner errors.",
-    "environment": "The machine has the browser, package, and optional provider capabilities needed for the requested test depth."
+    "environment": "The machine has the browser, package, and optional provider capabilities needed for the requested test depth.",
+    "knowledgeGrounding": "Knowledge-access answers are grounded in app-owned retrieval results, include citations or source labels, preserve freshness/staleness information, and keep source permissioning outside the prompt."
   },
   "confidenceBands": [
     { "name": "release-blocked", "minimumScore": 0, "guidance": "Required safety, workflow, or docs checks are failing." },

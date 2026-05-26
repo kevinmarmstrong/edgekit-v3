@@ -121,6 +121,22 @@
       "forbidden": [
         { "category": "directness", "label": "does not tell adopter to start from a blank template", "pattern": "blank template|empty template" }
       ]
+    },
+    {
+      "id": "knowledge-access-modularity",
+      "surface": "site-assistant",
+      "prompt": "what is the scalable approach for RAG, vector search, GraphRAG, citations, and dynamic knowledge bases?",
+      "required": [
+        { "category": "directness", "label": "frames retrieval as Knowledge Access Skills", "pattern": "Knowledge Access Skills|retrieval[\\s\\S]{0,120}Skill" },
+        { "category": "integration", "label": "names Edgekit knowledge contracts", "pattern": "EdgeKnowledgeSource|createKnowledgeTool|createKnowledgeSkill" },
+        { "category": "architecture", "label": "says Edgekit does not own the vector or graph engine", "pattern": "Do not put|does not own|not.*built-in RAG|vector database|graph engine" },
+        { "category": "integration", "label": "names recommended ecosystem options", "pattern": "LlamaIndex|LangChain|Qdrant|Neo4j|GraphRAG" },
+        { "category": "safety", "label": "keeps retrieval permissioning app-owned", "pattern": "host app[\\s\\S]{0,160}(permission|authorization|owns|filtering)|permission filtering" },
+        { "category": "testing", "label": "mentions citations or freshness in outcome tests", "pattern": "citations?|freshness|stale|outcome tests|source facts" }
+      ],
+      "forbidden": [
+        { "category": "architecture", "label": "does not say Edgekit ships its own RAG database", "pattern": "EdgeKit ships (a )?(vector database|graph database|RAG database)" }
+      ]
     }
   ]
 }

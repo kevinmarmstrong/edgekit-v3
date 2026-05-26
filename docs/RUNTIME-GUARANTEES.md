@@ -13,6 +13,7 @@ Use this page when deciding what Edgekit guarantees and what the host app must s
 | --- | --- | --- | --- | --- |
 | `EdgeMissionProfile.id`, `mission`, `version`, `systemPrompt` | Stable profile identity and mission localization | `validateMissionProfile()` errors on missing fields | Profile validation probes | Version and review profiles |
 | `requiredTools` | Declare executable tools the host must register | Validation detects missing registered tools when provided | Research suite checks validation failures | Register real app-owned implementations |
+| `EdgeKnowledgeSource` | Normalize app-owned retrieval into cited results | `createKnowledgeTool()` returns source, results, and optional freshness metadata | Knowledge grounding and citation scenarios | Own indexing, authorization, reranking, and freshness policy |
 | `defaults.toolChoice` | Configure model/tool behavior | Applied through `applyMissionProfile()`/`profileToAgentOptions()` | Browser and architecture probes | Choose mission-appropriate defaults |
 | `tools` on profile | Optional executable tools | Non-empty maps are passed to agent config; empty maps do not wipe registered tools | Unit tests cover no tool-wiping | Prefer `registerTools()` for app functions |
 | `synthesis` | Facts that must survive into final UI/text | Authoring-only warning today | `synthesisFaithfulness` scenarios | Write prompts/tests that prove final answers |

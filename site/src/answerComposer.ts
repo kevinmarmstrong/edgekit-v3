@@ -112,6 +112,21 @@ export function composeEdgekitAnswer({ input, results, mode = 'docs-demo', curre
       .join('\n')
   }
 
+  if (intent === 'knowledge-access') {
+    return [
+      'Use Knowledge Access Skills when your sidecar needs app-owned retrieval, RAG, graph search, or a dynamic knowledge base.',
+      '',
+      'Do not put a vector database or graph engine inside EdgeKit core. Wrap the source with `EdgeKnowledgeSource`, expose it as a read-only retrieval tool with `createKnowledgeTool()` or `createKnowledgeSkill()`, then compose that Skill into a Mission Profile.',
+      '',
+      'The source can be Markdown, a docs index, local embeddings in IndexedDB or OPFS, LlamaIndex, LangChain, Qdrant, pgvector, Pinecone, Weaviate, Neo4j GraphRAG, SQL, or a private backend API. The host app owns indexing, permission filtering, reranking, freshness, and source authorization.',
+      '',
+      'EdgeKit owns the sidecar contract: when the Skill activates, what tool is visible, whether citations and stale labels are surfaced, how telemetry/audit records the retrieval, and whether outcome tests prove source facts survived into the final answer or generated UI.',
+      sourceNote,
+    ]
+      .filter(Boolean)
+      .join('\n')
+  }
+
   return [
     'EdgeKit helps you add an agent to an app by giving you the browser-native sidecar, model cascade, tool loop, and approval/UI contracts so you do not have to rebuild those pieces from scratch.',
     '',
@@ -130,6 +145,8 @@ export function detectAnswerIntent(input: string) {
   const normalized = input.toLowerCase()
   if (/\b(jwt|cookie|token|database|db|credential|secret)\b/.test(normalized)) return 'unsafe-secrets-or-database'
   if (/\b(starter|template|30.minute|thirty.minute|new mission|first sidecar|support workflow)\b/.test(normalized)) return 'starter-path'
+  if (/\b(chatbot|chat bot|different|instead of chat)\b/.test(normalized)) return 'chatbot-difference'
+  if (/\b(knowledge|retrieval|vector|embeddings|graph|graphrag|llamaindex|langchain|qdrant|neo4j|citation|citations)\b/.test(normalized)) return 'knowledge-access'
   if (/\b(skillopt|skill opt|optimi[sz]e|optimization|held[- ]out|bounded edit|per[- ]skill|protected section|protected sections|trainable|gradient|optimizer)\b/.test(normalized) ||
     (/\bskill\b/.test(normalized) && /\b(candidate|edit|edits|patch|protected|tie|ties|harmless|validation)\b/.test(normalized))) {
     return 'skill-optimization'
@@ -138,7 +155,6 @@ export function detectAnswerIntent(input: string) {
     return 'agentic-not-rag'
   }
   if (/\b(first|start|begin|install|add first|what do i add)\b/.test(normalized)) return 'first-step'
-  if (/\b(chatbot|chat bot|different|instead of chat)\b/.test(normalized)) return 'chatbot-difference'
   if (/\b(cost|token|cloud|bill|spend|paying|api|pricing|economics|infrastructure|liability)\b/.test(normalized)) return 'token-cost'
   return 'add-agent'
 }

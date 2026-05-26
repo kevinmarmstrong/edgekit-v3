@@ -1,4 +1,4 @@
-import { chromeAI, createModelProvider, modelOptional, tool } from '@kevinmarmstrong/edgekit'
+import { chromeAI, createKnowledgeTool, createModelProvider, modelOptional, tool } from '@kevinmarmstrong/edgekit'
 import type { LanguageModelV3 } from '@kevinmarmstrong/edgekit'
 import type { EdgeChat } from '@kevinmarmstrong/edgekit-ui'
 import { z } from 'zod'
@@ -83,6 +83,54 @@ const inventory: InventoryItem[] = [
 ]
 
 const opsActivity: string[] = ['No dispatch actions yet']
+const repairKnowledge = [
+  {
+    id: 'cmp-44-safety',
+    title: 'CMP-44 compressor replacement safety',
+    excerpt: 'Reserve CMP-44 inventory before dispatch, verify lockout/tagout, and cite the safety checklist before changing ETA.',
+    source: 'field-ops-repair-manual.md',
+    uri: '/manuals/cmp-44-safety',
+    roles: ['dispatcher', 'supervisor'],
+    updatedAt: '2026-05-26',
+  },
+  {
+    id: 'eta-policy',
+    title: 'ETA update policy',
+    excerpt: 'Supervisor approval is required before updating customer-facing ETA after dispatch or traffic delay.',
+    source: 'dispatch-policy.md',
+    uri: '/manuals/eta-policy',
+    roles: ['supervisor'],
+    updatedAt: '2026-05-26',
+  },
+]
+
+const { searchRepairKnowledge } = createKnowledgeTool({
+  name: 'searchRepairKnowledge',
+  defaultTopK: 2,
+  source: {
+    id: 'field-ops-knowledge',
+    label: 'Field ops knowledge',
+    description: 'Role-filtered repair manuals and dispatch policy.',
+    search: (query, context) => {
+      const roles = new Set(context.session.identity?.roles ?? [currentOpsRole()])
+      const terms = queryTokens(query)
+      return repairKnowledge
+        .filter(document => document.roles.some(role => roles.has(role)))
+        .map(document => ({
+          document,
+          score: terms.reduce((total, term) => total + (normalize(`${document.title} ${document.excerpt}`).includes(term) ? 1 : 0), 0),
+        }))
+        .filter(result => result.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map(({ document, score }) => ({
+          ...document,
+          score,
+          citations: [{ label: document.title, uri: document.uri, source: document.source }],
+        }))
+    },
+    freshness: () => ({ stale: false, updatedAt: '2026-05-26T00:00:00.000Z' }),
+  },
+})
 
 export function mountOpsDemo() {
   const chat = document.querySelector<EdgeChat>('edge-chat#ops-chat')
@@ -110,7 +158,7 @@ export function mountOpsDemo() {
         },
   )
   chat.applyMissionProfile(fieldOpsProfile)
-  chat.registerTools({ searchWorkOrders, reserveInventory, assignTechnician, updateEta })
+  chat.registerTools({ searchWorkOrders, searchRepairKnowledge, reserveInventory, assignTechnician, updateEta })
   chat.registerActions(({ toolName, output }) => {
     if (toolName !== 'searchWorkOrders') return []
     return extractWorkOrders(output).flatMap(order => [
@@ -162,6 +210,7 @@ export function mountOpsDemo() {
 function opsToolsForInput(input: string) {
   const role = currentOpsRole()
   if (role === 'viewer') return { searchWorkOrders }
+  if (/\b(manual|policy|knowledge|safety|citation|cite|repair)\b/i.test(input)) return { searchWorkOrders, searchRepairKnowledge }
   if (role === 'supervisor' && /\b(eta|delay|arrival|time)\b/i.test(input)) return { searchWorkOrders, updateEta }
   if (/\b(assign|dispatch|technician|eta)\b/i.test(input)) return { searchWorkOrders, assignTechnician }
   if (/\b(reserve|part|inventory|stock|compressor)\b/i.test(input)) return { searchWorkOrders, reserveInventory }
@@ -263,6 +312,7 @@ function createScriptedOpsStream() {
 }
 
 function initialOpsStream(tools: Record<string, unknown>, input: string) {
+  const wantsKnowledge = /\b(manual|policy|knowledge|safety|citation|cite|repair)\b/i.test(input)
   const wantsEta = /\b(eta|delay|arrival|time)\b/i.test(input)
   const wantsAssign = /\b(assign|dispatch|technician)\b/i.test(input)
   const wantsReserve = /\b(reserve|part|inventory|stock|compressor)\b/i.test(input) || (!wantsAssign && !wantsEta)
@@ -277,6 +327,13 @@ function initialOpsStream(tools: Record<string, unknown>, input: string) {
       yield { type: 'tool-call', toolCallId: 'tool-search-work-orders', toolName: 'searchWorkOrders', input: searchInput }
       const output = await executeTool(tools.searchWorkOrders, searchInput)
       yield { type: 'tool-result', toolCallId: 'tool-search-work-orders', toolName: 'searchWorkOrders', output }
+      if (wantsKnowledge) {
+        yield { type: 'tool-call', toolCallId: 'tool-search-repair-knowledge', toolName: 'searchRepairKnowledge', input: { query: input || 'CMP-44 safety' } }
+        const knowledge = await executeTool(tools.searchRepairKnowledge, { query: input || 'CMP-44 safety' })
+        yield { type: 'tool-result', toolCallId: 'tool-search-repair-knowledge', toolName: 'searchRepairKnowledge', output: knowledge }
+        yield { type: 'text-delta', delta: formatKnowledgeAnswer(knowledge) }
+        return
+      }
       yield {
         type: 'text-delta',
         delta: `Riverside Clinic has a Critical work order with ${workOrders[0].sla}. ${wantsEta ? 'Supervisor approval is required before updating ETA.' : wantsReserve ? 'Approval is required before reserving CMP-44 inventory.' : 'Approval is required before assigning Ava Moreno.'}`,
@@ -287,6 +344,16 @@ function initialOpsStream(tools: Record<string, unknown>, input: string) {
       messages: [{ role: 'assistant', content: [{ type: 'text', text: 'Riverside Clinic is ready for review.' }, { type: 'tool-approval-request', approvalId: `approval-${toolCall.toolName}`, toolCall }] }],
     }),
   }
+}
+
+function formatKnowledgeAnswer(output: unknown) {
+  const record = isRecord(output) && Array.isArray(output.results) ? output.results.find(isRecord) : undefined
+  if (!record) return 'The field-ops knowledge source did not contain enough evidence for that question.'
+  const title = String(record.title ?? 'Retrieved policy')
+  const excerpt = String(record.excerpt ?? '')
+  const source = String(record.source ?? 'field-ops knowledge')
+  const uri = String(record.uri ?? '')
+  return `${title}: ${excerpt} Citation: ${source}${uri ? ` (${uri})` : ''}. Freshness: current.`
 }
 
 function approvedOpsStream(tools: Record<string, unknown>, toolCall: ApprovalToolCall | null) {

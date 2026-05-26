@@ -5,6 +5,7 @@ Mission Profiles are the app-owned artifact for one localized Edgekit sidecar. T
 ## What Belongs Where
 
 - **Primitive**: model routing, execution, telemetry, audit, redaction, rendering, memory, and provider adapters.
+- **Knowledge Access Skill**: a read-only Skill wrapping an app-owned retrieval source. The source may be Markdown, keyword search, vector search, GraphRAG, SQL, or a private API; Edgekit expects citations, freshness, and outcome tests rather than owning the index.
 - **Skill**: one capability with examples, approval posture, required facts, and UI hints.
 - **Mission Profile**: the assembly for one sidecar mission in one app surface.
 

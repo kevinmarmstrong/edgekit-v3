@@ -23,6 +23,8 @@
     "research:env": "node scripts/research-env.mjs",
     "research:full": "node scripts/research-env.mjs && pnpm research:suite && pnpm eval:adoption",
     "optimize:skills": "pnpm --filter @kevinmarmstrong/edgekit build && node scripts/skill-optimization-report.mjs",
+    "pack:packages": "pnpm build && mkdir -p research-results/package-smoke/packs && pnpm --dir packages/core pack --pack-destination ../../research-results/package-smoke/packs && pnpm --dir packages/ui pack --pack-destination ../../research-results/package-smoke/packs && pnpm --dir packages/react pack --pack-destination ../../research-results/package-smoke/packs && pnpm --dir packages/cli pack --pack-destination ../../research-results/package-smoke/packs",
+    "test:fresh-app": "pnpm build && node scripts/fresh-app-smoke.mjs",
     "chrome:profile": "node scripts/launch-chrome-profile.mjs",
     "test:routes": "node scripts/serve-test-routes.mjs",
     "deploy:cloudflare": "pnpm build && pnpm --dir site dlx wrangler pages deploy dist --project-name edgekit",

@@ -39,6 +39,12 @@ Run `validateMissionProfile(profile, { registeredTools })` as part of local deve
 
 Validation does not replace outcome testing. It proves the profile is structurally executable; the harness proves the sidecar made the right decisions and said the right thing to the user.
 
+## Runtime Guarantees
+
+Before treating a Profile or Skill field as a production control, confirm whether it is enforced at runtime or is an authoring/harness contract. See [Runtime Guarantees](./RUNTIME-GUARANTEES.md).
+
+Production safety should rely on executable controls: backend authorization, RBAC-filtered tool manifests, `needsApproval` on mutating tools, telemetry, audit persistence, redaction, and outcome tests. Do not rely on descriptive `synthesis`, `policy`, or `uiAffordances` metadata alone.
+
 ## Release Checklist
 
 - `pnpm test`

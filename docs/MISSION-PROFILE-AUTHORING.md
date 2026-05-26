@@ -52,6 +52,12 @@ if (!validation.ok) {
 
 `validateMissionProfile()` catches structural foot-guns such as missing ids, duplicate `requiredTools`, `toolChoice: "required"` with no tool contract, and required tools that the host app never registered.
 
+## Runtime Guarantees
+
+Some Profile and Skill fields are runtime-enforced today, and some are authoring contracts used by docs, coding agents, and the harness. Before relying on a field for safety or compliance, check [Runtime Guarantees](./RUNTIME-GUARANTEES.md).
+
+In short: `requiredTools`, safe profile application, registered executable tools, `needsApproval`, telemetry, and audit primitives have runtime behavior. `synthesis`, mission-level `policy`, `uiAffordances`, and optimization metadata are guidance until the harness or a future runtime helper consumes them.
+
 ## Quality Checklist
 
 - The profile names a narrow mission.

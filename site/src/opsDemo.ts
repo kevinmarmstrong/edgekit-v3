@@ -14,6 +14,7 @@ type WorkOrder = {
   partSku: string
   partName: string
   technicianId?: string
+  eta?: string
 }
 
 type Technician = {
@@ -53,6 +54,7 @@ const workOrders: WorkOrder[] = [
     partSku: 'COND-12',
     partName: 'Condenser fan',
     technicianId: 'ava',
+    eta: '32 min',
   },
   {
     id: 'WO-1760',
@@ -64,6 +66,7 @@ const workOrders: WorkOrder[] = [
     partSku: 'SNS-8',
     partName: 'Pressure sensor',
     technicianId: 'omar',
+    eta: '48 min',
   },
 ]
 
@@ -87,6 +90,10 @@ export function mountOpsDemo() {
 
   const scriptedMode = new URLSearchParams(window.location.search).get('opsAgentMode') === 'scripted'
   renderOpsState()
+  document.querySelector<HTMLSelectElement>('#ops-role')?.addEventListener('change', () => {
+    pushOpsActivity(`Role changed to ${currentOpsRole()}`)
+    renderOpsActivity()
+  })
 
   chat.configure(
     scriptedMode
@@ -103,7 +110,7 @@ export function mountOpsDemo() {
         },
   )
   chat.applyMissionProfile(fieldOpsProfile)
-  chat.registerTools({ searchWorkOrders, reserveInventory, assignTechnician })
+  chat.registerTools({ searchWorkOrders, reserveInventory, assignTechnician, updateEta })
   chat.registerActions(({ toolName, output }) => {
     if (toolName !== 'searchWorkOrders') return []
     return extractWorkOrders(output).flatMap(order => [
@@ -136,11 +143,26 @@ export function mountOpsDemo() {
         ],
         successMessage: (result: unknown) => formatAssignmentSuccess(result, order),
       },
+      {
+        id: `eta-${order.id}`,
+        label: `Update ETA`,
+        toolName: 'updateEta',
+        description: `Supervisor-only ETA update for ${order.customer}. Current ETA: ${order.eta ?? 'not set'}.`,
+        input: { workOrderId: order.id },
+        fields: [
+          { name: 'eta', label: 'ETA', type: 'text' as const, required: true, value: order.eta ?? '45 min' },
+          { name: 'reason', label: 'Reason', type: 'text' as const, required: true, value: 'Traffic delay after dispatch' },
+        ],
+        successMessage: (result: unknown) => formatEtaSuccess(result, order),
+      },
     ])
   })
 }
 
 function opsToolsForInput(input: string) {
+  const role = currentOpsRole()
+  if (role === 'viewer') return { searchWorkOrders }
+  if (role === 'supervisor' && /\b(eta|delay|arrival|time)\b/i.test(input)) return { searchWorkOrders, updateEta }
   if (/\b(assign|dispatch|technician|eta)\b/i.test(input)) return { searchWorkOrders, assignTechnician }
   if (/\b(reserve|part|inventory|stock|compressor)\b/i.test(input)) return { searchWorkOrders, reserveInventory }
   return { searchWorkOrders }
@@ -200,6 +222,24 @@ const assignTechnician = tool({
   needsApproval: true,
 })
 
+const updateEta = tool({
+  description: 'Update the ETA on a field-service work order after supervisor approval.',
+  inputSchema: z.object({
+    workOrderId: z.string(),
+    eta: z.string(),
+    reason: z.string(),
+  }),
+  execute: async ({ workOrderId, eta, reason }) => {
+    const order = workOrders.find(item => item.id === workOrderId)
+    if (!order) return { success: false, error: 'Work order not found' }
+    order.eta = eta
+    pushOpsActivity(`Updated ${order.customer} ETA to ${eta}: ${reason}`)
+    renderOpsState()
+    return { success: true, workOrderId, customer: order.customer, eta, reason }
+  },
+  needsApproval: true,
+})
+
 function scriptedOpsProvider() {
   const scriptedModel = {
     provider: 'scripted-field-ops',
@@ -223,11 +263,14 @@ function createScriptedOpsStream() {
 }
 
 function initialOpsStream(tools: Record<string, unknown>, input: string) {
+  const wantsEta = /\b(eta|delay|arrival|time)\b/i.test(input)
   const wantsAssign = /\b(assign|dispatch|technician)\b/i.test(input)
-  const wantsReserve = /\b(reserve|part|inventory|stock|compressor)\b/i.test(input) || !wantsAssign
+  const wantsReserve = /\b(reserve|part|inventory|stock|compressor)\b/i.test(input) || (!wantsAssign && !wantsEta)
   const toolCall = wantsAssign
     ? { type: 'tool-call', toolCallId: 'tool-assign-tech', toolName: 'assignTechnician', input: { workOrderId: 'WO-1842', technicianId: 'ava', eta: '32 min' } }
-    : { type: 'tool-call', toolCallId: 'tool-reserve-part', toolName: 'reserveInventory', input: { workOrderId: 'WO-1842', partSku: 'CMP-44', quantity: 1 } }
+    : wantsEta
+      ? { type: 'tool-call', toolCallId: 'tool-update-eta', toolName: 'updateEta', input: { workOrderId: 'WO-1842', eta: '45 min', reason: 'Traffic delay after dispatch' } }
+      : { type: 'tool-call', toolCallId: 'tool-reserve-part', toolName: 'reserveInventory', input: { workOrderId: 'WO-1842', partSku: 'CMP-44', quantity: 1 } }
   return {
     fullStream: (async function* () {
       const searchInput = { query: input || 'critical compressor Riverside' }
@@ -236,7 +279,7 @@ function initialOpsStream(tools: Record<string, unknown>, input: string) {
       yield { type: 'tool-result', toolCallId: 'tool-search-work-orders', toolName: 'searchWorkOrders', output }
       yield {
         type: 'text-delta',
-        delta: `Riverside Clinic has a Critical work order with ${workOrders[0].sla}. ${wantsReserve ? 'Approval is required before reserving CMP-44 inventory.' : 'Approval is required before assigning Ava Moreno.'}`,
+        delta: `Riverside Clinic has a Critical work order with ${workOrders[0].sla}. ${wantsEta ? 'Supervisor approval is required before updating ETA.' : wantsReserve ? 'Approval is required before reserving CMP-44 inventory.' : 'Approval is required before assigning Ava Moreno.'}`,
       }
       yield { type: 'tool-approval-request', approvalId: `approval-${toolCall.toolName}`, toolCall }
     })(),
@@ -260,10 +303,10 @@ function approvedOpsStream(tools: Record<string, unknown>, toolCall: ApprovalToo
 }
 
 function rejectedOpsStream(toolCall: ApprovalToolCall | null) {
-  const name = toolCall?.toolName === 'assignTechnician' ? 'assign a technician' : 'reserve inventory'
+  const name = toolCall?.toolName === 'assignTechnician' ? 'assign a technician' : toolCall?.toolName === 'updateEta' ? 'update ETA' : 'reserve inventory'
   return {
     fullStream: (async function* () {
-      yield { type: 'text-delta', delta: `I did not ${name}. The work order and inventory state were left unchanged.` }
+      yield { type: 'text-delta', delta: `I did not ${name}. The work order, ETA, technician, and inventory state were left unchanged.` }
     })(),
     response: Promise.resolve({ messages: [{ role: 'assistant', content: [{ type: 'text', text: `I did not ${name}.` }] }] }),
   }
@@ -295,6 +338,7 @@ function renderWorkOrders() {
           <div><dt>SLA</dt><dd data-testid="ops-sla-${order.id}">${order.sla}</dd></div>
           <div><dt>Part</dt><dd>${order.partSku}</dd></div>
           <div><dt>Technician</dt><dd data-testid="ops-tech-${order.id}">${technician?.name ?? 'Unassigned'}</dd></div>
+          <div><dt>ETA</dt><dd data-testid="ops-eta-${order.id}">${order.eta ?? technician?.eta ?? 'Not set'}</dd></div>
         </dl>
       </article>
     `
@@ -375,6 +419,9 @@ function orderSummary(order: WorkOrder) {
 
 function formatOpsSuccess(toolCall: ApprovalToolCall, output: unknown) {
   const record = isRecord(output) ? output : {}
+  if (toolCall.toolName === 'updateEta') {
+    return `Updated ETA for ${String(record.customer ?? toolCall.input.workOrderId ?? 'the work order')} to ${String(record.eta ?? toolCall.input.eta ?? 'set')}.`
+  }
   if (toolCall.toolName === 'assignTechnician') {
     return `Assigned ${String(record.technician ?? 'the technician')} to ${String(record.customer ?? 'the work order')} with ETA ${String(record.eta ?? toolCall.input.eta ?? 'set')}.`
   }
@@ -389,6 +436,11 @@ function formatReservationSuccess(result: unknown, order: WorkOrder) {
 function formatAssignmentSuccess(result: unknown, order: WorkOrder) {
   const record = isRecord(result) ? result : {}
   return `Assigned ${String(record.technician ?? 'technician')} to ${order.customer}. ETA ${String(record.eta ?? 'set')}.`
+}
+
+function formatEtaSuccess(result: unknown, order: WorkOrder) {
+  const record = isRecord(result) ? result : {}
+  return `Updated ETA for ${order.customer} to ${String(record.eta ?? 'set')}.`
 }
 
 function findLatestApprovalResponse(messages: unknown[]) {
@@ -422,6 +474,10 @@ function latestUserInput(messages: unknown[]) {
 function pushOpsActivity(item: string) {
   if (opsActivity.length === 1 && opsActivity[0] === 'No dispatch actions yet') opsActivity.length = 0
   opsActivity.unshift(item)
+}
+
+function currentOpsRole() {
+  return document.querySelector<HTMLSelectElement>('#ops-role')?.value ?? 'dispatcher'
 }
 
 function priorityClass(priority: WorkOrder['priority']) {

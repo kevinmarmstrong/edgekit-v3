@@ -152,6 +152,7 @@ chat?.registerActions(({ toolName, output }) => {
 })
 
 function commerceModelCascade(mode: string) {
+  if (mode === 'none') return [createModelProvider({ id: 'no-model', label: 'No model provider', resolve: async () => null })]
   if (mode === 'webllm') return [webLLM({ modelSize: 'about 400 MB' })]
   if (mode === 'cascade') return [chromeAI(), webLLM({ modelSize: 'about 400 MB' })]
   return [chromeAI()]

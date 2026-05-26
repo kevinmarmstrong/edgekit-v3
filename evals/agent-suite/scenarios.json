@@ -114,6 +114,15 @@
       ]
     },
     {
+      "id": "field-ops-supervisor-eta",
+      "surface": "field-ops-supervisor-eta",
+      "required": true,
+      "prompts": [
+        "update Riverside ETA to 45 min because traffic delay",
+        "set the Riverside Clinic ETA to 45 minutes due to traffic"
+      ]
+    },
+    {
       "id": "profile-adoption-guidance",
       "surface": "profile-adoption-guidance",
       "required": true,

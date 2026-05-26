@@ -65,10 +65,10 @@ importers:
   packages/react:
     dependencies:
       '@kevinmarmstrong/edgekit':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@kevinmarmstrong/edgekit-ui':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../ui
     devDependencies:
       '@types/react':
@@ -81,7 +81,7 @@ importers:
   packages/ui:
     dependencies:
       '@kevinmarmstrong/edgekit':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       lit:
         specifier: ^3.3.3

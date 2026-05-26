@@ -674,6 +674,19 @@ export interface EdgeMissionProfile {
     style?: 'concise' | 'explicit'
   }
 
+  /** Authoring-only safety intent for docs, harnesses, and future runtime helpers. */
+  policy?: {
+    needsApproval?: boolean
+    riskLevel?: 'low' | 'medium' | 'high'
+    approvalMessage?: string
+  }
+
+  /** Authoring-only UI rendering hints for docs, harnesses, and future runtime helpers. */
+  uiAffordances?: {
+    preferActionCards?: boolean
+    suggestedFields?: string[]
+  }
+
   /** Optional metadata for docs, dev agents, and upgrade tooling */
   meta?: {
     description?: string
@@ -811,6 +824,33 @@ export function validateMissionProfile(
       code: 'synthesis-without-tool-contract',
       path: 'synthesis.requiredAttributes',
       message: 'Synthesis requiredAttributes are most reliable when backed by executable tools or requiredTools metadata.',
+    })
+  }
+
+  if ((profile.synthesis?.requiredAttributes?.length ?? 0) > 0) {
+    issues.push({
+      severity: 'warning',
+      code: 'synthesis-authoring-contract',
+      path: 'synthesis',
+      message: 'Mission Profile synthesis rules are authoring and harness contracts today; outcome tests must verify the final user-visible answer.',
+    })
+  }
+
+  if (profile.policy) {
+    issues.push({
+      severity: 'warning',
+      code: 'policy-authoring-contract',
+      path: 'policy',
+      message: 'Mission Profile policy metadata documents intent, but runtime approval is enforced by executable tools such as needsApproval and by registered app actions.',
+    })
+  }
+
+  if (profile.uiAffordances) {
+    issues.push({
+      severity: 'warning',
+      code: 'ui-affordance-authoring-contract',
+      path: 'uiAffordances',
+      message: 'Mission Profile UI affordances are authoring hints today; render concrete CTAs and forms with registerActions(), EdgeView, or AG-UI.',
     })
   }
 

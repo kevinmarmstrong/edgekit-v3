@@ -1,6 +1,6 @@
 # Edgekit World-Class Loop — Live Status
 
-**Last Updated:** 2026-05-26 05:56:23 UTC
+**Last Updated:** 2026-05-26 15:00:00 UTC
 
 **This is the single source of truth for the current loop state.**
 
@@ -266,6 +266,20 @@ These two concrete fixes (safe profile tool merging + correct async faithfulness
 
 ---
 
+## Gap Analysis Completed — 2026-05-26 15:00:00 UTC
+
+**Work completed:**
+- Created `GAP-ANALYSIS.md` — a focused, honest assessment of current state against every criterion in `WORLD-CLASS-DEFINITION.md`.
+- Special deep emphasis on **Onboarding & Speed to Tremendous Value** (the area the user specifically called out).
+- The analysis concludes that while architecture, process, and outcome quality have advanced significantly, the largest remaining gap is in making the "30–45 minute path to production-grade results with excellent outcome quality" a reality for agent-assisted developers (and the 60–90 minute path for elite programmers).
+
+**Key takeaway from the analysis:**
+The current onboarding materials are good scaffolding, but they are not yet at the level of "this delivers tremendous value extremely quickly" required by the world-class definition.
+
+**Status:** Gap analysis complete. Ready for prioritization and next wave planning.
+
+---
+
 ## Wave 0 Progress — 2026-05-26 05:08:11 UTC
 
 **Work completed in this session:**
@@ -492,3 +506,31 @@ Progress on this wave will be recorded in small, timestamped steps in this file.
 **Next Action:**
 - User review of `WORLD-CLASS-EXECUTION-PLAN.md`.
 - Once approved, begin Wave 0 execution with visible updates to this status file.
+
+---
+
+## World-Class Milestone Implementation — 2026-05-26 15:43 UTC
+
+**Completed in this pass:**
+- Added runtime guarantee documentation and validation warnings for authoring-only profile metadata.
+- Replaced the placeholder starter with a concrete support-workflow mission pack and timed 30-minute adoption path.
+- Added packed-package/fresh-app distribution smoke coverage outside the monorepo.
+- Upgraded Field Ops ERP into the flagship internal-app workflow demo with role-specific tool exposure, ETA approvals, rejection/no-mutation proof, and telemetry-visible state changes.
+- Expanded provider/resilience reporting across Chrome, WebLLM, cascade, no-model, scripted, and developer-provided cloud route modes.
+- Added production recipes, threat model, migration/upgrade, and distribution readiness docs; docs site and llms exports stay profile-first.
+
+**Verification evidence:**
+- `pnpm test` passed: 59/59.
+- `pnpm typecheck` passed.
+- `pnpm build` passed; `site/dist/llms-full.txt` is 48,990 bytes.
+- `pnpm test:fresh-app` passed from packed tarballs in an external temp app.
+- `pnpm test:e2e` passed: 48/48.
+- `pnpm eval:adoption` passed: average 1.00, required failures 0.
+- `pnpm research:agents` passed: 12/12, average 1.00, shipReady true.
+- `pnpm research:suite` passed: 66/66, average 1.00, confidence 1.00, required failures/skips 0.
+- Strict provider run passed with `EDGEKIT_CHROME_CDP_URL=http://127.0.0.1:9223`, `EDGEKIT_REQUIRE_REAL_PROVIDERS=1`, and a reachable developer-provided local cloud route stub.
+- Webwright-style independent validation passed for docs Q&A and Field Ops ETA approval workflow with screenshots in `research-results/webwright/final_runs/run_1/screenshots/`.
+
+**Remaining before public claim:**
+- Deploy these changes to GitHub Pages and run the live Pages suite against `https://kevinmarmstrong.github.io/edgekit/`.
+- Optional: run against a real external cloud route instead of the local cloud-route stub if you want hosted-provider proof before release.

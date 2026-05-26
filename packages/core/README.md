@@ -1,6 +1,24 @@
-# edgekit
+# @kevinmarmstrong/edgekit
 
 Core runtime for browser-native agent sidecars.
+
+The recommended production pattern is **Primitives -> Skills -> Mission Profiles**:
+
+```ts
+const profile = createMissionProfile({
+  id: 'support-workflow-v1',
+  mission: 'support-workflow',
+  version: '1.0.0',
+  systemPrompt: 'Search support cases before answering. Ask for approval before ticket creation.',
+  requiredTools: ['searchSupportCases', 'createSupportTicket'],
+  defaults: { toolChoice: 'required', downloadPolicy: 'never' },
+})
+
+chat.applyMissionProfile(profile)
+chat.registerTools({ searchSupportCases, createSupportTicket })
+```
+
+Use raw `createAgent()` when building custom renderers or advanced orchestration. For most app integrations, define Skills and a Mission Profile, register app-owned executable tools, validate the profile, then run outcome tests.
 
 ```ts
 import { createAgent, modelOptional, tool } from '@kevinmarmstrong/edgekit'

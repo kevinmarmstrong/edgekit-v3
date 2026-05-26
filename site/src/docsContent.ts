@@ -130,6 +130,35 @@ document.querySelector('edge-chat')?.registerTools({ searchProducts })`,
     ],
   },
   {
+    slug: '30-minute-sidecar',
+    navLabel: '30-Minute Path',
+    title: '30-minute production sidecar',
+    summary: 'A guided path from concrete starter profile to a tested first sidecar.',
+    sections: [
+      {
+        id: 'mission',
+        title: 'Pick one mission',
+        body: [
+          'Start with one narrow mission, not a generic assistant. Good first missions pair one read-only capability with one approval-gated mutation.',
+        ],
+      },
+      {
+        id: 'starter',
+        title: 'Use the concrete starter',
+        body: [
+          'Copy `docs/templates/mission-profile-starter/profile.ts`. It includes support case search, approval-gated ticket creation, two Skills, one Mission Profile, typed tools, and telemetry-ready wiring.',
+        ],
+      },
+      {
+        id: 'prove',
+        title: 'Prove outcomes',
+        body: [
+          'Run the starter scenarios from `docs/templates/mission-profile-starter/harness-scenarios.json`. The sidecar passes only when facts surface in the final answer, ticket creation requires approval, rejection preserves state, and no tool chatter leaks to the user.',
+        ],
+      },
+    ],
+  },
+  {
     slug: 'concepts',
     navLabel: 'Architecture',
     title: 'Core architecture',
@@ -1178,6 +1207,138 @@ EDGEKIT_SKILL_BASELINE=research-results/skill-optimization/live-before.json EDGE
           '`pnpm research:agents`',
           '`pnpm research:suite`',
           'strict real-provider run when available',
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'runtime-guarantees',
+    navLabel: 'Guarantees',
+    title: 'Runtime guarantees',
+    summary: 'What Edgekit enforces at runtime, what the harness proves, and what remains host-app responsibility.',
+    sections: [
+      {
+        id: 'contract-types',
+        title: 'Two contract types',
+        body: [
+          'Edgekit has runtime guarantees and authoring contracts. Runtime guarantees are enforced by core, UI, tests, or tool execution. Authoring contracts guide humans, coding agents, documentation, and harnesses, but are not safety boundaries by themselves.',
+        ],
+      },
+      {
+        id: 'guarantee-table',
+        title: 'Guarantee table',
+        body: [
+          '`requiredTools`, safe profile application, registered executable tools, tool `needsApproval`, telemetry, audit primitives, and profile validation have runtime behavior today.',
+          '`synthesis`, mission-level `policy`, `uiAffordances`, and optimization metadata are authoring and harness contracts today. Use outcome tests to prove their intended behavior.',
+        ],
+      },
+      {
+        id: 'release-rule',
+        title: 'Release rule',
+        body: [
+          'If a value changes state, authorization, money, account status, inventory, or regulated data, put the guardrail on the executable tool and backend authorization path. Do not rely on descriptive metadata alone.',
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'distribution-readiness',
+    navLabel: 'Distribution',
+    title: 'Distribution readiness',
+    summary: 'Package, fresh-app, and release checks for proving Edgekit works outside the monorepo.',
+    sections: [
+      {
+        id: 'fresh-app-smoke',
+        title: 'Fresh app smoke',
+        body: [
+          'A release candidate must build from packed packages in a fresh app fixture. This catches workspace-only dependencies, missing files, and package README drift before public publish.',
+        ],
+        code: { language: 'bash', text: 'pnpm build\npnpm pack:packages\npnpm test:fresh-app' },
+      },
+      {
+        id: 'compatibility',
+        title: 'Compatibility policy',
+        body: [
+          'Core primitives follow semver. Mission Profiles should declare compatibility metadata. Runtime behavior changes that affect approvals, tool execution, provider routing, or EdgeView require migration notes and harness proof.',
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'production-recipes',
+    navLabel: 'Recipes',
+    title: 'Production recipes',
+    summary: 'Concrete telemetry, audit, RBAC, state hydration, and escalation patterns for real apps.',
+    sections: [
+      {
+        id: 'telemetry-audit',
+        title: 'Telemetry and audit',
+        body: [
+          'Capture run start, run finish, model status, tool calls, tool results, approval decisions, errors, and UI actions. Persist audit entries server-side when workflow compliance matters.',
+        ],
+      },
+      {
+        id: 'rbac-state',
+        title: 'RBAC and state',
+        body: [
+          'Use `identityProvider`, `sessionProvider`, `stateProvider`, and RBAC-filtered tool manifests to pass public context into the sidecar without putting JWTs, cookies, or secret claims into the prompt.',
+        ],
+      },
+      {
+        id: 'escalation',
+        title: 'Local vs cloud escalation',
+        body: [
+          'Use local browser models for intent, simple tool extraction, local page help, and privacy-sensitive context. Escalate through explicit developer-owned routes for deep synthesis, required server logging, or repeated local-model failures.',
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'security-threat-model',
+    navLabel: 'Security',
+    title: 'Security threat model',
+    summary: 'Security boundaries for prompt secrets, tool authorization, approvals, redaction, and third-party tools.',
+    sections: [
+      {
+        id: 'boundary',
+        title: 'Boundary',
+        body: [
+          'The host application is authoritative for user identity, tenant permissions, database writes, external API calls, payment records, inventory, and regulated data.',
+          'Edgekit owns the agent event stream, provider routing hooks, approval request/resume protocol, UI primitives, telemetry/audit event contracts, and validation helpers.',
+        ],
+      },
+      {
+        id: 'controls',
+        title: 'Controls',
+        bullets: [
+          'Never put JWTs, cookies, API keys, payment data, or secret claims in prompts, memory, or state summaries.',
+          'Keep backend authorization and RBAC checks inside host-owned tools.',
+          'Use `needsApproval` for risky executable tools.',
+          'Use guarded tool execution for dynamic or third-party tools.',
+          'Redact sensitive tool output before UI, telemetry, audit, or cloud handoffs.',
+        ],
+        body: [],
+      },
+    ],
+  },
+  {
+    slug: 'migration-upgrades',
+    navLabel: 'Upgrades',
+    title: 'Migration and upgrades',
+    summary: 'How to move from raw configure calls to profile-owned sidecars and upgrade safely.',
+    sections: [
+      {
+        id: 'raw-to-profile',
+        title: 'Raw configure to profile',
+        body: [
+          'Move mission-specific prompts, required tools, synthesis rules, and safety intent into a Mission Profile. Keep executable tools app-owned and registered with `registerTools()`.',
+        ],
+      },
+      {
+        id: 'upgrade-gate',
+        title: 'Upgrade gate',
+        body: [
+          'Before accepting a core upgrade, run profile validation, focused outcome scenarios, and compare `synthesisFaithfulness`, `safety`, `workflowState`, and `answerQuality`.',
         ],
       },
     ],

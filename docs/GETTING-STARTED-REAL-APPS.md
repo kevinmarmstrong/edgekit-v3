@@ -37,6 +37,8 @@ Edgekit is built in three layers:
 
 ## Recommended Path (Fastest to High Quality)
 
+If you want the fastest guided path, start with [30-Minute Production Sidecar](./30-MINUTE-PRODUCTION-SIDECAR.md). It uses the concrete support-workflow starter and ends with outcome scenarios.
+
 ### Step 1: Choose Your First Mission (Be Specific)
 
 Do not start with "add an AI assistant to my app."
@@ -146,6 +148,8 @@ For a copyable scaffold, start from:
 
 - `docs/templates/mission-profile-starter/profile.ts`
 - `docs/templates/mission-profile-starter/harness-scenarios.json`
+
+That starter is intentionally concrete: support case search plus approval-gated ticket creation. Rename the mission and replace the tool `execute` functions with your app APIs rather than starting from an empty template.
 
 ---
 

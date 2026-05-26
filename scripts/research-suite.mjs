@@ -19,6 +19,8 @@ const siteURL = stripTrailingSlash(
 const ecommerceURL = stripTrailingSlash(process.env.EDGEKIT_SUITE_ECOMMERCE_URL ?? 'http://127.0.0.1:4173')
 const outputPath = resolve(repoRoot, process.env.EDGEKIT_SUITE_OUTPUT ?? 'research-results/agent-suite.json')
 const markdownPath = outputPath.replace(/\.json$/i, '.md')
+const providerMatrixPath = resolve(repoRoot, process.env.EDGEKIT_PROVIDER_MATRIX_OUTPUT ?? 'research-results/provider-matrix.json')
+const providerMatrixMarkdownPath = providerMatrixPath.replace(/\.json$/i, '.md')
 const screenshotDir = resolve(
   repoRoot,
   process.env.EDGEKIT_SUITE_SCREENSHOTS ??
@@ -84,10 +86,23 @@ try {
   await mkdir(screenshotDir, { recursive: true })
   await writeFile(outputPath, `${JSON.stringify(payload, null, 2)}\n`)
   await writeFile(markdownPath, renderMarkdown(payload))
+  const providerPayload = {
+    generatedAt: payload.generatedAt,
+    target,
+    siteURL,
+    ecommerceURL: payload.ecommerceURL,
+    browserMode: payload.browserMode,
+    requireRealProviders,
+    results: providerResults,
+  }
+  await writeFile(providerMatrixPath, `${JSON.stringify(providerPayload, null, 2)}\n`)
+  await writeFile(providerMatrixMarkdownPath, renderProviderMatrixMarkdown(providerPayload))
 
   console.log(JSON.stringify(payload.summary, null, 2))
   console.log(`Wrote ${outputPath}`)
   console.log(`Wrote ${markdownPath}`)
+  console.log(`Wrote ${providerMatrixPath}`)
+  console.log(`Wrote ${providerMatrixMarkdownPath}`)
   console.log(`Screenshots: ${screenshotDir}`)
 
   if (strict && !summary.meetsRubric) process.exitCode = 1
@@ -257,6 +272,7 @@ async function runSurface(page, surface, prompt, checks) {
   if (surface === 'dogfood-assistant-demos') return runDogfoodAssistant(page, prompt, checks)
   if (surface === 'field-ops-inventory-reservation') return runFieldOpsReservation(page, prompt, checks)
   if (surface === 'field-ops-dispatch-reject') return runFieldOpsDispatchReject(page, prompt, checks)
+  if (surface === 'field-ops-supervisor-eta') return runFieldOpsSupervisorEta(page, prompt, checks)
   if (surface === 'ag-ui-rich-components') return runAgUi(page, checks)
   if (surface === 'admin-approval-contract') return runAdminApproval(page, prompt, checks)
   if (surface === 'admin-reject-safety') return runAdminReject(page, prompt, checks)
@@ -474,6 +490,34 @@ async function runFieldOpsDispatchReject(page, prompt, checks) {
   return `${answer}\n\n${approval}\n\n${finalText}\n\nTechnician before: ${beforeTech}\nTechnician after: ${afterTech}\nAva status: ${avaStatus}`
 }
 
+async function runFieldOpsSupervisorEta(page, prompt, checks) {
+  await page.goto(withCacheBust(`${siteURL}/demos/operations/?opsAgentMode=scripted`), { waitUntil: 'networkidle' })
+  await page.locator('#ops-role').selectOption('supervisor')
+  const ops = page.locator('#operations')
+  const beforeEta = await page.getByTestId('ops-eta-WO-1842').innerText()
+  await sendPrompt(ops, prompt)
+  const messages = ops.getByTestId('chat-messages')
+  const answer = await waitForContains(messages, /Riverside Clinic|ETA|Supervisor approval/i)
+  await waitForContains(ops.getByTestId('approval-prompt'), 'updateEta')
+  const approval = await ops.getByTestId('approval-prompt').innerText()
+
+  addCheck(checks, 'answerQuality', 'ETA answer names customer', /Riverside Clinic/i.test(answer))
+  addCheck(checks, 'safety', 'ETA update requires supervisor approval', /updateEta/i.test(approval))
+  addCheck(checks, 'workflowState', 'ETA does not change before approval', /Not set/i.test(beforeEta))
+
+  await ops.getByTestId('approve-button').click()
+  await waitForContains(page.getByTestId('ops-eta-WO-1842'), '45 min')
+  await waitForContains(page.locator('#ops-activity'), 'Updated Riverside Clinic ETA to 45 min')
+  const afterEta = await page.getByTestId('ops-eta-WO-1842').innerText()
+  const activity = await page.locator('#ops-activity').innerText()
+  const finalText = await messages.innerText()
+
+  addCheck(checks, 'workflowState', 'approved ETA update changes app-owned work order state', /45 min/i.test(afterEta))
+  addCheck(checks, 'observability', 'dispatch log records ETA update', /Updated Riverside Clinic ETA to 45 min/i.test(activity))
+  addCheck(checks, 'synthesisFaithfulness', 'final answer confirms new ETA', /45 min/i.test(finalText))
+  return `${answer}\n\n${approval}\n\n${finalText}\n\nETA before: ${beforeEta}\nETA after: ${afterEta}\nActivity: ${activity}`
+}
+
 async function runProfileAdoptionGuidance(page, prompt, checks) {
   await page.goto(withCacheBust(`${siteURL}/demos/docs/`), { waitUntil: 'networkidle' })
   const assistant = page.locator('#site-assistant')
@@ -598,12 +642,16 @@ async function runAgentReadableDocs(page, checks) {
 }
 
 async function runProviderMatrix(browser) {
-  const modes = (process.env.EDGEKIT_SUITE_PROVIDER_MODES ?? 'chrome,webllm,cascade')
+  const modes = (process.env.EDGEKIT_SUITE_PROVIDER_MODES ?? 'chrome,webllm,cascade,none,scripted,cloud-route')
     .split(',')
     .map(mode => mode.trim())
     .filter(Boolean)
   const results = []
   for (const mode of modes) {
+    if (mode === 'cloud-route') {
+      results.push(await probeCloudRouteProvider())
+      continue
+    }
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
     const checks = []
     const startedAt = Date.now()
@@ -611,7 +659,10 @@ async function runProviderMatrix(browser) {
     let notes = ''
     let screenshot = ''
     try {
-      const url = `${ecommerceURL}/?modelMode=${encodeURIComponent(mode)}&downloadPolicy=${process.env.EDGEKIT_SUITE_DOWNLOAD_POLICY ?? 'never'}`
+      const scripted = mode === 'scripted'
+      const url = scripted
+        ? `${ecommerceURL}/?agentMode=scripted`
+        : `${ecommerceURL}/?modelMode=${encodeURIComponent(mode)}&downloadPolicy=${process.env.EDGEKIT_SUITE_DOWNLOAD_POLICY ?? 'never'}`
       await page.goto(url, { waitUntil: 'networkidle' })
       await sendPrompt(page, 'find me size nine white nike dunks')
       await waitForContains(page.getByTestId('chat-messages'), /Nike Dunk Low|Chrome AI|No model|Basic mode/i)
@@ -619,7 +670,7 @@ async function runProviderMatrix(browser) {
       const text = await page.getByTestId('chat-messages').innerText()
       transcript = `${status}\n\n${text}`
       addCheck(checks, 'resilience', `${mode} route resolves or degrades without crashing`, /Basic mode|Chrome AI is ready|No local model|ready|Running|Completed/i.test(status))
-      addCheck(checks, 'answerQuality', `${mode} route still gives a useful fallback answer`, /Nike Dunk Low|Chrome AI/i.test(text))
+      addCheck(checks, 'answerQuality', `${mode} route still gives a useful fallback answer`, /Nike Dunk Low|Chrome AI|Basic mode/i.test(text))
       addCheck(checks, 'transparency', `${mode} route exposes provider status`, status.trim().length > 0)
     } catch (error) {
       addCheck(checks, 'runtime', `${mode} provider matrix scenario completed`, false, readableError(error))
@@ -643,6 +694,35 @@ async function runProviderMatrix(browser) {
     }))
   }
   return results
+}
+
+async function probeCloudRouteProvider() {
+  const checks = []
+  const startedAt = Date.now()
+  const url = process.env.EDGEKIT_SUITE_CLOUD_ROUTE_URL
+  let transcript = ''
+  if (!url) {
+    addCheck(checks, 'transparency', 'cloud route is explicitly absent when not configured', true, 'EDGEKIT_SUITE_CLOUD_ROUTE_URL not set')
+    addCheck(checks, 'environment', 'cloud route is configured when real providers are required', !requireRealProviders, 'EDGEKIT_SUITE_CLOUD_ROUTE_URL not set')
+    transcript = 'No cloud route configured. This is acceptable unless EDGEKIT_REQUIRE_REAL_PROVIDERS=1.'
+  } else {
+    const reachable = await canFetch(url)
+    addCheck(checks, 'environment', 'configured cloud route is reachable', reachable, url)
+    transcript = `Cloud route ${url} reachable=${reachable}`
+  }
+  return makeResult({
+    id: 'provider:cloud-route',
+    suiteId: 'provider-matrix',
+    title: 'Provider matrix: cloud route',
+    layer: 'provider',
+    required: requireRealProviders,
+    prompt: '',
+    checks,
+    transcript,
+    screenshot: '',
+    notes: '',
+    durationMs: Date.now() - startedAt,
+  })
 }
 
 async function runArchitectureProbes() {
@@ -1121,6 +1201,39 @@ ${categories}
 ${rows}
 
 ${failures || 'No failed scenarios.'}
+`
+}
+
+function renderProviderMatrixMarkdown(payload) {
+  const rows = payload.results
+    .map(result => `| ${result.id} | ${result.outcome} | ${result.score} | ${result.required ? 'yes' : 'no'} | ${result.durationMs} |`)
+    .join('\n')
+  const details = payload.results
+    .map(result => {
+      const checks = result.checks
+        .map(check => `- ${check.passed ? 'PASS' : 'FAIL'} [${check.category}] ${check.label}${check.details ? `: ${check.details}` : ''}`)
+        .join('\n')
+      return `## ${result.id}\n\n${checks}\n\n\`\`\`text\n${String(result.transcript ?? '').slice(0, 1500)}\n\`\`\``
+    })
+    .join('\n\n')
+
+  return `# EdgeKit Provider Matrix
+
+Generated: ${payload.generatedAt}
+
+Target: ${payload.target}
+
+Site: ${payload.siteURL}
+
+Browser mode: ${JSON.stringify(payload.browserMode)}
+
+Require real providers: ${payload.requireRealProviders ? 'yes' : 'no'}
+
+| Provider | Outcome | Score | Required | Duration ms |
+| --- | --- | ---: | --- | ---: |
+${rows}
+
+${details}
 `
 }
 

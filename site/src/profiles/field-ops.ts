@@ -87,6 +87,36 @@ export const assignTechnicianSkill = createSkill({
   meta: { category: 'field-ops', version: '1.0.0' },
 })
 
+export const updateEtaSkill = createSkill({
+  id: 'update-eta',
+  name: 'Update ETA',
+  description: 'Update an ETA on a field-service work order after supervisor approval.',
+  instructions: [
+    'Only update ETA when the work order, ETA, and reason are specific.',
+    'Require approval before changing the ETA.',
+    'Confirm the customer, work order, new ETA, and reason after execution.',
+  ].join(' '),
+  activationExamples: [
+    'update Riverside ETA to 45 minutes because traffic delayed dispatch',
+    'set WO-1842 ETA to 1 hour after supervisor approval',
+  ],
+  doNotActivateWhen: [
+    'The user only asks for current ETA.',
+    'The user is not in a supervisor workflow.',
+  ],
+  requiredTools: ['updateEta'],
+  policy: { needsApproval: true, riskLevel: 'medium', approvalMessage: 'Update this work-order ETA?' },
+  synthesis: { requiredFacts: ['work order', 'ETA', 'reason'], preferredStyle: 'explicit' },
+  uiAffordances: { preferActionCards: true, suggestedFields: ['eta', 'reason'] },
+  protectedSections: ['policy', 'instructions.safety'],
+  optimization: {
+    slowStatePaths: ['policy', 'instructions.safety'],
+    fastStatePaths: ['description', 'instructions', 'activationExamples', 'synthesis'],
+    maxPatchOperations: 8,
+  },
+  meta: { category: 'field-ops', version: '1.0.0' },
+})
+
 export const fieldOpsProfile = createMissionProfile({
   id: 'field-ops-dispatch-v1',
   mission: 'field-service-erp-dispatch',
@@ -96,7 +126,7 @@ Always search work orders before recommending inventory reservations or technici
 After tool results, restate customer, priority, SLA, part requirement, current status, and technician or inventory impact.
 Do not mutate inventory or assignments without a visible user action or approval.
 Keep the ERP system authoritative for stock counts, technician availability, work-order state, and audit events.`,
-  requiredTools: ['searchWorkOrders', 'reserveInventory', 'assignTechnician'],
+  requiredTools: ['searchWorkOrders', 'reserveInventory', 'assignTechnician', 'updateEta'],
   defaults: { downloadPolicy: 'never', toolChoice: 'required' },
   synthesis: {
     requiredAttributes: ['customer', 'priority', 'SLA', 'part', 'status', 'approval boundary'],

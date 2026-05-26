@@ -32,7 +32,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "scripts": {
     "build": "vite build && tsc -p tsconfig.build.json",
@@ -40,7 +41,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@kevinmarmstrong/edgekit": "workspace:*",
+    "@kevinmarmstrong/edgekit": "workspace:^",
     "lit": "^3.3.3"
   }
 }

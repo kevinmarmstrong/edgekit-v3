@@ -174,6 +174,14 @@ function operationsDemo() {
         <p>
           Work orders, inventory, technician availability, and approval-gated actions in one app-owned surface.
         </p>
+        <label class="role-picker">
+          Role
+          <select id="ops-role" aria-label="Field ops role">
+            <option value="dispatcher">Dispatcher</option>
+            <option value="viewer">Viewer</option>
+            <option value="supervisor">Supervisor</option>
+          </select>
+        </label>
       </div>
       <div class="ops-layout">
         <section class="ops-board" aria-label="Field service work orders">
@@ -198,6 +206,11 @@ function operationsDemo() {
           </div>
         </section>
         <aside class="ops-agent">
+          ${productionNotes([
+            'Bind role-specific tools to the signed-in dispatcher or supervisor.',
+            'Keep inventory, dispatch, and ETA mutations behind approval plus backend authorization.',
+            'Forward telemetry and audit events to the ERP system of record in production.',
+          ])}
           <edge-chat
             id="ops-chat"
             system-prompt="You are a field-service ERP assistant. Search work orders before recommending inventory reservation or technician assignment. Ask for approval before changing inventory or dispatch state."

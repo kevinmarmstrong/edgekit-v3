@@ -43,6 +43,19 @@ export function composeEdgekitAnswer({ input, results, mode = 'docs-demo', curre
       .join('\n')
   }
 
+  if (intent === 'starter-path') {
+    return [
+      'Use the concrete support-workflow starter, not a blank prompt.',
+      '',
+      'Copy `docs/templates/mission-profile-starter/profile.ts`, keep the two Skills (`support-case-search` and `create-support-ticket`), keep the `support-workflow-v1` Mission Profile, replace the sample tool `execute` bodies with your app APIs, and mount it behind `<edge-chat>`.',
+      '',
+      'Then validate with `validateMissionProfile(profile, { registeredTools })` and run the starter outcome scenarios from `docs/templates/mission-profile-starter/harness-scenarios.json`. Passing means the read prompt surfaces case facts, ticket creation requires approval, rejection preserves state, and no tool chatter leaks to the user.',
+      sourceNote,
+    ]
+      .filter(Boolean)
+      .join('\n')
+  }
+
   if (intent === 'chatbot-difference') {
     return [
       'EdgeKit is different from embedding a chatbot because it is an in-app agent sidecar wired to app-owned tools and workflow UI.',
@@ -116,6 +129,7 @@ export function composeEdgekitAnswer({ input, results, mode = 'docs-demo', curre
 export function detectAnswerIntent(input: string) {
   const normalized = input.toLowerCase()
   if (/\b(jwt|cookie|token|database|db|credential|secret)\b/.test(normalized)) return 'unsafe-secrets-or-database'
+  if (/\b(starter|template|30.minute|thirty.minute|new mission|first sidecar|support workflow)\b/.test(normalized)) return 'starter-path'
   if (/\b(skillopt|skill opt|optimi[sz]e|optimization|held[- ]out|bounded edit|per[- ]skill|protected section|protected sections|trainable|gradient|optimizer)\b/.test(normalized) ||
     (/\bskill\b/.test(normalized) && /\b(candidate|edit|edits|patch|protected|tie|ties|harmless|validation)\b/.test(normalized))) {
     return 'skill-optimization'

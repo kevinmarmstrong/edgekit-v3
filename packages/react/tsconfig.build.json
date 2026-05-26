@@ -3,7 +3,12 @@
   "compilerOptions": {
     "declaration": true,
     "emitDeclarationOnly": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "rootDir": "src",
+    "paths": {
+      "@kevinmarmstrong/edgekit": ["../core/dist/index.d.ts"],
+      "@kevinmarmstrong/edgekit-ui": ["../ui/dist/index.d.ts"]
+    }
   },
   "include": ["src"]
 }

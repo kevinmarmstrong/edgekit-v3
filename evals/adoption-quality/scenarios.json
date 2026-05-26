@@ -105,6 +105,22 @@
       "forbidden": [
         { "category": "directness", "label": "does not answer with demo list", "pattern": "Ecommerce retrofit[\\s\\S]+Mission control" }
       ]
+    },
+    {
+      "id": "starter-new-mission",
+      "surface": "site-assistant",
+      "prompt": "what starter should my coding agent use to create a new production-grade mission?",
+      "required": [
+        { "category": "integration", "label": "points to concrete starter profile", "pattern": "docs/templates/mission-profile-starter/profile\\.ts|support-workflow" },
+        { "category": "integration", "label": "mentions Skills and Mission Profile", "pattern": "Skills?[\\s\\S]{0,160}Mission Profile|Mission Profile[\\s\\S]{0,160}Skills?" },
+        { "category": "architecture", "label": "says to replace tool executes with app APIs", "pattern": "replace[\\s\\S]{0,120}(execute|app APIs|app-owned)" },
+        { "category": "testing", "label": "names validation", "pattern": "validateMissionProfile" },
+        { "category": "testing", "label": "names outcome scenarios", "pattern": "harness-scenarios\\.json|outcome scenarios" },
+        { "category": "safety", "label": "keeps ticket creation approval gated", "pattern": "approval|rejection preserves state" }
+      ],
+      "forbidden": [
+        { "category": "directness", "label": "does not tell adopter to start from a blank template", "pattern": "blank template|empty template" }
+      ]
     }
   ]
 }

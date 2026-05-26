@@ -120,6 +120,28 @@ describe('mission profile helpers', () => {
     expect(result.errors).toEqual([])
   })
 
+  it('warns that synthesis policy and UI hints are authoring contracts', () => {
+    const profile = createMissionProfile({
+      id: 'support-v1',
+      mission: 'support-workflow',
+      version: '1.0.0',
+      systemPrompt: 'Search cases before creating tickets.',
+      requiredTools: ['searchCases', 'createTicket'],
+      synthesis: { requiredAttributes: ['caseId', 'priority'], style: 'explicit' },
+      policy: { needsApproval: true, riskLevel: 'medium' },
+      uiAffordances: { preferActionCards: true, suggestedFields: ['priority'] },
+    })
+
+    const result = validateMissionProfile(profile, { registeredTools: ['searchCases', 'createTicket'] })
+
+    expect(result.ok).toBe(true)
+    expect(result.warnings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'synthesis-authoring-contract' }),
+      expect.objectContaining({ code: 'policy-authoring-contract' }),
+      expect.objectContaining({ code: 'ui-affordance-authoring-contract' }),
+    ]))
+  })
+
   it('rejects required tool choice with no executable or required tools', () => {
     const profile = createMissionProfile({
       id: 'docs-v1',

@@ -22,6 +22,7 @@ export default defineConfig({
         'demo-mission-control': resolve(__dirname, 'demos/mission-control/index.html'),
         docs: resolve(__dirname, 'docs/index.html'),
         'docs-getting-started': resolve(__dirname, 'docs/getting-started/index.html'),
+        'docs-30-minute-sidecar': resolve(__dirname, 'docs/30-minute-sidecar/index.html'),
         'docs-concepts': resolve(__dirname, 'docs/concepts/index.html'),
         'docs-api': resolve(__dirname, 'docs/api/index.html'),
         'docs-advanced': resolve(__dirname, 'docs/advanced/index.html'),
@@ -30,6 +31,11 @@ export default defineConfig({
         'docs-mission-profiles': resolve(__dirname, 'docs/mission-profiles/index.html'),
         'docs-skill-optimization': resolve(__dirname, 'docs/skill-optimization/index.html'),
         'docs-production': resolve(__dirname, 'docs/production/index.html'),
+        'docs-runtime-guarantees': resolve(__dirname, 'docs/runtime-guarantees/index.html'),
+        'docs-distribution-readiness': resolve(__dirname, 'docs/distribution-readiness/index.html'),
+        'docs-production-recipes': resolve(__dirname, 'docs/production-recipes/index.html'),
+        'docs-security-threat-model': resolve(__dirname, 'docs/security-threat-model/index.html'),
+        'docs-migration-upgrades': resolve(__dirname, 'docs/migration-upgrades/index.html'),
         'docs-outcome-quality': resolve(__dirname, 'docs/outcome-quality/index.html'),
         'docs-adopter-simulation': resolve(__dirname, 'docs/adopter-simulation/index.html'),
         'docs-cli': resolve(__dirname, 'docs/cli/index.html'),
@@ -75,6 +81,7 @@ ${links}
 ## Public demos
 
 - [Ecommerce retrofit](/demos/ecommerce/)
+- [Field ops ERP](/demos/operations/)
 - [Docs Q&A](/demos/docs/)
 - [AG-UI event stream](/demos/ag-ui/)
 - [SaaS admin workflow](/demos/admin/)

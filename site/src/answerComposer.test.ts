@@ -46,4 +46,18 @@ describe('composeEdgekitAnswer', () => {
     expect(answer).toMatch(/approval|needsApproval|gated mutation/i)
     expect(answer).toMatch(/host app|app-owned/i)
   })
+
+  it('points new mission adopters to the concrete starter and outcome scenarios', () => {
+    const answer = composeEdgekitAnswer({
+      input: 'what starter should my coding agent use for the first sidecar?',
+      results: searchDocs('starter mission profile outcome scenarios'),
+      mode: 'site-assistant',
+    })
+
+    expect(answer).toContain('docs/templates/mission-profile-starter/profile.ts')
+    expect(answer).toMatch(/support-workflow-v1|support-workflow/i)
+    expect(answer).toMatch(/validateMissionProfile/i)
+    expect(answer).toMatch(/harness-scenarios\.json|outcome scenarios/i)
+    expect(answer).toMatch(/approval|rejection preserves state/i)
+  })
 })

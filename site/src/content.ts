@@ -321,6 +321,48 @@ export const docChunks: DocChunk[] = [
     body:
       'Each public demo has its own route: ecommerce retrofit, docs Q&A, AG-UI event stream, SaaS admin workflow, and mission control telemetry. The homepage now links to dedicated workflow pages instead of burying every agent surface on one long page.',
   },
+  {
+    slug: 'runtime-guarantees',
+    title: 'Runtime Guarantees',
+    tags: ['guarantees', 'runtime', 'authoring contract', 'validation', 'safety'],
+    body:
+      'Runtime guarantees separate enforced behavior from authoring contracts. requiredTools, safe profile application, registered executable tools, needsApproval, telemetry, audit primitives, and validation have runtime behavior. synthesis, mission-level policy, uiAffordances, and optimization metadata are authoring and harness contracts today.',
+  },
+  {
+    slug: '30-minute-sidecar',
+    title: '30-Minute Production Sidecar',
+    tags: ['starter', '30 minute', 'onboarding', 'mission profile', 'support workflow'],
+    body:
+      'The fastest adoption path is to copy the concrete support workflow starter, replace tool execute bodies with app APIs, mount edge-chat, apply the Mission Profile, register tools, validate with validateMissionProfile, and run harness-scenarios.json outcome checks.',
+  },
+  {
+    slug: 'distribution-readiness',
+    title: 'Distribution Readiness',
+    tags: ['packages', 'publish', 'fresh app', 'npm pack', 'release'],
+    body:
+      'Distribution readiness proves Edgekit works outside the monorepo. Use package smoke checks, packed tarballs, a fresh app fixture, package READMEs, versioning policy, GitHub Pages rebuilds, and post-publish smoke before public release claims.',
+  },
+  {
+    slug: 'production-recipes',
+    title: 'Production Recipes',
+    tags: ['production', 'telemetry', 'audit', 'rbac', 'state', 'cloud'],
+    body:
+      'Production recipes cover telemetry, audit persistence, RBAC and session bridging, state hydration, and local-vs-cloud escalation. Keep public identity and state summaries in context, but keep JWTs, cookies, and secret claims out of prompts.',
+  },
+  {
+    slug: 'security-threat-model',
+    title: 'Security Threat Model',
+    tags: ['security', 'threat model', 'jwt', 'secrets', 'authorization'],
+    body:
+      'The host app owns identity, authorization, database writes, payments, inventory, and regulated records. Edgekit owns the event stream, provider routing hooks, approval protocol, UI primitives, telemetry and audit contracts, and validation helpers.',
+  },
+  {
+    slug: 'migration-upgrades',
+    title: 'Migration and Upgrades',
+    tags: ['migration', 'upgrade', 'profile', 'compatibility'],
+    body:
+      'Migration moves mission-specific prompts, required tools, synthesis rules, and safety intent into Mission Profiles while executable tools stay app-owned. Upgrade gates compare validation and outcome scores before accepting core changes.',
+  },
 ]
 
 export function searchDocs(query: string) {

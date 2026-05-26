@@ -9,6 +9,10 @@ Release candidate scaffold. The Phase 0 spike is validated, the core package, do
 **Important**: For production use, we strongly recommend the **Skills + Mission Profiles** pattern over raw `configure()` + tools. See:
 - [WORLD-CLASS-DEFINITION.md](./WORLD-CLASS-DEFINITION.md) — What "ready for real production use" means for both elite developers and agent-assisted teams.
 - [docs/GETTING-STARTED-REAL-APPS.md](./docs/GETTING-STARTED-REAL-APPS.md) — The recommended path to shipping a high-quality, localized sidecar with excellent outcome quality.
+- [docs/30-MINUTE-PRODUCTION-SIDECAR.md](./docs/30-MINUTE-PRODUCTION-SIDECAR.md) — The fastest guided path from starter profile to tested sidecar.
+- [docs/RUNTIME-GUARANTEES.md](./docs/RUNTIME-GUARANTEES.md) — What Edgekit enforces at runtime vs. what is an authoring/harness contract.
+- [docs/DISTRIBUTION-READINESS.md](./docs/DISTRIBUTION-READINESS.md) — Package, fresh-app, and public release readiness.
+- [docs/PRODUCTION-RECIPES.md](./docs/PRODUCTION-RECIPES.md) — Telemetry, audit, RBAC, state, and escalation recipes.
 - [docs/SKILL-OPTIMIZATION.md](./docs/SKILL-OPTIMIZATION.md) — SkillOpt-inspired guidance for improving Skills through bounded patches, held-out validation, protected slow-state sections, and per-skill scoring.
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — The three-layer model (Primitives → Skills → Profiles) that enables safe, rapid evolution.
 - [LOOP-STATUS.md](./LOOP-STATUS.md) — Live status of the current world-class iteration loop (what we're actively working on right now).

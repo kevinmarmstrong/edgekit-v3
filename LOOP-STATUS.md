@@ -1,6 +1,6 @@
 # Edgekit World-Class Loop — Live Status
 
-**Last Updated:** 2026-05-26 22:03:02 UTC
+**Last Updated:** 2026-05-26 22:06:59 UTC
 
 **This is the single source of truth for the current loop state.**
 
@@ -605,3 +605,19 @@ Progress on this wave will be recorded in small, timestamped steps in this file.
 **Current caveat:**
 
 - Hosted cloud-route proof still requires a real external `EDGEKIT_SUITE_CLOUD_ROUTE_URL`. The local suite proves routing shape and fallback behavior; it should not be represented as hosted-provider proof.
+
+---
+
+## Latest Update — 2026-05-26 22:06:59 UTC
+
+**Public GitHub Pages deployment and live proof:**
+
+- Pushed commit `00d778a` (`Strengthen adoption proof and provider demos`) to `kevinmarmstrong/edgekit` `main`.
+- GitHub Actions Pages run `26477787339` completed successfully: build job passed and deploy job passed.
+- Live Markdown smoke confirmed `https://kevinmarmstrong.github.io/edgekit/docs/adopter-simulation.md` includes the new evidence-level language (`first-serious-run`, `production-shaped`).
+- Live `llms-full.txt` is 48,597 bytes, still under the 50K target.
+- `EDGEKIT_SUITE_TARGET=live EDGEKIT_SUITE_PROVIDER_MODES=none pnpm research:suite`: 71 total, 64 passed, 7 non-required skips, 0 failed, required failures/skips 0, average score 1.0, confidence rating 1.0, confidence band `high-confidence`.
+
+**Status:**
+
+- The current public Pages site is deployed and fully tested against the live-static-host lane. Strict local Chrome/Nano proof is also green locally through CDP. Hosted cloud-route proof remains intentionally separate and requires a real external route URL.

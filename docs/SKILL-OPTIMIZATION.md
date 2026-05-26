@@ -80,6 +80,30 @@ const report = summarizeSkillOptimizationScores([
 
 Report per-skill deltas in optimizer output and release notes. This helps developers see whether a change improved the target Skill or simply averaged out across the suite.
 
+## Live GitHub Pages Optimization Loop
+
+Use GitHub Pages as the held-out public surface when tuning documentation-facing Skills:
+
+```bash
+EDGEKIT_SUITE_TARGET=live EDGEKIT_CHROME_CDP_URL=http://127.0.0.1:9223 EDGEKIT_SUITE_HEADLESS=0 EDGEKIT_SUITE_OUTPUT=research-results/skill-optimization/live-before.json pnpm research:suite
+
+EDGEKIT_SKILL_RESULT=research-results/skill-optimization/live-before.json pnpm optimize:skills
+```
+
+After a bounded Skill/Profile edit, run the candidate suite locally and then against GitHub Pages after deploy:
+
+```bash
+EDGEKIT_SKILL_BASELINE=research-results/skill-optimization/live-before.json EDGEKIT_SKILL_RESULT=research-results/agent-suite.json pnpm optimize:skills
+
+git push edgekit HEAD:main
+gh run watch <run-id> --repo kevinmarmstrong/edgekit --exit-status
+
+EDGEKIT_SUITE_TARGET=live EDGEKIT_CHROME_CDP_URL=http://127.0.0.1:9223 EDGEKIT_SUITE_HEADLESS=0 pnpm research:suite
+EDGEKIT_SKILL_BASELINE=research-results/skill-optimization/live-before.json pnpm optimize:skills
+```
+
+The mapping in `evals/skill-optimization/skill-map.json` connects suite IDs to Skill IDs. The candidate gate in `evals/skill-optimization/candidates.json` describes the bounded patch, protected paths, and the before/after suite slices used for strict validation.
+
 ## Recommended Loop
 
 1. Split prompts into train, selection, and held-back test sets.

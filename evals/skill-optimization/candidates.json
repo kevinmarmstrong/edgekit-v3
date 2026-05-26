@@ -1,0 +1,57 @@
+{
+  "version": "edgekit.skill-optimization-candidates.v1",
+  "description": "Bounded SkillOpt-style candidates accepted only after held-out live-suite improvement. Scores are filled by scripts/skill-optimization-report.mjs from live result files.",
+  "candidates": [
+    {
+      "skillId": "search-docs",
+      "baselineSuiteIds": ["docs-token-cost", "docs-agentic-workflows", "docs-skill-optimization", "profile-adoption-guidance"],
+      "candidateSuiteIds": ["docs-token-cost", "docs-agentic-workflows", "docs-skill-optimization", "profile-adoption-guidance"],
+      "protectedPaths": ["policy", "instructions.safety", "systemPrompt.safety"],
+      "patch": [
+        {
+          "op": "add",
+          "path": "instructions",
+          "reason": "Make activated behavior explicit for implementation, safety, testing, and SkillOpt questions instead of falling back to generic docs snippets."
+        },
+        {
+          "op": "add",
+          "path": "activationExamples",
+          "reason": "Teach routers that cost, security, agentic workflow, and optimization questions belong to docs search."
+        },
+        {
+          "op": "add",
+          "path": "doNotActivateWhen",
+          "reason": "Prevent docs search from taking over catalog or admin execution work."
+        },
+        {
+          "op": "add",
+          "path": "optimization",
+          "reason": "Bind the Skill to bounded patch budgets and fast/slow optimization state."
+        }
+      ]
+    },
+    {
+      "skillId": "product-search",
+      "baselineSuiteIds": ["ecommerce-dunk-facts", "ecommerce-running-under-100", "public-ecommerce-action-card"],
+      "candidateSuiteIds": ["ecommerce-dunk-facts", "ecommerce-running-under-100", "public-ecommerce-action-card"],
+      "protectedPaths": ["policy", "instructions.safety"],
+      "patch": [
+        {
+          "op": "add",
+          "path": "instructions",
+          "reason": "Preserve price, size, color, stock, and no-mutation facts in the final visible answer and action cards."
+        },
+        {
+          "op": "add",
+          "path": "activationExamples",
+          "reason": "Cover natural catalog phrasing beyond exact product names."
+        },
+        {
+          "op": "add",
+          "path": "doNotActivateWhen",
+          "reason": "Keep catalog search out of docs and admin workflows."
+        }
+      ]
+    }
+  ]
+}

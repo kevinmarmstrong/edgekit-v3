@@ -26,7 +26,25 @@ import { createMissionProfile, createSkill } from '@kevinmarmstrong/edgekit'
 export const searchDocsSkill = createSkill({
   id: 'search-docs',
   name: 'Search Edgekit Documentation',
-  description: 'Search the project documentation and return the most relevant sections for a given question.',
+  description: 'Search Edgekit docs for integration, local-first economics, security boundaries, testing, agentic workflows, and Skill optimization questions.',
+  instructions: [
+    'Search documentation before answering project questions, then synthesize the answer instead of dumping snippets.',
+    'When asked how to build with Edgekit, name Skills, Mission Profiles, <edge-chat> or framework wrappers, registerTools, approvals, and the outcome harness.',
+    'When asked about value, explain local-first economics, privacy, latency, browser models, and explicit cloud fallback without framing Edgekit as a SaaS subscription sale.',
+    'When asked about Skill optimization, describe live transcript data, per-skill scoring, bounded patches, held-out validation, ties rejected, protected slow-state sections, and redeploy testing.',
+  ].join(' '),
+  activationExamples: [
+    'how will this help me add an agent to my app?',
+    'is Edgekit just search or RAG?',
+    'how do I optimize Skills after testing GitHub Pages?',
+    'should JWTs or database credentials go into the prompt?',
+    'what problem does Edgekit solve for token costs?',
+  ],
+  doNotActivateWhen: [
+    'The user is asking to search a product catalog or add a product to cart.',
+    'The user is asking to mutate an admin account.',
+    'The user is asking for a generic UI form unrelated to Edgekit docs.',
+  ],
   requiredTools: ['searchDocs'],
   examples: [
     { input: { query: 'what problem does edgekit solve for token costs?' } },
@@ -36,7 +54,13 @@ export const searchDocsSkill = createSkill({
     requiredFacts: ['relevant sections', 'key concepts'],
     preferredStyle: 'explicit',
   },
-  meta: { category: 'documentation', version: '1.0.0' },
+  protectedSections: ['policy', 'instructions.safety', 'systemPrompt.safety'],
+  optimization: {
+    slowStatePaths: ['policy', 'instructions.safety', 'systemPrompt.safety'],
+    fastStatePaths: ['description', 'instructions', 'activationExamples', 'doNotActivateWhen', 'synthesis'],
+    maxPatchOperations: 8,
+  },
+  meta: { category: 'documentation', version: '1.1.0' },
 })
 
 export const docsQaProfile = createMissionProfile({

@@ -83,10 +83,8 @@ ${links}
 
 - [GitHub](https://github.com/kevinmarmstrong/edgekit)
 `
-      const full = `# edgekit documentation export
+      const full = boundedFullExport(markdownPages)
 
-${markdownPages.map(({ markdown }) => markdown).join('\n\n---\n\n')}
-`
       this.emitFile({ type: 'asset', fileName: 'llms.txt', source: llms })
       this.emitFile({ type: 'asset', fileName: 'llms-full.txt', source: full })
       for (const { page, markdown } of markdownPages) {
@@ -96,6 +94,26 @@ ${markdownPages.map(({ markdown }) => markdown).join('\n\n---\n\n')}
       }
     },
   }
+}
+
+function boundedFullExport(markdownPages: Array<{ markdown: string }>) {
+  const maxChars = 49_000
+  const header = '# edgekit documentation export\n\n'
+  const note = '\n\n---\n\nExport truncated to keep llms-full.txt below the 50K-character agent-ingestion budget. Use the individual /docs/*.md endpoints for complete page-level context.\n'
+  let full = header
+  for (const { markdown } of markdownPages) {
+    const addition = `${full === header ? '' : '\n\n---\n\n'}${markdown}`
+    if ((full + addition).length + note.length > maxChars) {
+      const remaining = maxChars - full.length - note.length
+      if (remaining > 500) {
+        full += `${full === header ? '' : '\n\n---\n\n'}${markdown.slice(0, remaining).replace(/\n[^\n]*$/, '')}`
+      }
+      full += note
+      return full
+    }
+    full += addition
+  }
+  return full
 }
 
 function pageToMarkdown(page: (typeof docsPages)[number]) {

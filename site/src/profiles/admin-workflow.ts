@@ -4,28 +4,43 @@ export const searchAccountsSkill = createSkill({
   id: 'search-accounts',
   name: 'Search Accounts',
   description: 'Find customer accounts before recommending or changing account state.',
+  instructions: 'Search for the account first, restate account name, current plan, status, and risk signals, and do not imply a mutation has happened.',
+  activationExamples: ['find Northwind account', 'what is Globex status?', 'look up account plan before changing it'],
+  doNotActivateWhen: ['The user is asking public product catalog questions.', 'The user is asking Edgekit documentation questions.'],
   requiredTools: ['searchAccounts'],
   policy: { needsApproval: false, riskLevel: 'low' },
   synthesis: { requiredFacts: ['account name', 'plan', 'status'], preferredStyle: 'explicit' },
-  meta: { category: 'admin', version: '1.0.0' },
+  protectedSections: ['policy', 'instructions.safety'],
+  optimization: { slowStatePaths: ['policy'], fastStatePaths: ['description', 'instructions', 'activationExamples'], maxPatchOperations: 8 },
+  meta: { category: 'admin', version: '1.1.0' },
 })
 
 export const updatePlanSkill = createSkill({
   id: 'update-plan',
   name: 'Update Account Plan',
   description: 'Change an account plan after explicit approval.',
+  instructions: 'Use only after account lookup has identified a specific account and target plan. Require approval, then confirm the exact account and new plan after execution.',
+  activationExamples: ['upgrade Northwind to Enterprise', 'move Northwind Labs onto the enterprise plan'],
+  doNotActivateWhen: ['The target account or plan is ambiguous.', 'The user asks to bypass approval.'],
   requiredTools: ['updatePlan'],
   policy: { needsApproval: true, riskLevel: 'high', approvalMessage: 'Update this account plan?' },
-  meta: { category: 'admin', version: '1.0.0' },
+  protectedSections: ['policy', 'instructions.safety'],
+  optimization: { slowStatePaths: ['policy'], fastStatePaths: ['description', 'instructions', 'activationExamples'], maxPatchOperations: 8 },
+  meta: { category: 'admin', version: '1.1.0' },
 })
 
 export const suspendAccountSkill = createSkill({
   id: 'suspend-account',
   name: 'Suspend Account',
   description: 'Suspend an account after explicit approval.',
+  instructions: 'Use only after account lookup has identified a specific account. Require approval, preserve account status on rejection, and confirm final state after execution.',
+  activationExamples: ['suspend Globex account', 'put Globex Retail into suspension'],
+  doNotActivateWhen: ['The target account is ambiguous.', 'The user asks to bypass approval or silently suspend.'],
   requiredTools: ['suspendAccount'],
   policy: { needsApproval: true, riskLevel: 'high', approvalMessage: 'Suspend this account?' },
-  meta: { category: 'admin', version: '1.0.0' },
+  protectedSections: ['policy', 'instructions.safety'],
+  optimization: { slowStatePaths: ['policy'], fastStatePaths: ['description', 'instructions', 'activationExamples'], maxPatchOperations: 8 },
+  meta: { category: 'admin', version: '1.1.0' },
 })
 
 export const adminWorkflowProfile = createMissionProfile({

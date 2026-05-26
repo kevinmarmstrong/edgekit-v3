@@ -65,6 +65,28 @@
       ]
     },
     {
+      "id": "docs-agentic-workflows",
+      "surface": "docs-agentic-workflows",
+      "required": true,
+      "prompts": [
+        "is edgekit just fallback search or RAG?",
+        "how does this help me add an agent that can act inside my app?",
+        "what owns state when the agent fills forms or calls tools?",
+        "how should I keep JWTs, cookies, and database access out of the model prompt?"
+      ]
+    },
+    {
+      "id": "docs-skill-optimization",
+      "surface": "docs-skill-optimization",
+      "required": true,
+      "prompts": [
+        "how do I use the testing data to optimize my EdgeKit Skills?",
+        "what does held-out validation mean for Skill optimization?",
+        "why reject ties when a candidate skill edit looks harmless?",
+        "what parts of a Skill should be protected from optimizer edits?"
+      ]
+    },
+    {
       "id": "dogfood-demo-discovery",
       "surface": "dogfood-assistant-demos",
       "required": true,

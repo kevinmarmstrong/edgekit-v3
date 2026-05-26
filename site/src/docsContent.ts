@@ -1096,6 +1096,21 @@ if (!validation.ok) {
         },
       },
       {
+        id: 'live-pages-loop',
+        title: 'Live GitHub Pages loop',
+        body: [
+          'Use the deployed GitHub Pages site as a held-out public surface when tuning documentation-facing Skills.',
+          'The optimizer report maps suite IDs to Skills, calculates per-skill scores from live transcripts, and validates bounded candidates against protected paths.',
+        ],
+        code: {
+          language: 'bash',
+          text: `EDGEKIT_SUITE_TARGET=live EDGEKIT_CHROME_CDP_URL=http://127.0.0.1:9223 EDGEKIT_SUITE_HEADLESS=0 EDGEKIT_SUITE_OUTPUT=research-results/skill-optimization/live-before.json pnpm research:suite
+EDGEKIT_SKILL_RESULT=research-results/skill-optimization/live-before.json pnpm optimize:skills
+
+EDGEKIT_SKILL_BASELINE=research-results/skill-optimization/live-before.json EDGEKIT_SKILL_RESULT=research-results/agent-suite.json pnpm optimize:skills`,
+        },
+      },
+      {
         id: 'recommended-loop',
         title: 'Recommended loop',
         body: ['Run optimization as a development or CI loop, not as inference-time behavior.'],

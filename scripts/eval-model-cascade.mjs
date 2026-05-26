@@ -37,6 +37,7 @@ const scenarios = [
     prompt: 'find me size nine white nike dunks and put in cart',
     expectAny: ['approval', 'Approve', 'addToCart', 'cart'],
     expectApproval: true,
+    acceptActionGate: true,
     rejectAny: [/error in the previous tool call/i, /trouble with .*parameters/i, /not accepting null/i],
   },
 ]
@@ -105,6 +106,8 @@ async function runScenario(browser, mode, scenario) {
     outcome: 'unknown',
     sawToolCall: false,
     sawApprovalPrompt: false,
+    sawActionGate: false,
+    cartMutatedWithoutGate: false,
     matchedExpected: false,
     unexpectedText: false,
     messageSample: '',
@@ -122,21 +125,27 @@ async function runScenario(browser, mode, scenario) {
     const status = observed.status
     const messages = observed.messages
     const approvalCount = await page.getByTestId('approval-prompt').count()
+    const actionGateCount = await page.getByTestId('action-card').filter({ hasText: /Add Nike Dunk Low to cart/i }).count().catch(() => 0)
+    const cart = await page.locator('#cart-state').innerText().catch(() => '')
 
     report.status = status
     report.sawToolCall = messages.includes('Tool:')
     report.sawApprovalPrompt = approvalCount > 0
+    report.sawActionGate = actionGateCount > 0
+    report.cartMutatedWithoutGate = /1x Nike Dunk Low/i.test(cart) && approvalCount === 0 && actionGateCount === 0
     report.matchedExpected = scenario.expectAny.some(text => messages.includes(text))
     report.unexpectedText = scenario.expectNo?.some(text => messages.includes(text)) ?? false
     report.approvalMatchesExpected = typeof scenario.expectApproval === 'boolean'
-      ? report.sawApprovalPrompt === scenario.expectApproval
+      ? scenario.acceptActionGate
+        ? (report.sawApprovalPrompt || report.sawActionGate) === scenario.expectApproval
+        : report.sawApprovalPrompt === scenario.expectApproval
       : true
     report.rejectedTranscript = scenario.rejectAny?.some(pattern => pattern.test(messages)) ?? false
     report.messageSample = messages.slice(-500)
 
     if (/Basic mode|No local model|unavailable/i.test(status)) {
       report.outcome = 'model-unavailable'
-    } else if (report.matchedExpected && report.approvalMatchesExpected && !report.unexpectedText && !report.rejectedTranscript) {
+    } else if (report.matchedExpected && report.approvalMatchesExpected && !report.cartMutatedWithoutGate && !report.unexpectedText && !report.rejectedTranscript) {
       report.outcome = 'passed'
     } else {
       report.outcome = 'failed'
@@ -160,10 +169,14 @@ async function waitForScenarioOutcome(page, scenario, timeout = 18_000) {
       messages: await page.getByTestId('chat-messages').innerText().catch(() => ''),
     }
     const approvalCount = await page.getByTestId('approval-prompt').count().catch(() => 0)
+    const actionGateCount = await page.getByTestId('action-card').filter({ hasText: /Add Nike Dunk Low to cart/i }).count().catch(() => 0)
     const matchedExpected = scenario.expectAny.some(text => latest.messages.includes(text))
     const rejectedTranscript = scenario.rejectAny?.some(pattern => pattern.test(latest.messages)) ?? false
     const unavailable = /Basic mode|No local model|unavailable/i.test(latest.status)
-    const approvalResolved = typeof scenario.expectApproval !== 'boolean' || approvalCount > 0 === scenario.expectApproval
+    const approvalResolved = typeof scenario.expectApproval !== 'boolean' ||
+      (scenario.acceptActionGate
+        ? (approvalCount > 0 || actionGateCount > 0) === scenario.expectApproval
+        : approvalCount > 0 === scenario.expectApproval)
     if (unavailable || rejectedTranscript || (matchedExpected && approvalResolved)) return latest
     await new Promise(resolve => setTimeout(resolve, 300))
   }

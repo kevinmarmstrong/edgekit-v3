@@ -71,6 +71,21 @@ export function composeEdgekitAnswer({ input, results, mode = 'docs-demo', curre
       .join('\n')
   }
 
+  if (intent === 'skill-optimization') {
+    return [
+      'Use Skill optimization as a measured development loop, not as runtime self-editing.',
+      '',
+      'Run the live outcome harness against GitHub Pages, map each scenario to the Skill and Mission Profile it exercises, and score the actual user-visible transcript, generated UI, approval state, and safety boundaries per Skill.',
+      '',
+      'Only accept a candidate Skill edit when it is small, touches allowed fast-state fields such as `description`, `instructions`, `activationExamples`, or `synthesis`, strictly improves held-out validation, and leaves protected slow-state sections such as approval policy, safety invariants, and host-app authority untouched. Ties should be rejected.',
+      '',
+      'The useful output is a per-skill effect-size report: which prompts improved, which checks failed, what patch was accepted or rejected, and whether the redeployed GitHub Pages site still clears the outcome rubric.',
+      sourceNote,
+    ]
+      .filter(Boolean)
+      .join('\n')
+  }
+
   if (intent === 'agentic-not-rag') {
     return [
       'EdgeKit is not just fallback search or RAG. Search can be one tool, but the stack is meant to enable agentic workflows inside the app.',
@@ -101,6 +116,10 @@ export function composeEdgekitAnswer({ input, results, mode = 'docs-demo', curre
 export function detectAnswerIntent(input: string) {
   const normalized = input.toLowerCase()
   if (/\b(jwt|cookie|token|database|db|credential|secret)\b/.test(normalized)) return 'unsafe-secrets-or-database'
+  if (/\b(skillopt|skill opt|optimi[sz]e|optimization|held[- ]out|bounded edit|per[- ]skill|protected section|protected sections|trainable|gradient|optimizer)\b/.test(normalized) ||
+    (/\bskill\b/.test(normalized) && /\b(candidate|edit|edits|patch|protected|tie|ties|harmless|validation)\b/.test(normalized))) {
+    return 'skill-optimization'
+  }
   if (/\b(just|only|fallback|rag|search)\b/.test(normalized) && /\b(agentic|workflow|actions?|tools?|app)\b/.test(normalized)) {
     return 'agentic-not-rag'
   }

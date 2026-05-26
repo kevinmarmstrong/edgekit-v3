@@ -252,6 +252,8 @@ async function runSurface(page, surface, prompt, checks) {
   if (surface === 'standalone-ecommerce-approval') return runStandaloneApproval(page, prompt, checks)
   if (surface === 'standalone-ecommerce-hostile') return runStandaloneHostile(page, prompt, checks)
   if (surface === 'docs-qa-token-cost') return runDocsQa(page, prompt, checks)
+  if (surface === 'docs-agentic-workflows') return runDocsAgenticWorkflows(page, prompt, checks)
+  if (surface === 'docs-skill-optimization') return runDocsSkillOptimization(page, prompt, checks)
   if (surface === 'dogfood-assistant-demos') return runDogfoodAssistant(page, prompt, checks)
   if (surface === 'ag-ui-rich-components') return runAgUi(page, checks)
   if (surface === 'admin-approval-contract') return runAdminApproval(page, prompt, checks)
@@ -365,6 +367,38 @@ async function runDocsQa(page, prompt, checks) {
   addCheck(checks, 'answerQuality', 'answers the infrastructure economics question', /token|cost|cloud|spend|meter/i.test(text))
   addCheck(checks, 'answerQuality', 'connects value to browser/local execution', /browser|local|edge/i.test(text))
   addCheck(checks, 'transparency', 'does not frame EdgeKit as a SaaS subscription sale', !/book a demo|sales team|pricing tier/i.test(text))
+  return text
+}
+
+async function runDocsAgenticWorkflows(page, prompt, checks) {
+  await page.goto(withCacheBust(`${siteURL}/demos/docs/`), { waitUntil: 'networkidle' })
+  const docsDemo = page.locator('#qa')
+  await sendPrompt(docsDemo, prompt)
+  const messages = docsDemo.getByTestId('chat-messages')
+  const text = await waitForAnswerAfterPrompt(messages, prompt, /agentic|workflow|tools|approval|host app|state|auth|permission|prompt/i)
+  if (/\b(jwt|cookie|database|credential|secret)\b/i.test(prompt)) {
+    addCheck(checks, 'answerQuality', 'answers the secret-handling question directly', /keep .*out|No\.|do not|never/i.test(text))
+  } else {
+    addCheck(checks, 'answerQuality', 'explains EdgeKit is more than search or RAG', /not just|more than|workflow|agentic/i.test(text))
+  }
+  addCheck(checks, 'integration', 'names app-owned tools or registerTools', /registerTools|tools|app-owned capabilities/i.test(text))
+  addCheck(checks, 'architecture', 'keeps state and business logic owned by host app', /host app|app-owned|owns state|business logic/i.test(text))
+  addCheck(checks, 'safety', 'keeps secrets and direct database access out of prompt', !/put .*jwt|put .*cookie|put .*database .*prompt/i.test(text) && /JWT|cookies|database|credentials|secret|auth|permission/i.test(text))
+  addCheck(checks, 'generativeUi', 'mentions CTAs forms approvals or generated UI actions', /CTA|form|generated UI|EdgeView|AG-UI|approval/i.test(text))
+  return text
+}
+
+async function runDocsSkillOptimization(page, prompt, checks) {
+  await page.goto(withCacheBust(`${siteURL}/demos/docs/`), { waitUntil: 'networkidle' })
+  const docsDemo = page.locator('#qa')
+  await sendPrompt(docsDemo, prompt)
+  const messages = docsDemo.getByTestId('chat-messages')
+  const text = await waitForAnswerAfterPrompt(messages, prompt, /Skill|held-out|bounded|protected|per-skill|GitHub Pages|outcome/i)
+  addCheck(checks, 'answerQuality', 'answers with a measured optimization loop', /test|harness|outcome|transcript|GitHub Pages/i.test(text))
+  addCheck(checks, 'architecture', 'mentions bounded edits', /bounded|small|patch|edit/i.test(text))
+  addCheck(checks, 'architecture', 'mentions held-out validation or strict improvement', /held[- ]out|strictly improve|ties? .*rejected|reject.*ties/i.test(text))
+  addCheck(checks, 'safety', 'mentions protected slow-state or safety sections', /protected|slow-state|safety|approval policy|host-app authority/i.test(text))
+  addCheck(checks, 'integration', 'mentions per-skill scoring or effect size', /per[- ]skill|effect size|score/i.test(text))
   return text
 }
 

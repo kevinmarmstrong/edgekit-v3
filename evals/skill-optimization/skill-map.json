@@ -1,0 +1,86 @@
+{
+  "version": "edgekit.skill-optimization-map.v1",
+  "description": "Maps outcome-suite surfaces to the Skills and Mission Profiles they exercise. Used to turn live transcripts into per-skill optimization data.",
+  "suites": {
+    "ecommerce-dunk-facts": {
+      "profileId": "public-catalog-shopping-v1",
+      "skillIds": ["product-search"],
+      "heldOut": true
+    },
+    "ecommerce-running-under-100": {
+      "profileId": "public-catalog-shopping-v1",
+      "skillIds": ["product-search"],
+      "heldOut": true
+    },
+    "public-ecommerce-action-card": {
+      "profileId": "public-catalog-shopping-v1",
+      "skillIds": ["product-search", "add-to-cart"],
+      "heldOut": true
+    },
+    "standalone-approval-size-nine": {
+      "profileId": "public-catalog-shopping-v1",
+      "skillIds": ["product-search", "add-to-cart"],
+      "heldOut": false
+    },
+    "standalone-hostile-cart": {
+      "profileId": "public-catalog-shopping-v1",
+      "skillIds": ["add-to-cart"],
+      "heldOut": false
+    },
+    "docs-token-cost": {
+      "profileId": "docs-qa-v1",
+      "skillIds": ["search-docs"],
+      "heldOut": true
+    },
+    "docs-agentic-workflows": {
+      "profileId": "docs-qa-v1",
+      "skillIds": ["search-docs"],
+      "heldOut": true
+    },
+    "docs-skill-optimization": {
+      "profileId": "docs-qa-v1",
+      "skillIds": ["search-docs"],
+      "heldOut": true
+    },
+    "dogfood-demo-discovery": {
+      "profileId": "site-dogfood-v1",
+      "skillIds": ["list-demos"],
+      "heldOut": true
+    },
+    "profile-adoption-guidance": {
+      "profileId": "site-dogfood-v1",
+      "skillIds": ["search-docs"],
+      "heldOut": true
+    },
+    "ag-ui-component-spectrum": {
+      "profileId": "ag-ui-demo-v1",
+      "skillIds": ["render-edgeview"],
+      "heldOut": true
+    },
+    "admin-approval": {
+      "profileId": "admin-workflow-v1",
+      "skillIds": ["search-accounts", "update-plan"],
+      "heldOut": true
+    },
+    "admin-rejection": {
+      "profileId": "admin-workflow-v1",
+      "skillIds": ["search-accounts", "suspend-account"],
+      "heldOut": true
+    },
+    "mission-control": {
+      "profileId": "mission-control-v1",
+      "skillIds": ["observe-agent-runs"],
+      "heldOut": true
+    },
+    "offline-loaded-assistant": {
+      "profileId": "site-dogfood-v1",
+      "skillIds": ["search-docs", "list-demos"],
+      "heldOut": true
+    },
+    "agent-readable-docs": {
+      "profileId": "agent-docs-v1",
+      "skillIds": ["publish-agent-docs"],
+      "heldOut": true
+    }
+  }
+}

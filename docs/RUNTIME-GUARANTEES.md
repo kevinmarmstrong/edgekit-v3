@@ -22,6 +22,8 @@ Use this page when deciding what Edgekit guarantees and what the host app must s
 | `EdgeSkill.description` | Router-visible skill surface | Stored and typed | Skill optimization checks | Keep short and accurate |
 | `EdgeSkill.instructions` | Activated skill body | Stored and typed | Outcome and optimization checks | Keep compact and procedural |
 | Tool `needsApproval` | Pause risky mutations | Approval request/resume events in core/UI | Workflow tests and research suite | Mark every risky mutation |
+| EdgeView form actions | Run user-confirmed UI actions | Forms resolve against the active tool surface; untrusted generated forms cannot execute approval-gated tools | UI unit tests and E2E workflow tests | Use `registerActions()` for host-owned CTAs and keep backend authorization in tools |
+| Redactors | Keep sensitive tool data out of visible and future model context | Tool outputs are redacted before UI, telemetry, audit, and stored model history | Unit tests and privacy scenarios | Minimize prompts and add domain-specific redactors |
 | Telemetry sink | Observe runs/tools/approvals/errors | Events emitted by agent/UI | Mission-control checks | Forward to production observability |
 | Audit trail | Hash-chain tool/approval events | Core audit primitive records entries | Architecture probes | Persist/sign server-side for compliance |
 

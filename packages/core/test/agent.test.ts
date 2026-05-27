@@ -298,6 +298,238 @@ The shopper prefers curbside pickup and size 11 shoes.`,
     })
   })
 
+  it('stores redacted tool result payloads in model history for later turns', async () => {
+    const redactor = (value: unknown, context: { toolName?: string; phase?: string }) =>
+      (!context.toolName || context.toolName === 'lookupAccount') && context.phase === 'tool-result' && typeof value === 'string'
+        ? value.replaceAll('sam@example.com', '[REDACTED:email]')
+        : value
+    const streamText = vi.fn()
+      .mockReturnValueOnce({
+        fullStream: (async function* () {
+          yield {
+            type: 'tool-result',
+            toolCallId: 'tool-1',
+            toolName: 'lookupAccount',
+            output: { email: 'sam@example.com', note: 'keep this note' },
+          }
+        })(),
+        response: Promise.resolve({
+          messages: [
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'tool-1',
+                  toolName: 'lookupAccount',
+                  output: {
+                    type: 'json',
+                    value: { email: 'sam@example.com', note: 'keep this note' },
+                  },
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: 'tool-2',
+                  toolName: 'lookupAccount',
+                  output: {
+                    type: 'customer',
+                    value: 'primary',
+                    email: 'sam@example.com',
+                    id: 'sam@example.com',
+                  },
+                },
+              ],
+            },
+            {
+              role: 'assistant',
+              content: [{ type: 'text', text: 'The account email is sam@example.com.' }],
+            },
+          ],
+        }),
+      })
+      .mockReturnValueOnce({
+        fullStream: (async function* () {
+          yield { type: 'text-delta', text: 'done' }
+        })(),
+        response: Promise.resolve({
+          messages: [{ role: 'assistant', content: [{ type: 'text', text: 'done' }] }],
+        }),
+      })
+
+    const agent = createAgent({
+      systemPrompt: 'You are helpful.',
+      model: [fakeModel],
+      tools: { lookupAccount: {} },
+      streamText: streamText as never,
+      redactors: redactor,
+    })
+
+    for await (const _ of agent.send('look up the account')) {
+      // drain
+    }
+    for await (const _ of agent.send('use the prior result')) {
+      // drain
+    }
+
+    const secondCallMessages = JSON.stringify(streamText.mock.calls[1][0].messages)
+    expect(secondCallMessages).not.toContain('sam@example.com')
+    expect(secondCallMessages).toContain('[REDACTED:email]')
+    expect(secondCallMessages).toContain('keep this note')
+  })
+
+  it('keeps tool-specific history redactors scoped to the local tool payload', async () => {
+    const redactor = (value: unknown, context: { toolName?: string; phase?: string }) =>
+      context.toolName === 'secretLookup' && context.phase === 'tool-result' && typeof value === 'string'
+        ? '[REDACTED:secret]'
+        : value
+    const streamText = vi.fn()
+      .mockReturnValueOnce({
+        fullStream: (async function* () {
+          yield {
+            type: 'tool-result',
+            toolCallId: 'tool-1',
+            toolName: 'secretLookup',
+            output: { secret: 'internal secret' },
+          }
+          yield {
+            type: 'tool-result',
+            toolCallId: 'tool-2',
+            toolName: 'publicLookup',
+            output: { fact: 'public fact' },
+          }
+        })(),
+        response: Promise.resolve({
+          messages: [
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'tool-1',
+                  toolName: 'secretLookup',
+                  output: { secret: 'internal secret' },
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: 'tool-2',
+                  toolName: 'publicLookup',
+                  output: { fact: 'public fact' },
+                },
+              ],
+            },
+            {
+              role: 'assistant',
+              content: [{ type: 'text', text: 'Use public fact in the answer.' }],
+            },
+          ],
+        }),
+      })
+      .mockReturnValueOnce({
+        fullStream: (async function* () {
+          yield { type: 'text-delta', text: 'done' }
+        })(),
+        response: Promise.resolve({
+          messages: [{ role: 'assistant', content: [{ type: 'text', text: 'done' }] }],
+        }),
+      })
+
+    const agent = createAgent({
+      systemPrompt: 'You are helpful.',
+      model: [fakeModel],
+      tools: { secretLookup: {}, publicLookup: {} },
+      streamText: streamText as never,
+      redactors: redactor,
+    })
+
+    for await (const _ of agent.send('look up secret and public facts')) {
+      // drain
+    }
+    for await (const _ of agent.send('use the prior result')) {
+      // drain
+    }
+
+    const secondCallMessages = JSON.stringify(streamText.mock.calls[1][0].messages)
+    expect(secondCallMessages).not.toContain('internal secret')
+    expect(secondCallMessages).toContain('[REDACTED:secret]')
+    expect(secondCallMessages).toContain('public fact')
+  })
+
+  it('stores redacted approval response tool calls in model history', async () => {
+    const redactor = (value: unknown, context: { toolName?: string; phase?: string }) => {
+      if (typeof value !== 'string') return value
+      if (value === 'tool-1') return '[REDACTED:id]'
+      if (context.toolName === 'sendInvite' && context.phase === 'tool-result') {
+        return value === 'sam@example.com' ? '[REDACTED:email]' : '[REDACTED:value]'
+      }
+      return value
+    }
+    const streamText = vi.fn()
+      .mockReturnValueOnce({
+        fullStream: (async function* () {
+          yield {
+            type: 'tool-approval-request',
+            approvalId: 'approval-1',
+            toolCall: {
+              type: 'tool-call',
+              toolCallId: 'tool-1',
+              toolName: 'sendInvite',
+              input: { email: 'sam@example.com', role: 'admin' },
+            },
+          }
+        })(),
+        response: Promise.resolve({
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-approval-request',
+                  approvalId: 'approval-1',
+                  toolCallId: 'tool-1',
+                  toolCall: {
+                    type: 'tool-call',
+                    toolCallId: 'tool-1',
+                    toolName: 'sendInvite',
+                    input: { email: 'sam@example.com', role: 'admin' },
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      })
+      .mockReturnValueOnce({
+        fullStream: (async function* () {
+          yield { type: 'text-delta', text: 'done' }
+        })(),
+        response: Promise.resolve({
+          messages: [{ role: 'assistant', content: [{ type: 'text', text: 'done' }] }],
+        }),
+      })
+
+    const agent = createAgent({
+      systemPrompt: 'You are helpful.',
+      model: [fakeModel],
+      tools: { sendInvite: {} },
+      streamText: streamText as never,
+      redactors: redactor,
+    })
+
+    for await (const _ of agent.send('invite Sam as an admin')) {
+      // drain
+    }
+    for await (const _ of agent.respondToApproval('approval-1', true)) {
+      // drain
+    }
+
+    const approvalRunMessages = JSON.stringify(streamText.mock.calls[1][0].messages)
+    expect(approvalRunMessages).not.toContain('sam@example.com')
+    expect(approvalRunMessages).toContain('[REDACTED:email]')
+    expect(approvalRunMessages).toContain('sendInvite')
+    expect(approvalRunMessages).toContain('tool-1')
+    expect(approvalRunMessages).not.toContain('[REDACTED:id]')
+  })
+
   it('filters dynamic tool manifests by identity roles and permissions', async () => {
     const userTool = { execute: vi.fn() }
     const adminTool = { execute: vi.fn() }

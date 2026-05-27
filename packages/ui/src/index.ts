@@ -5,7 +5,9 @@ import {
   applyMissionProfile,
   applyRedactors,
   createAgent,
+  filterToolManifestsForSession,
   resolveSessionContext,
+  toolsFromManifests,
   validateMissionProfile as validateEdgeMissionProfile,
   type AgentEvent,
   type CascadeReadinessSnapshot,
@@ -46,6 +48,12 @@ type PendingApproval = {
 export type EdgeActionProvider = (context: EdgeActionContext) => EdgeAction[] | null | undefined
 
 type EdgeFormView = Extract<EdgeViewNode, { type: 'form' }>
+
+type EdgeExecutableInputSchema = {
+  parse?: (input: unknown) => unknown
+  safeParse?: (input: unknown) => unknown
+  validate?: (input: unknown) => unknown | Promise<unknown>
+}
 
 @customElement('edge-cascade-wizard')
 export class EdgeCascadeWizard extends LitElement {
@@ -591,9 +599,12 @@ export class EdgeChat extends LitElement {
 
   private tools: CreateAgentOptions['tools'] = {}
   private actionProviders: EdgeActionProvider[] = []
+  private trustedActionForms = new WeakSet<EdgeFormView>()
   private config: Partial<CreateAgentOptions> = {}
   private agent: EdgeAgent | null = null
   private agentIsExternal = false
+  private lastSubmittedInput = ''
+  private formDomIds = new WeakMap<EdgeFormView, string>()
 
   connectedCallback() {
     super.connectedCallback()
@@ -739,8 +750,10 @@ export class EdgeChat extends LitElement {
     if (!text) return
 
     if (input) input.value = ''
+    this.lastSubmittedInput = text
     this.busy = true
     this.views = []
+    this.trustedActionForms = new WeakSet<EdgeFormView>()
     this.activities = []
     this.messages = [...this.messages, { role: 'user', text }, { role: 'assistant', text: '' }]
 
@@ -878,14 +891,15 @@ export class EdgeChat extends LitElement {
   }
 
   private renderFormField(form: EdgeFormView, field: EdgeField): unknown {
-    const id = `${form.id}-${field.name}`
+    const id = `${this.formDomId(form)}-${field.name}`
+    const instanceId = this.formDomId(form)
     return html`<label class="view-field" for=${id}>
       ${field.label}
       ${field.type === 'select'
         ? html`<select
             id=${id}
             data-testid=${`action-field-${field.name}`}
-            data-action-id=${form.id}
+            data-action-instance=${instanceId}
             data-field-name=${field.name}
           >
             ${field.options?.map(
@@ -897,7 +911,7 @@ export class EdgeChat extends LitElement {
         : html`<input
             id=${id}
             data-testid=${`action-field-${field.name}`}
-            data-action-id=${form.id}
+            data-action-instance=${instanceId}
             data-field-name=${field.name}
             type=${field.type}
             .value=${String(field.value ?? '')}
@@ -911,14 +925,16 @@ export class EdgeChat extends LitElement {
     const actions = this.actionProviders.flatMap(provider => provider(context) ?? [])
     if (actions.length === 0) return
     const actionViews = actionsToEdgeView(actions)
+    collectForms(actionViews).forEach(form => this.trustedActionForms.add(form))
     const existingIds = new Set(this.views.map(view => view.id).filter(Boolean))
     this.views = [...this.views, ...actionViews.filter(view => !view.id || !existingIds.has(view.id))]
   }
 
   private async runForm(form: EdgeFormView) {
     const input = { ...(form.input ?? {}) }
+    const instanceId = this.formDomId(form)
     for (const field of form.fields ?? []) {
-      const selector = `[data-action-id="${form.id}"][data-field-name="${field.name}"]`
+      const selector = `[data-action-instance="${instanceId}"][data-field-name="${field.name}"]`
       const element = this.renderRoot.querySelector<HTMLInputElement | HTMLSelectElement>(selector)
       const rawValue = element?.value ?? ''
       if (field.required && rawValue.length === 0) {
@@ -933,13 +949,6 @@ export class EdgeChat extends LitElement {
     this.busy = true
     this.views = this.views.filter(candidate => candidate.id !== `${form.id}-card` && candidate.id !== form.id)
     try {
-      await this.emitUiTelemetry('ui-action', { toolName: form.toolName, data: { stage: 'start', input } })
-      await this.config.auditTrail?.record({
-        action: 'ui-action',
-        sessionId: this.config.sessionId ?? 'edge-chat',
-        toolName: form.toolName,
-        input,
-      })
       const session = await resolveSessionContext(this.config)
       const toolContext: EdgeToolExecutionContext = {
         session,
@@ -947,7 +956,35 @@ export class EdgeChat extends LitElement {
         auth: session.auth,
         state: session.state,
       }
-      const output = await this.executeTool(form.toolName, input, toolContext)
+      const isTrustedActionForm = this.trustedActionForms.has(form)
+      const candidate = await this.resolveFormTool(form, input, session, isTrustedActionForm)
+      const validatedInput = await this.validateToolInput(form.toolName, candidate, input, { strict: !isTrustedActionForm })
+      await this.emitUiTelemetry('ui-action', { toolName: form.toolName, data: { stage: 'start', input: validatedInput } })
+      await this.config.auditTrail?.record({
+        action: 'ui-action',
+        sessionId: this.config.sessionId ?? 'edge-chat',
+        toolName: form.toolName,
+        input: validatedInput,
+      })
+      if (await toolNeedsApproval(candidate, validatedInput, toolContext, { trustedActionForm: isTrustedActionForm })) {
+        if (!isTrustedActionForm) {
+          throw new Error(`${form.toolName} requires approval and cannot be executed from an untrusted generated form.`)
+        }
+        await this.emitUiTelemetry('approval-decision', {
+          toolName: form.toolName,
+          approved: true,
+          data: { source: 'trusted-action-form' },
+        })
+        await this.config.auditTrail?.record({
+          action: 'approval-decision',
+          sessionId: this.config.sessionId ?? 'edge-chat',
+          toolName: form.toolName,
+          approved: true,
+          input: validatedInput,
+          reason: 'trusted-action-form',
+        })
+      }
+      const output = await this.executeTool(form.toolName, validatedInput, toolContext, candidate)
       const redactedOutput = await applyRedactors(output, this.config.redactors, {
         ...toolContext,
         toolName: form.toolName,
@@ -958,14 +995,14 @@ export class EdgeChat extends LitElement {
         action: 'tool-result',
         sessionId: this.config.sessionId ?? 'edge-chat',
         toolName: form.toolName,
-        input,
+        input: validatedInput,
         output: redactedOutput,
       })
       this.messages = [
         ...this.messages,
         {
           role: 'assistant',
-          text: this.formSuccessText(form, redactedOutput, input),
+          text: this.formSuccessText(form, redactedOutput, validatedInput),
         },
       ]
     } catch (error) {
@@ -973,13 +1010,82 @@ export class EdgeChat extends LitElement {
       this.messages = [...this.messages, { role: 'assistant', text: `Something went wrong: ${String(error)}` }]
     } finally {
       this.busy = false
+      this.trustedActionForms.delete(form)
     }
   }
 
-  private async executeTool(toolName: string, input: Record<string, unknown>, context: EdgeToolExecutionContext) {
-    const candidate = (this.tools ?? {})[toolName] as {
+  private formDomId(form: EdgeFormView) {
+    const existing = this.formDomIds.get(form)
+    if (existing) return existing
+    const next = `form_${Math.random().toString(36).slice(2, 10)}`
+    this.formDomIds.set(form, next)
+    return next
+  }
+
+  private async resolveFormTool(
+    form: EdgeFormView,
+    input: Record<string, unknown>,
+    session: Awaited<ReturnType<typeof resolveSessionContext>>,
+    trustedActionForm: boolean,
+  ) {
+    const providerInput = trustedActionForm
+      ? `${form.submitLabel} ${form.toolName} ${JSON.stringify(input)}`
+      : this.lastSubmittedInput
+    const registeredTools = { ...(this.tools ?? {}), ...(this.config.tools ?? {}) }
+    const activeTools = this.config.toolProvider
+      ? await this.config.toolProvider({ session, input: providerInput, phase: 'send' })
+      : this.config.toolManifests
+        ? toolsFromManifests(filterToolManifestsForSession(this.config.toolManifests, session))
+        : registeredTools
+    const candidate = activeTools[form.toolName] as {
       execute?: (input: Record<string, unknown>, context?: EdgeToolExecutionContext) => unknown | Promise<unknown>
+      inputSchema?: EdgeExecutableInputSchema
+      needsApproval?: boolean | ((input: Record<string, unknown>, options?: Record<string, unknown>) => boolean | Promise<boolean>)
+    } | undefined
+    if (!candidate?.execute) throw new Error(`${form.toolName} is not available for this session.`)
+    return candidate
+  }
+
+  private async validateToolInput(
+    toolName: string,
+    candidate: { inputSchema?: EdgeExecutableInputSchema },
+    input: Record<string, unknown>,
+    options: { strict?: boolean } = {},
+  ): Promise<Record<string, unknown>> {
+    const schema = candidate.inputSchema
+    if (!schema) return input
+    if (typeof schema.safeParse === 'function') {
+      const result = schema.safeParse(input)
+      if (isSafeParseFailure(result)) throw new Error(`${toolName} input failed validation: ${formatSchemaError(result.error)}`)
+      return isRecord(result) && isRecord(result.data) ? result.data : input
     }
+    if (typeof schema.parse === 'function') {
+      const parsed = schema.parse(input)
+      return isRecord(parsed) ? parsed : input
+    }
+    if (typeof schema.validate === 'function') {
+      const result = await schema.validate(input)
+      if (isSafeParseFailure(result)) throw new Error(`${toolName} input failed validation: ${formatSchemaError(result.error)}`)
+      if (isRecord(result) && result.success === true) {
+        if (isRecord(result.value)) return result.value
+        if (isRecord(result.data)) return result.data
+        throw new Error(`${toolName} input validation returned a non-object success payload.`)
+      }
+      if (result === false || isValidationFailureShape(result)) {
+        throw new Error(`${toolName} input failed validation: ${formatSchemaError(result)}`)
+      }
+      return isRecord(result) ? result : input
+    }
+    if (options.strict) throw new Error(`${toolName} input schema is not executable in generated form validation.`)
+    return input
+  }
+
+  private async executeTool(
+    toolName: string,
+    input: Record<string, unknown>,
+    context: EdgeToolExecutionContext,
+    candidate: { execute?: (input: Record<string, unknown>, context?: EdgeToolExecutionContext) => unknown | Promise<unknown> },
+  ) {
     if (!candidate?.execute) throw new Error(`${toolName} is not executable.`)
     return candidate.execute(input, context)
   }
@@ -1044,6 +1150,77 @@ export class EdgeChat extends LitElement {
     const text = typeof input === 'string' ? input : JSON.stringify(input)
     return text.length > 140 ? `${text.slice(0, 137)}...` : text
   }
+}
+
+function collectForms(views: EdgeViewNode[]): EdgeFormView[] {
+  return views.flatMap(view => {
+    if (view.type === 'form') return [view]
+    if (view.type === 'card') return collectForms(view.children ?? [])
+    return []
+  })
+}
+
+async function toolNeedsApproval(
+  candidate: {
+    needsApproval?: boolean | ((input: Record<string, unknown>, options?: Record<string, unknown>) => boolean | Promise<boolean>)
+  },
+  input: Record<string, unknown>,
+  context: EdgeToolExecutionContext,
+  options: { trustedActionForm?: boolean } = {},
+) {
+  if (typeof candidate.needsApproval === 'function') {
+    const needsApproval = candidate.needsApproval
+    const approvalOptions = createApprovalOptions(input, context)
+    const outcome = await toSettledCall(() => needsApproval(input, approvalOptions))
+    if (outcome.status === 'rejected') {
+      if (options.trustedActionForm) throw outcome.reason
+      return true
+    }
+    return Boolean(outcome.value)
+  }
+  return candidate.needsApproval === true
+}
+
+function createApprovalOptions(input: Record<string, unknown>, context: EdgeToolExecutionContext) {
+  return {
+    args: input,
+    toolCallId: `ui_${Math.random().toString(36).slice(2, 10)}`,
+    messages: [],
+    experimental_context: context,
+    context,
+    session: context.session,
+    identity: context.identity,
+    auth: context.auth,
+    state: context.state,
+  }
+}
+
+function toSettledCall<T>(call: () => T | Promise<T>): Promise<PromiseSettledResult<T>> {
+  return Promise.resolve()
+    .then(call)
+    .then(result => ({ status: 'fulfilled', value: result }) as PromiseFulfilledResult<T>)
+    .catch((reason: unknown) => ({ status: 'rejected', reason }) as PromiseRejectedResult)
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function isSafeParseFailure(value: unknown): value is { success: false; error: unknown } {
+  return isRecord(value) && value.success === false
+}
+
+function isValidationFailureShape(value: unknown) {
+  return isRecord(value) && (
+    Array.isArray(value.issues)
+    || Array.isArray(value.errors)
+    || 'error' in value
+  )
+}
+
+function formatSchemaError(error: unknown) {
+  if (isRecord(error) && typeof error.message === 'string') return error.message
+  return String(error)
 }
 
 export function mountChat(target: string | HTMLElement, options: Partial<CreateAgentOptions> = {}) {

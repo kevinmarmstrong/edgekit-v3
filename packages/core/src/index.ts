@@ -2698,7 +2698,8 @@ export function createAgent(options: CreateAgentOptions): EdgeAgent {
       if (shouldRetry) continue
       if (!terminalError) {
         const response = await result.response
-        messages.push(...response.messages)
+        const historyMessages = await redactModelMessagesForHistory(response.messages, options.redactors, toolContext)
+        messages.push(...historyMessages)
       }
       break
     }
@@ -2746,7 +2747,7 @@ export function createAgent(options: CreateAgentOptions): EdgeAgent {
         approved,
         reason,
       })
-      messages.push({
+      const approvalMessage = {
         role: 'tool',
         content: [
           {
@@ -2757,7 +2758,16 @@ export function createAgent(options: CreateAgentOptions): EdgeAgent {
             toolCall,
           },
         ],
-      } as unknown as ModelMessage)
+      } as unknown as ModelMessage
+      const session = await resolveSessionContext(options)
+      const toolContext: EdgeToolExecutionContext = {
+        session,
+        identity: session.identity,
+        auth: session.auth,
+        state: session.state,
+      }
+      const [historyMessage] = await redactModelMessagesForHistory([approvalMessage], options.redactors, toolContext)
+      messages.push(historyMessage)
       yield* run('approval')
     },
     reset() {
@@ -3244,6 +3254,120 @@ function isQueuedMutation(value: unknown): value is EdgeQueuedMutation {
     && typeof value.createdAt === 'string'
     && typeof value.updatedAt === 'string'
     && typeof value.attempts === 'number'
+}
+
+async function redactModelMessagesForHistory(
+  responseMessages: ModelMessage[],
+  redactors: EdgeRedactor | EdgeRedactor[] | undefined,
+  context: EdgeToolExecutionContext,
+): Promise<ModelMessage[]> {
+  if (!redactors) return responseMessages
+  const redacted = await Promise.all(
+    responseMessages.map(message => redactModelHistoryValue(message, redactors, context, undefined, 'message')),
+  )
+  return redacted as ModelMessage[]
+}
+
+async function redactModelHistoryValue(
+  value: unknown,
+  redactors: EdgeRedactor | EdgeRedactor[],
+  context: EdgeToolExecutionContext,
+  inheritedToolName?: string,
+  location: 'message' | 'content' | 'part' | 'payload' = 'payload',
+): Promise<unknown> {
+  if (typeof value === 'string') return redactModelHistoryText(value, redactors, context, inheritedToolName)
+  if (Array.isArray(value)) {
+    const childLocation = location === 'content' ? 'part' : 'payload'
+    return Promise.all(value.map(item => redactModelHistoryValue(item, redactors, context, inheritedToolName, childLocation)))
+  }
+  if (!isRecord(value)) return value
+
+  const toolName = typeof value.toolName === 'string' ? value.toolName : inheritedToolName
+  const next = Object.fromEntries(
+    await Promise.all(
+      Object.entries(value).map(async ([key, item]) => {
+        if (shouldPreserveModelHistoryKey(location, value, key)) return [key, item]
+        const childLocation = location === 'message' && key === 'content' ? 'content' : 'payload'
+        return [key, await redactModelHistoryValue(item, redactors, context, toolName, childLocation)]
+      }),
+    ),
+  )
+  if (value.type === 'tool-approval-response' && 'toolCall' in value) {
+    const approvalToolName = extractModelHistoryToolName(value.toolCall) ?? toolName ?? 'approval'
+    next.toolCall = await redactToolResultPayload(next.toolCall, redactors, context, approvalToolName)
+    return next
+  }
+  if (value.type === 'tool-result' && typeof toolName === 'string') {
+    if ('output' in value) {
+      next.output = await redactToolResultPayload(next.output, redactors, context, toolName)
+    }
+    if ('result' in value) {
+      next.result = await redactToolResultPayload(next.result, redactors, context, toolName)
+    }
+  }
+  return next
+}
+
+async function redactToolResultPayload(
+  payload: unknown,
+  redactors: EdgeRedactor | EdgeRedactor[],
+  context: EdgeToolExecutionContext,
+  toolName: string,
+): Promise<unknown> {
+  const redactionContext: EdgeRedactorContext = {
+    ...context,
+    toolName,
+    phase: 'tool-result',
+  }
+  if (isAiSdkOutputWrapper(payload)) {
+    const redactedEntries = await Promise.all(
+      Object.entries(payload).map(async ([key, item]) => {
+        if (key === 'type') return [key, item]
+        const redactedItem = await redactModelHistoryValue(item, redactors, context, toolName, 'payload')
+        return [key, await applyRedactors(redactedItem, redactors, redactionContext)]
+      }),
+    )
+    return Object.fromEntries(redactedEntries)
+  }
+  const redactedPayload = await redactModelHistoryValue(payload, redactors, context, toolName, 'payload')
+  return applyRedactors(redactedPayload, redactors, redactionContext)
+}
+
+async function redactModelHistoryText(
+  text: string,
+  redactors: EdgeRedactor | EdgeRedactor[],
+  context: EdgeToolExecutionContext,
+  toolName?: string,
+) {
+  let current: unknown = await applyRedactors(text, redactors, { ...context, phase: 'tool-result' })
+  if (toolName) {
+    current = await applyRedactors(current, redactors, { ...context, toolName, phase: 'tool-result' })
+  }
+  return typeof current === 'string' ? current : String(current)
+}
+
+function extractModelHistoryToolName(value: unknown): string | undefined {
+  if (!isRecord(value)) return undefined
+  return typeof value.toolName === 'string' ? value.toolName : undefined
+}
+
+function shouldPreserveModelHistoryKey(
+  location: 'message' | 'content' | 'part' | 'payload',
+  value: Record<string, unknown>,
+  key: string,
+) {
+  if (location === 'message') return key === 'role'
+  if (value.type === 'tool-call') return key === 'type' || key === 'toolName' || key === 'toolCallId'
+  if (location !== 'part') return false
+  if (value.type === 'tool-result') return key === 'type' || key === 'toolName' || key === 'toolCallId'
+  if (value.type === 'tool-approval-request') return key === 'type' || key === 'approvalId' || key === 'toolCallId'
+  if (value.type === 'tool-approval-response') return key === 'type' || key === 'approvalId' || key === 'toolCallId' || key === 'approved'
+  if (value.type === 'text') return key === 'type'
+  return false
+}
+
+function isAiSdkOutputWrapper(value: unknown): value is Record<string, unknown> & { type: string; value: unknown } {
+  return isRecord(value) && 'value' in value && (value.type === 'json' || value.type === 'text')
 }
 
 async function resolveActiveTools(

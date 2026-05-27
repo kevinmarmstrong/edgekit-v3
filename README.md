@@ -97,6 +97,8 @@ chat?.registerActions(({ toolName, output }) => {
 
 For docs search, site-map, catalog, or support assistants that must ground answers in app-owned tools, configure `toolChoice: 'required'`. For agentic workflows, pair that with `toolProvider` so read tools are always available while mutation tools hydrate only when the prompt, session, role, and workflow state justify them. Keep the default `auto` behavior for open-ended assistants.
 
+`registerActions()` produces host-owned CTAs. The UI resolves each submitted form against the active tool surface, validates the tool schema when present, and treats the user's click as confirmation only for trusted host action cards. Arbitrary EdgeView or AG-UI forms cannot directly run tools that are hidden from the current session or marked `needsApproval`.
+
 AG-UI-compatible backends can drive the same component:
 
 ```ts

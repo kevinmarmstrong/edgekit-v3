@@ -2,13 +2,15 @@ import { defineConfig } from 'vite'
 import { resolve } from 'node:path'
 import { docsPages, docsPath } from './src/docsContent'
 
+const siteBase = '/edgekit/'
+
 const crossOriginIsolationHeaders = {
   'Cross-Origin-Opener-Policy': 'same-origin',
   'Cross-Origin-Embedder-Policy': 'require-corp',
 }
 
 export default defineConfig({
-  base: '/edgekit/',
+  base: siteBase,
   plugins: [agentDocsPlugin()],
   build: {
     rollupOptions: {
@@ -63,7 +65,7 @@ function agentDocsPlugin() {
     generateBundle() {
       const markdownPages = docsPages.map(page => ({ page, markdown: pageToMarkdown(page) }))
       const links = markdownPages
-        .map(({ page }) => `- [${page.title}](${docsPath(page)}): ${page.summary}`)
+        .map(({ page }) => `- [${page.title}](${publicDocsPath(docsPath(page))}): ${page.summary}`)
         .join('\n')
       const llms = `# edgekit
 
@@ -77,23 +79,23 @@ ${links}
 
 ## Agent ingestion
 
-- [Full documentation export](/llms-full.txt)
-- [Overview Markdown](/docs.md)
-- [Adoption Kit Markdown](/docs/adoption-kit.md)
-- [Recipe Catalog Markdown](/docs/recipes.md)
-- [Enterprise controls Markdown](/docs/advanced.md)
-- [Ecosystem Markdown](/docs/ecosystem.md)
-- [Knowledge Access Markdown](/docs/knowledge-access.md)
-- [Reproducibility Markdown](/docs/reproducibility.md)
+- [Full documentation export](${publicDocsPath('/llms-full.txt')})
+- [Overview Markdown](${publicDocsPath('/docs.md')})
+- [Adoption Kit Markdown](${publicDocsPath('/docs/adoption-kit.md')})
+- [Recipe Catalog Markdown](${publicDocsPath('/docs/recipes.md')})
+- [Enterprise controls Markdown](${publicDocsPath('/docs/advanced.md')})
+- [Ecosystem Markdown](${publicDocsPath('/docs/ecosystem.md')})
+- [Knowledge Access Markdown](${publicDocsPath('/docs/knowledge-access.md')})
+- [Reproducibility Markdown](${publicDocsPath('/docs/reproducibility.md')})
 
 ## Public demos
 
-- [Ecommerce retrofit](/demos/ecommerce/)
-- [Field ops ERP](/demos/operations/)
-- [Docs Q&A](/demos/docs/)
-- [AG-UI event stream](/demos/ag-ui/)
-- [SaaS admin workflow](/demos/admin/)
-- [Mission control telemetry](/demos/mission-control/)
+- [Ecommerce retrofit](${publicDocsPath('/demos/ecommerce/')})
+- [Field ops ERP](${publicDocsPath('/demos/operations/')})
+- [Docs Q&A](${publicDocsPath('/demos/docs/')})
+- [AG-UI event stream](${publicDocsPath('/demos/ag-ui/')})
+- [SaaS admin workflow](${publicDocsPath('/demos/admin/')})
+- [Mission control telemetry](${publicDocsPath('/demos/mission-control/')})
 
 ## Repository
 
@@ -110,6 +112,10 @@ ${links}
       }
     },
   }
+}
+
+function publicDocsPath(path: string) {
+  return `${siteBase.replace(/\/$/, '')}/${path.replace(/^\//, '')}`
 }
 
 function boundedFullExport(markdownPages: Array<{ markdown: string }>) {

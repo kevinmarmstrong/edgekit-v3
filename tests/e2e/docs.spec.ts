@@ -46,6 +46,11 @@ test('agent-readable documentation exports are available', async ({ page }) => {
   const llms = await page.request.get(`${siteURL}llms.txt`)
   expect(llms.ok()).toBeTruthy()
   await expect(llms.text()).resolves.toContain('edgekit is a browser-native agent runtime')
+  const llmsText = await llms.text()
+  expect(llmsText).toContain('(/edgekit/llms-full.txt)')
+  expect(llmsText).toContain('(/edgekit/docs/knowledge-access.md)')
+  expect(llmsText).not.toContain('](/docs/')
+  expect(llmsText).not.toContain('](/demos/')
 
   const full = await page.request.get(`${siteURL}llms-full.txt`)
   expect(full.ok()).toBeTruthy()

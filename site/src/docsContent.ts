@@ -1189,6 +1189,7 @@ chat?.useAgent(agent)`,
         title: 'User actions',
         body: [
           'Use `registerActions()` to turn tool results into fillable CTAs. This keeps users out of unnecessary chat-confirmation turns: the agent can search, then the UI can render a size selector, plan picker, support-category menu, booking date field, or other app-specific form before running a registered tool.',
+          'Action forms resolve against the active tool surface, including `toolProvider` and RBAC-filtered manifests. Forms created by host-owned `registerActions()` are treated as trusted user-confirmed CTAs; arbitrary EdgeView or AG-UI forms cannot execute tools that are hidden from the current session or marked `needsApproval`.',
           'Tool-call trace messages are hidden by default. Add the `show-tool-events` attribute when you want visible debugging markers.',
         ],
         code: {

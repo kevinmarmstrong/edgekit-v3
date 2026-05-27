@@ -29,3 +29,5 @@ chat?.registerTools(supportTools)
 `<edge-cascade-wizard>` is optional demo-grade UI for the headless `createCascadeReadinessController()` contract. Production apps can replace it with their own banner, setup wizard, settings panel, or feature gate.
 
 The host app owns state, authorization, business logic, and tool execution. The component renders chat, activity states, EdgeView cards/forms/tables/charts, approval prompts, and optional cascade-readiness status.
+
+Action forms are resolved through the active tool surface. If the app uses a `toolProvider` or RBAC-filtered `toolManifests`, generated forms can only call tools exposed for the current session and intent. Forms produced by host-owned `registerActions()` are trusted user-confirmed CTAs; arbitrary EdgeView or AG-UI forms cannot execute approval-gated tools directly.

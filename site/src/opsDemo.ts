@@ -160,76 +160,94 @@ export function mountOpsDemo() {
 
   chat.configure(
     scriptedMode
-      ? {
-          model: [scriptedOpsProvider()],
-          streamText: createScriptedOpsStream() as never,
-        }
-      : {
-          model: [chromeAI()],
-          downloadPolicy: 'never',
-          toolChoice: 'required',
-          toolProvider: ({ input }) => opsToolsForInput(input),
-          onNoModel: ({ input }) => answerFromOps(input),
-        },
+        ? {
+            model: [scriptedOpsProvider()],
+            streamText: createScriptedOpsStream() as never,
+          }
+        : {
+            model: [chromeAI()],
+            downloadPolicy: 'never',
+            toolChoice: 'required',
+            toolProvider: ({ input }) => opsToolsForInput(input),
+            telemetry: trackOpsTelemetry,
+            onNoModel: ({ input }) => answerFromOps(input),
+          },
   )
   chat.applyMissionProfile(fieldOpsProfile)
   chat.registerTools({ searchWorkOrders, searchRepairKnowledge, reserveInventory, assignTechnician, updateEta })
   chat.registerActions(({ toolName, output }) => {
     if (toolName !== 'searchWorkOrders') return []
-    return extractWorkOrders(output).flatMap(order => [
-      {
-        id: `reserve-${order.id}`,
-        label: `Reserve ${order.partName}`,
-        toolName: 'reserveInventory',
-        description: `${order.customer} needs ${order.partSku}. Current status: ${order.status}.`,
-        input: { workOrderId: order.id, partSku: order.partSku },
-        fields: [{ name: 'quantity', label: 'Quantity', type: 'number' as const, required: true, value: 1 }],
-        successMessage: (result: unknown) => formatReservationSuccess(result, order),
-      },
-      {
-        id: `assign-${order.id}`,
-        label: `Assign technician`,
-        toolName: 'assignTechnician',
-        description: `Dispatch an available technician before SLA breach: ${order.sla}.`,
-        input: { workOrderId: order.id },
-        fields: [
-          {
-            name: 'technicianId',
-            label: 'Technician',
-            type: 'select' as const,
-            required: true,
-            options: technicians
-              .filter(tech => tech.status === 'Available')
-              .map(tech => ({ label: `${tech.name} · ${tech.eta}`, value: tech.id })),
-          },
-          { name: 'eta', label: 'ETA', type: 'text' as const, required: true, value: '32 min' },
-        ],
-        successMessage: (result: unknown) => formatAssignmentSuccess(result, order),
-      },
-      {
-        id: `eta-${order.id}`,
-        label: `Update ETA`,
-        toolName: 'updateEta',
-        description: `Supervisor-only ETA update for ${order.customer}. Current ETA: ${order.eta ?? 'not set'}.`,
-        input: { workOrderId: order.id },
-        fields: [
-          { name: 'eta', label: 'ETA', type: 'text' as const, required: true, value: order.eta ?? '45 min' },
-          { name: 'reason', label: 'Reason', type: 'text' as const, required: true, value: 'Traffic delay after dispatch' },
-        ],
-        successMessage: (result: unknown) => formatEtaSuccess(result, order),
-      },
-    ])
+    return extractWorkOrders(output).flatMap(order => {
+      const actions = [
+        {
+          id: `reserve-${order.id}`,
+          label: `Reserve ${order.partName}`,
+          toolName: 'reserveInventory',
+          description: `${order.customer} needs ${order.partSku}. Current status: ${order.status}.`,
+          input: { workOrderId: order.id, partSku: order.partSku },
+          fields: [{ name: 'quantity', label: 'Quantity', type: 'number' as const, required: true, value: 1 }],
+          successMessage: (result: unknown) => formatReservationSuccess(result, order),
+        },
+        {
+          id: `assign-${order.id}`,
+          label: `Assign technician`,
+          toolName: 'assignTechnician',
+          description: `Dispatch an available technician before SLA breach: ${order.sla}.`,
+          input: { workOrderId: order.id },
+          fields: [
+            {
+              name: 'technicianId',
+              label: 'Technician',
+              type: 'select' as const,
+              required: true,
+              options: technicians
+                .filter(tech => tech.status === 'Available')
+                .map(tech => ({ label: `${tech.name} · ${tech.eta}`, value: tech.id })),
+            },
+            { name: 'eta', label: 'ETA', type: 'text' as const, required: true, value: '32 min' },
+          ],
+          successMessage: (result: unknown) => formatAssignmentSuccess(result, order),
+        },
+        {
+          id: `eta-${order.id}`,
+          label: `Update ETA`,
+          toolName: 'updateEta',
+          description: `Supervisor-only ETA update for ${order.customer}. Current ETA: ${order.eta ?? 'not set'}.`,
+          input: { workOrderId: order.id },
+          fields: [
+            { name: 'eta', label: 'ETA', type: 'text' as const, required: true, value: order.eta ?? '45 min' },
+            { name: 'reason', label: 'Reason', type: 'text' as const, required: true, value: 'Traffic delay after dispatch' },
+          ],
+          successMessage: (result: unknown) => formatEtaSuccess(result, order),
+        },
+      ]
+      return actions.filter(action => canRoleUseTool(currentOpsRole(), action.toolName))
+    })
   })
 }
 
 function opsToolsForInput(input: string) {
   const role = currentOpsRole()
   if (role === 'viewer') return { searchWorkOrders }
-  if (/\b(manual|policy|knowledge|safety|citation|cite|repair)\b/i.test(input)) return { searchWorkOrders, searchRepairKnowledge }
-  if (role === 'supervisor' && /\b(eta|delay|arrival|time)\b/i.test(input)) return { searchWorkOrders, updateEta }
-  if (/\b(assign|dispatch|technician|eta)\b/i.test(input)) return { searchWorkOrders, assignTechnician }
-  if (/\b(reserve|part|inventory|stock|compressor)\b/i.test(input)) return { searchWorkOrders, reserveInventory }
-  return { searchWorkOrders }
+  if (/\b(manual|policy|knowledge|safety|citation|cite|repair)\b/i.test(input)) return roleFilterTools({ searchWorkOrders, searchRepairKnowledge }, role)
+  if (role === 'supervisor' && /\b(eta|delay|arrival|time)\b/i.test(input)) return roleFilterTools({ searchWorkOrders, updateEta }, role)
+  if (/\b(assign|dispatch|technician|eta)\b/i.test(input)) return roleFilterTools({ searchWorkOrders, assignTechnician }, role)
+  if (/\b(reserve|part|inventory|stock|compressor)\b/i.test(input)) return roleFilterTools({ searchWorkOrders, reserveInventory }, role)
+  return roleFilterTools({ searchWorkOrders }, role)
+}
+
+function roleFilterTools<T extends Record<string, unknown>>(tools: T, role: OpsRole) {
+  return Object.fromEntries(
+    Object.entries(tools).filter(([toolName]) => canRoleUseTool(role, toolName)),
+  ) as Partial<T>
+}
+
+function trackOpsTelemetry(event: { name?: string; approved?: boolean }) {
+  if (event.name === 'approval-request') opsMetrics.approvalsRequested += 1
+  if (event.name === 'approval-decision') {
+    event.approved ? opsMetrics.approvalsApproved += 1 : opsMetrics.approvalsRejected += 1
+  }
+  if (event.name === 'approval-request' || event.name === 'approval-decision') renderOpsState()
 }
 
 const searchWorkOrders = tool({
@@ -250,6 +268,8 @@ const reserveInventory = tool({
     quantity: z.number().default(1),
   }),
   execute: async ({ workOrderId, partSku, quantity }) => {
+    const role = currentOpsRole()
+    if (!canRoleUseTool(role, 'reserveInventory')) return blockedRoleResult(role, 'reserveInventory')
     const order = workOrders.find(item => item.id === workOrderId)
     const item = inventory.find(candidate => candidate.sku === partSku)
     if (!order || !item) return { success: false, error: 'Work order or inventory item not found' }
@@ -273,6 +293,8 @@ const assignTechnician = tool({
     eta: z.string(),
   }),
   execute: async ({ workOrderId, technicianId, eta }) => {
+    const role = currentOpsRole()
+    if (!canRoleUseTool(role, 'assignTechnician')) return blockedRoleResult(role, 'assignTechnician')
     const order = workOrders.find(item => item.id === workOrderId)
     const technician = technicians.find(item => item.id === technicianId)
     if (!order || !technician) return { success: false, error: 'Work order or technician not found' }
@@ -296,6 +318,8 @@ const updateEta = tool({
     reason: z.string(),
   }),
   execute: async ({ workOrderId, eta, reason }) => {
+    const role = currentOpsRole()
+    if (!canRoleUseTool(role, 'updateEta')) return blockedRoleResult(role, 'updateEta')
     const order = workOrders.find(item => item.id === workOrderId)
     if (!order) return { success: false, error: 'Work order not found' }
     order.eta = eta
@@ -341,15 +365,34 @@ function initialOpsStream(tools: Record<string, unknown>, input: string) {
       : { type: 'tool-call', toolCallId: 'tool-reserve-part', toolName: 'reserveInventory', input: { workOrderId: 'WO-1842', partSku: 'CMP-44', quantity: 1 } }
   return {
     fullStream: (async function* () {
+      const role = currentOpsRole()
       const searchInput = { query: input || 'critical compressor Riverside' }
       yield { type: 'tool-call', toolCallId: 'tool-search-work-orders', toolName: 'searchWorkOrders', input: searchInput }
       const output = await executeTool(tools.searchWorkOrders, searchInput)
       yield { type: 'tool-result', toolCallId: 'tool-search-work-orders', toolName: 'searchWorkOrders', output }
       if (wantsKnowledge) {
+        if (!canRoleUseTool(role, 'searchRepairKnowledge')) {
+          pushOpsActivity(`${role} requested repair knowledge; role can only inspect work orders`)
+          renderOpsState()
+          yield {
+            type: 'text-delta',
+            delta: `${roleLabel(role)} can inspect Riverside Clinic work orders, but repair knowledge is not exposed for this role. No mutation tools were offered.`,
+          }
+          return
+        }
         yield { type: 'tool-call', toolCallId: 'tool-search-repair-knowledge', toolName: 'searchRepairKnowledge', input: { query: input || 'CMP-44 safety' } }
         const knowledge = await executeTool(tools.searchRepairKnowledge, { query: input || 'CMP-44 safety' })
         yield { type: 'tool-result', toolCallId: 'tool-search-repair-knowledge', toolName: 'searchRepairKnowledge', output: knowledge }
         yield { type: 'text-delta', delta: formatKnowledgeAnswer(knowledge) }
+        return
+      }
+      if (!canRoleUseTool(role, toolCall.toolName)) {
+        pushOpsActivity(`${role} requested ${toolCall.toolName}; mutation tool is not exposed for this role`)
+        renderOpsState()
+        yield {
+          type: 'text-delta',
+          delta: `${roleLabel(role)} can inspect Riverside Clinic work orders, but ${toolCall.toolName} is not exposed for this role. No approval was requested and ERP state stayed unchanged.`,
+        }
         return
       }
       yield {
@@ -380,6 +423,17 @@ function approvedOpsStream(tools: Record<string, unknown>, toolCall: ApprovalToo
   const approvedCall = toolCall ?? { type: 'tool-call', toolCallId: 'tool-reserve-part', toolName: 'reserveInventory', input: { workOrderId: 'WO-1842', partSku: 'CMP-44', quantity: 1 } }
   return {
     fullStream: (async function* () {
+      const role = currentOpsRole()
+      if (!canRoleUseTool(role, approvedCall.toolName)) {
+        pushOpsActivity(`Blocked approved ${approvedCall.toolName}; ${role} role is not authorized for this tool`)
+        pushOpsAudit(`Blocked ${approvedCall.toolName}; role ${role} has no executable permission`)
+        renderOpsState()
+        yield {
+          type: 'text-delta',
+          delta: `I did not run ${approvedCall.toolName}. ${roleLabel(role)} does not have that capability, so ERP state stayed unchanged.`,
+        }
+        return
+      }
       opsMetrics.approvalsApproved += 1
       renderOpsState()
       yield approvedCall
@@ -671,6 +725,27 @@ function pushOpsAudit(item: string) {
 function currentOpsRole(): OpsRole {
   const value = document.querySelector<HTMLSelectElement>('#ops-role')?.value
   return value === 'viewer' || value === 'supervisor' ? value : 'dispatcher'
+}
+
+function canRoleUseTool(role: OpsRole, toolName: string) {
+  return roleCapabilities[role].includes(toolName)
+}
+
+function blockedRoleResult(role: OpsRole, toolName: string) {
+  pushOpsActivity(`Blocked ${toolName}; ${role} role is not authorized for this tool`)
+  pushOpsAudit(`Blocked ${toolName}; role ${role} has no executable permission`)
+  renderOpsState()
+  return {
+    success: false,
+    blocked: true,
+    error: `${roleLabel(role)} does not have permission to run ${toolName}`,
+    role,
+    toolName,
+  }
+}
+
+function roleLabel(role: OpsRole) {
+  return role === 'viewer' ? 'Viewer' : role === 'supervisor' ? 'Supervisor' : 'Dispatcher'
 }
 
 function priorityClass(priority: WorkOrder['priority']) {

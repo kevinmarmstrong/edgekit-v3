@@ -44,7 +44,7 @@ Run each architecture as its own evidence lane. Do not merge these claims:
 | Chrome AI / Nano CDP | Browser-native model path through a real Chrome profile with downloaded Nano available | `EDGEKIT_CHROME_CDP_URL=http://127.0.0.1:9223 EDGEKIT_SUITE_HEADLESS=0 EDGEKIT_REQUIRE_REAL_PROVIDERS=1 EDGEKIT_SUITE_PROVIDER_MODES=chrome pnpm research:suite` |
 | Strict model cascade | Ecommerce prompt/tool/approval paths against Chrome and cascade modes | `EDGEKIT_CHROME_CDP_URL=http://127.0.0.1:9223 EDGEKIT_EVAL_HEADLESS=0 EDGEKIT_REQUIRE_REAL_MODEL=1 EDGEKIT_EVAL_DOWNLOAD_POLICY=never pnpm eval:models` |
 | WebLLM host | WebLLM-capable host with WebGPU and `crossOriginIsolated=true` from COOP/COEP headers | `EDGEKIT_SUITE_PROVIDER_MODES=webllm EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:suite` |
-| Cloud route | Developer-owned model escalation endpoint | `EDGEKIT_SUITE_CLOUD_ROUTE_URL=http://127.0.0.1:4198/api/edgekit/cloud-route EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:suite` |
+| Cloud route | Developer-owned model escalation endpoint | `EDGEKIT_SUITE_PROVIDER_MODES=cloud-route EDGEKIT_SUITE_CLOUD_ROUTE_URL=http://127.0.0.1:4198/api/edgekit/cloud-route EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:suite` |
 | No-model fallback | Honest basic-mode behavior when local models are unavailable | `EDGEKIT_EVAL_DOWNLOAD_POLICY=never EDGEKIT_EVAL_MODES=none pnpm eval:models` |
 | Live Pages | Public docs and demos under GitHub Pages constraints | `EDGEKIT_SUITE_TARGET=live pnpm research:suite` |
 

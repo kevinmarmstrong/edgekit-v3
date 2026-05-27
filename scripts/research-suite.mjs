@@ -193,15 +193,18 @@ async function runEnvironmentProbe(browser) {
     const needsChromeProvider = requireRealProviders && modes.some(mode => mode === 'chrome' || mode === 'cascade')
     const needsWebLlmProvider = requireRealProviders && modes.some(mode => mode === 'webllm' || mode === 'cascade')
     const needsCloudRouteProvider = requireRealProviders && modes.includes('cloud-route')
+    const providerHostCapabilities = needsWebLlmProvider
+      ? await probeProviderHostCapabilities(page, ecommerceURL ?? siteURL)
+      : capabilities
     addCheck(checks, 'environment', 'browser automation is available', true, capabilities.userAgent)
     addCheck(checks, 'environment', 'IndexedDB is available for cache and journal adapters', capabilities.indexedDb)
-    addCheck(checks, 'environment', 'WebGPU is available when real WebLLM providers are required', !needsWebLlmProvider || capabilities.webGpu)
+    addCheck(checks, 'environment', 'WebGPU is available when real WebLLM providers are required', !needsWebLlmProvider || providerHostCapabilities.webGpu)
     addCheck(
       checks,
       'environment',
-      'COOP/COEP isolation is active for WebLLM host proof',
-      !needsWebLlmProvider || capabilities.crossOriginIsolated,
-      `crossOriginIsolated=${capabilities.crossOriginIsolated}`,
+      'COOP/COEP isolation is active on the WebLLM provider host',
+      !needsWebLlmProvider || providerHostCapabilities.crossOriginIsolated,
+      `url=${providerHostCapabilities.url}; crossOriginIsolated=${providerHostCapabilities.crossOriginIsolated}`,
     )
     addCheck(
       checks,
@@ -222,7 +225,7 @@ async function runEnvironmentProbe(browser) {
       'cloud route env is reachable when real provider routing is required',
       !needsCloudRouteProvider || await canFetch(process.env.EDGEKIT_SUITE_CLOUD_ROUTE_URL),
     )
-    transcript = JSON.stringify(capabilities, null, 2)
+    transcript = JSON.stringify({ probeHost: capabilities, providerHost: providerHostCapabilities }, null, 2)
   } catch (error) {
     addCheck(checks, 'runtime', 'environment probe completed without throwing', false, readableError(error))
     notes = readableError(error)
@@ -244,6 +247,15 @@ async function runEnvironmentProbe(browser) {
     notes,
     durationMs: Date.now() - startedAt,
   })
+}
+
+async function probeProviderHostCapabilities(page, url) {
+  await page.goto(url, { waitUntil: 'domcontentloaded' })
+  return page.evaluate(() => ({
+    url: location.href,
+    webGpu: 'gpu' in navigator,
+    crossOriginIsolated: globalThis.crossOriginIsolated,
+  }))
 }
 
 async function startCapabilityProbeServer() {
@@ -739,13 +751,29 @@ async function runProviderMatrix(browser) {
         : `${ecommerceURL}/?modelMode=${encodeURIComponent(mode)}&downloadPolicy=${process.env.EDGEKIT_SUITE_DOWNLOAD_POLICY ?? 'never'}`
       await page.goto(url, { waitUntil: 'networkidle' })
       await sendPrompt(page, 'find me size nine white nike dunks')
-      await waitForContains(page.getByTestId('chat-messages'), /Nike Dunk Low|Chrome AI|No model|Basic mode/i)
+      const strictProviderMode = isStrictExecutableProviderMode(mode)
+      await waitForContains(
+        page.getByTestId('chat-messages'),
+        strictProviderMode ? /Nike Dunk Low|Running|Completed|Add .*cart/i : /Nike Dunk Low|Chrome AI|No model|Basic mode/i,
+      )
       const status = await page.getByTestId('agent-status').innerText()
       const text = await page.getByTestId('chat-messages').innerText()
       transcript = `${status}\n\n${text}`
       addCheck(checks, 'resilience', `${mode} route resolves or degrades without crashing`, /Basic mode|Chrome AI is ready|No local model|ready|Running|Completed/i.test(status))
       addCheck(checks, 'answerQuality', `${mode} route still gives a useful fallback answer`, /Nike Dunk Low|Chrome AI|Basic mode/i.test(text))
       addCheck(checks, 'transparency', `${mode} route exposes provider status`, status.trim().length > 0)
+      addCheck(
+        checks,
+        'environment',
+        `${mode} strict provider proof does not accept no-model fallback`,
+        !strictProviderMode || !/Basic mode|No model|No local model|unavailable/i.test(transcript),
+      )
+      addCheck(
+        checks,
+        'integration',
+        `${mode} strict provider proof reaches model/tool execution`,
+        !strictProviderMode || /Running|Completed|Tool:|Add .*cart/i.test(transcript),
+      )
     } catch (error) {
       addCheck(checks, 'runtime', `${mode} provider matrix scenario completed`, false, readableError(error))
       notes = readableError(error)
@@ -758,7 +786,7 @@ async function runProviderMatrix(browser) {
       suiteId: 'provider-matrix',
       title: `Provider matrix: ${mode}`,
       layer: 'provider',
-      required: false,
+      required: isStrictExecutableProviderMode(mode),
       prompt: 'find me size nine white nike dunks',
       checks,
       transcript,
@@ -774,6 +802,10 @@ async function runProviderMatrix(browser) {
     results.push(result)
   }
   return results
+}
+
+function isStrictExecutableProviderMode(mode) {
+  return requireRealProviders && ['chrome', 'webllm', 'cascade'].includes(mode)
 }
 
 async function probeCloudRouteProvider() {
@@ -1163,8 +1195,18 @@ async function probeMissionProfileValidation(checks) {
 
 function selectedSuites() {
   if (!suiteFilter.length) return scenarioPack.suites
-  const allowed = new Set(suiteFilter)
-  return scenarioPack.suites.filter(suite => allowed.has(suite.id) || allowed.has(suite.surface))
+  if (suiteFilter.includes('__none__')) {
+    if (suiteFilter.length > 1) throw new Error('EDGEKIT_SUITE_ONLY=__none__ cannot be combined with suite ids')
+    return []
+  }
+  const selected = scenarioPack.suites.filter(suite => suiteFilter.includes(suite.id) || suiteFilter.includes(suite.surface))
+  const matched = new Set(selected.flatMap(suite => [suite.id, suite.surface].filter(Boolean)))
+  const missing = suiteFilter.filter(item => !matched.has(item))
+  if (missing.length) {
+    const available = scenarioPack.suites.flatMap(suite => [suite.id, suite.surface].filter(Boolean)).join(', ')
+    throw new Error(`EDGEKIT_SUITE_ONLY did not match: ${missing.join(', ')}. Available suites/surfaces: ${available}`)
+  }
+  return selected
 }
 
 function parseList(value) {
@@ -1228,7 +1270,7 @@ function providerProofMetadata(mode, overrides = {}) {
 
 function providerCommand(mode) {
   if (mode === 'cloud-route') {
-    return 'EDGEKIT_SUITE_CLOUD_ROUTE_URL=http://127.0.0.1:4198/api/edgekit/cloud-route EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:suite'
+    return 'EDGEKIT_SUITE_PROVIDER_MODES=cloud-route EDGEKIT_SUITE_CLOUD_ROUTE_URL=http://127.0.0.1:4198/api/edgekit/cloud-route EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:suite'
   }
   if (mode === 'chrome') {
     return 'EDGEKIT_CHROME_CDP_URL=http://127.0.0.1:9223 EDGEKIT_SUITE_HEADLESS=0 EDGEKIT_REQUIRE_REAL_PROVIDERS=1 EDGEKIT_SUITE_PROVIDER_MODES=chrome pnpm research:suite'
@@ -1308,6 +1350,7 @@ function summarize(results, evalRubric) {
       scored += 1
       scoreTotal += result.score
     }
+    if (result.outcome === 'skipped') continue
     for (const check of result.checks) {
       byCategory[check.category] ??= { passed: 0, failed: 0, score: 0, threshold: evalRubric.thresholds.categories[check.category] ?? 0 }
       if (check.passed) byCategory[check.category].passed += 1

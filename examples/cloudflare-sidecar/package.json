@@ -1,0 +1,24 @@
+{
+  "name": "@edgekit/cloudflare-sidecar",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.worker.json",
+    "dev": "pnpm build && wrangler dev",
+    "deploy": "pnpm build && wrangler deploy",
+    "wrangler:dry-run": "pnpm build && wrangler deploy --dry-run"
+  },
+  "dependencies": {
+    "@kevinmarmstrong/edgekit": "workspace:*",
+    "@kevinmarmstrong/edgekit-ui": "workspace:*",
+    "vite": "^8.0.14",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260527.0",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.95.0"
+  }
+}

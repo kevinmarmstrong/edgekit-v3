@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Edgekit Cloudflare Sidecar Proof</title>
+  </head>
+  <body>
+    <main>
+      <section class="panel">
+        <p class="eyebrow">Cloudflare architecture proof</p>
+        <h1>Edgekit sidecar with Worker-backed routes</h1>
+        <p>
+          This clean-room example runs the browser sidecar on a host that can set
+          COOP/COEP headers and serve backend routes for knowledge, intake, and
+          explicit cloud fallback.
+        </p>
+        <edge-cascade-wizard id="readiness"></edge-cascade-wizard>
+      </section>
+      <edge-chat id="cloudflare-agent" placeholder="Ask about intake policy or start an intake request"></edge-chat>
+      <section id="events" class="events" aria-label="Telemetry events"></section>
+    </main>
+    <script type="module" src="/src/client.ts"></script>
+  </body>
+</html>

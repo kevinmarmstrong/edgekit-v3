@@ -10,6 +10,7 @@ Run the release packages through a fresh app, not only the monorepo workspace.
 pnpm build
 pnpm pack:packages
 pnpm test:fresh-app
+pnpm proof:clean-room-adoption
 ```
 
 The fresh app must import `@kevinmarmstrong/edgekit`, `@kevinmarmstrong/edgekit-ui`, and `@kevinmarmstrong/edgekit-react` from packed tarballs, render `<edge-chat>`, apply a Mission Profile, register tools, and build.
@@ -23,9 +24,10 @@ The fresh app must import `@kevinmarmstrong/edgekit`, `@kevinmarmstrong/edgekit-
 - GitHub Pages is rebuilt and smoke-tested after package verification.
 - Provider evidence is labeled by lane: local resilience, strict Chrome/Nano CDP,
   WebLLM COOP/COEP, cloud route, no-model fallback, and live Pages.
-- `research-results/provider-matrix.md` is regenerated from the same commit as
-  the release candidate, or the release notes explain why provider proof is
-  deferred to a specific host.
+- Provider matrix rows are regenerated from the same release candidate, or the
+  release notes explain why provider proof is deferred to a specific host.
+- `examples/cloudflare-sidecar` is deployed and smoke-tested when claiming
+  Worker-hosted COOP/COEP, knowledge, intake, or cloud-route architecture proof.
 
 ## Provider Release Evidence
 
@@ -33,9 +35,11 @@ Minimum package-readiness evidence:
 
 ```bash
 pnpm test:fresh-app
+pnpm proof:clean-room-adoption
 pnpm research:suite
-EDGEKIT_EVAL_DOWNLOAD_POLICY=never EDGEKIT_EVAL_MODES=none pnpm eval:models
+EDGEKIT_SUITE_PROVIDER_MODES=none pnpm research:suite
 EDGEKIT_SUITE_TARGET=live pnpm research:suite
+pnpm test:cloudflare-sidecar
 ```
 
 Strict provider evidence, when claiming local-model readiness:
@@ -43,7 +47,7 @@ Strict provider evidence, when claiming local-model readiness:
 ```bash
 EDGEKIT_CHROME_CDP_URL=http://127.0.0.1:9223 EDGEKIT_SUITE_HEADLESS=0 EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:suite
 EDGEKIT_CHROME_CDP_URL=http://127.0.0.1:9223 EDGEKIT_EVAL_HEADLESS=0 EDGEKIT_REQUIRE_REAL_MODEL=1 EDGEKIT_EVAL_DOWNLOAD_POLICY=never pnpm eval:models
-EDGEKIT_SUITE_PROVIDER_MODES=cloud-route EDGEKIT_SUITE_CLOUD_ROUTE_URL=https://example.com/api/edgekit/cloud-route EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:suite
+EDGEKIT_SUITE_PROVIDER_MODES=cloud-route EDGEKIT_SUITE_CLOUD_ROUTE_URL=https://edgekit-cloudflare-sidecar.kevinmichaelarmstrong.workers.dev/api/edgekit/cloud-route EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:suite
 ```
 
 Cloud readiness is only proven against the route named in

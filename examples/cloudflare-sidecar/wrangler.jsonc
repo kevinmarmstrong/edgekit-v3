@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "edgekit-cloudflare-sidecar",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-05-27",
+  "assets": {
+    "directory": "./dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": true
+  },
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "EDGEKIT_PROVIDER_LANE": "cloudflare-worker-deterministic"
+  }
+}

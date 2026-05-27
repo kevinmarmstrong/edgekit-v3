@@ -1547,16 +1547,21 @@ pnpm research:suite`,
         bullets: [
           'Chrome AI/Nano: launch a Chrome profile with model support, connect through CDP, and run strict provider checks.',
           'WebLLM: use a host with cross-origin isolation headers and enough device memory for the selected model.',
-          'Cloud route: provide `EDGEKIT_SUITE_CLOUD_ROUTE_URL` for a developer-owned model endpoint.',
+          'Cloud route: provide `EDGEKIT_SUITE_CLOUD_ROUTE_URL` for a developer-owned model endpoint. The Cloudflare proof host exercises this lane beyond GitHub Pages.',
           'No-model fallback: verify the app still produces honest basic-mode answers and never pretends an agent model ran.',
           'Live Pages: run `EDGEKIT_SUITE_TARGET=live pnpm research:suite` and record public-host limitations honestly.',
+          'Clean-room adoption: run `pnpm proof:clean-room-adoption` to prove packed packages, CLI recipes, Mission Profile validation, build, and first-serious deterministic outcome checks outside the monorepo.',
         ],
         code: {
           language: 'bash',
           text: `pnpm chrome:profile
 EDGEKIT_CHROME_CDP_URL=http://127.0.0.1:9223 EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:suite
 
-EDGEKIT_SUITE_CLOUD_ROUTE_URL=http://127.0.0.1:4198/api/edgekit/cloud-route pnpm research:suite
+EDGEKIT_SUITE_PROVIDER_MODES=cloud-route EDGEKIT_SUITE_CLOUD_ROUTE_URL=https://edgekit-cloudflare-sidecar.kevinmichaelarmstrong.workers.dev/api/edgekit/cloud-route EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:suite
+
+EDGEKIT_SUITE_PROVIDER_MODES=none pnpm research:suite
+
+pnpm proof:clean-room-adoption
 
 EDGEKIT_SUITE_TARGET=live pnpm research:suite`,
         },
@@ -1569,6 +1574,8 @@ EDGEKIT_SUITE_TARGET=live pnpm research:suite`,
           '`research-results/agent-suite.json`: machine-readable score, skip, failure, category, and provider evidence.',
           '`research-results/agent-suite.md`: human-readable scenario summary.',
           '`research-results/provider-matrix.md`: provider-by-host pass, fail, and skip reasons.',
+          '`research-results/provider-matrix-cloudflare.md`: hosted Cloudflare cloud-route proof beyond GitHub Pages.',
+          '`research-results/adopter-simulations/latest.md`: clean-room packed-artifact adoption proof.',
           '`research-results/suite-screenshots/*`: browser screenshots for product surfaces.',
           'Live URL, commit SHA, Chrome version, model availability result, and whether the run was strict.',
         ],

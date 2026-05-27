@@ -13,6 +13,8 @@ Release candidate scaffold. The Phase 0 spike is validated, the core package, do
 - [docs/AGENT-ADOPTION-KIT.md](./docs/AGENT-ADOPTION-KIT.md) — Coding-agent skills, recipe scaffolds, and outcome loops for low-friction implementation.
 - [docs/RECIPE-CATALOG.md](./docs/RECIPE-CATALOG.md) — Opinionated install paths such as support workflow, Knowledge Access, and Astro intake plus knowledge.
 - [docs/REPRODUCIBILITY.md](./docs/REPRODUCIBILITY.md) — How to verify provider paths, fallback behavior, live Pages, cloud routes, and outcome evidence outside the maintainer machine.
+- [docs/CLEAN-ROOM-ADOPTION-PROOF.md](./docs/CLEAN-ROOM-ADOPTION-PROOF.md) — Packed-artifact adoption proof outside the monorepo.
+- [docs/CLOUDFLARE-ARCHITECTURE-PROOF.md](./docs/CLOUDFLARE-ARCHITECTURE-PROOF.md) — Worker-hosted architecture proof for COOP/COEP, knowledge, intake, and explicit cloud-route lanes.
 - [docs/RUNTIME-GUARANTEES.md](./docs/RUNTIME-GUARANTEES.md) — What Edgekit enforces at runtime vs. what is an authoring/harness contract.
 - [docs/DISTRIBUTION-READINESS.md](./docs/DISTRIBUTION-READINESS.md) — Package, fresh-app, and public release readiness.
 - [docs/PRODUCTION-RECIPES.md](./docs/PRODUCTION-RECIPES.md) — Telemetry, audit, RBAC, state, and escalation recipes.
@@ -249,7 +251,11 @@ EDGEKIT_SUITE_SEED=42 pnpm research:suite
 EDGEKIT_SUITE_HEADLESS=0 pnpm research:suite
 EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:full
 EDGEKIT_CHROME_USER_DATA_DIR="$HOME/.edgekit/chrome-profile" EDGEKIT_SUITE_HEADLESS=0 EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:full
-EDGEKIT_CHROME_CDP_URL=http://127.0.0.1:9223 EDGEKIT_SUITE_CLOUD_ROUTE_URL=http://127.0.0.1:4198/api/edgekit/cloud-route EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:full
+EDGEKIT_CHROME_CDP_URL=http://127.0.0.1:9223 EDGEKIT_REQUIRE_REAL_PROVIDERS=1 EDGEKIT_SUITE_PROVIDER_MODES=chrome pnpm research:suite
+EDGEKIT_SUITE_PROVIDER_MODES=cloud-route EDGEKIT_SUITE_CLOUD_ROUTE_URL=https://edgekit-cloudflare-sidecar.kevinmichaelarmstrong.workers.dev/api/edgekit/cloud-route EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:suite
+EDGEKIT_SUITE_PROVIDER_MODES=none pnpm research:suite
+pnpm proof:clean-room-adoption
+pnpm test:cloudflare-sidecar
 ```
 
 Use `research:agents` as the fast public-surface check, `research:suite` as the expandable tuning loop, and `research:full` when you want build + environment preflight + outcome matrix in one pass. Add new prompt variants or scenario packs before adding narrow code fixes. The rubric currently requires no required failures, no required skips, an average score of at least `0.98`, and category confidence ratings at or above their thresholds.

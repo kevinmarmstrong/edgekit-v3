@@ -215,6 +215,20 @@ test('cascade and permission lab exercises model, permission, validation, fallba
   await page.goto(`${siteURL}demos/cascade/?cacheBust=${Date.now()}`)
 
   await expect(page.getByRole('heading', { name: 'Cascade and permission lab' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'What a user would actually see.' })).toBeVisible()
+  await page.locator('#cascade-live-check').click()
+  await expect(page.locator('#cascade-live-decision')).not.toHaveText('Waiting for check')
+  await expect(page.locator('#cascade-live-providers')).toContainText(/Chrome AI|WebLLM|No provider/)
+  if (await page.locator('#cascade-live-basic').isVisible()) {
+    await page.locator('#cascade-live-basic').click()
+    await expect(page.locator('#cascade-live-decision')).toHaveText('Show transparent basic mode')
+    await expect(page.locator('#cascade-live-preference')).toContainText('basic mode')
+  }
+  await page.locator('#cascade-live-hide').click()
+  await expect(page.locator('#cascade-live-decision')).toHaveText('Hide assistant entry point')
+  await page.locator('#cascade-live-reset').click()
+  await expect(page.locator('#cascade-live-decision')).toHaveText('Waiting for check')
+
   await page.locator('#cascade-run').click()
 
   await expect(page.locator('#cascade-action')).toHaveText('Use local agent')

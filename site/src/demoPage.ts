@@ -119,8 +119,73 @@ function cascadeDemo() {
           'Use the controller snapshot to drive your own modal, banner, settings page, disabled CTA, or silent feature gate.',
           'Keep auth and permissions in the host app; Edgekit only narrows the visible tool surface and reports missing capabilities.',
           'Treat model downloads as explicit user or enterprise policy decisions, never a surprise side effect.',
+          'Edgekit does not force a bundled default model. This page checks Chrome AI first, then an app-selected WebLLM model when the host/browser can support it.',
         ])}
       </div>
+      <section class="cascade-live-flow" aria-label="Real visitor setup flow">
+        <div class="cascade-live-copy">
+          <p class="section-label">Real visitor setup flow</p>
+          <h2>What a user would actually see.</h2>
+          <p>
+            This flow checks the current browser without starting a surprise download. The user can
+            enable Chrome AI, choose the app-configured WebLLM path when available, continue in
+            transparent basic mode, or hide the agent entry point.
+          </p>
+          <div class="cascade-live-steps" aria-label="Visitor flow steps">
+            <article data-live-step="check">
+              <span>1</span>
+              <strong>Check browser</strong>
+              <p>Detect local model, isolated-host, tool, and UI readiness.</p>
+            </article>
+            <article data-live-step="choose">
+              <span>2</span>
+              <strong>Choose path</strong>
+              <p>Ask before downloads. Offer basic mode when local AI is unavailable.</p>
+            </article>
+            <article data-live-step="launch">
+              <span>3</span>
+              <strong>Launch safely</strong>
+              <p>Show, degrade, or hide the sidecar based on the snapshot.</p>
+            </article>
+          </div>
+        </div>
+        <div class="cascade-user-card" id="cascade-live-card">
+          <div class="cascade-user-card-top">
+            <div>
+              <span id="cascade-live-kicker">Current browser</span>
+              <strong id="cascade-live-title">Set up the edgekit assistant</strong>
+            </div>
+            <span class="status-chip" id="cascade-live-mode">not checked</span>
+          </div>
+          <p id="cascade-live-message">
+            Check this browser to see whether the full local assistant can run, whether a model
+            download needs consent, or whether this app should offer basic mode.
+          </p>
+          <div class="cascade-user-actions">
+            <button id="cascade-live-check" type="button">Check this browser</button>
+            <button id="cascade-live-enable-chrome" class="secondary" type="button" hidden>Enable Chrome AI</button>
+            <button id="cascade-live-enable-webllm" class="secondary" type="button" hidden>Use app WebLLM model</button>
+            <button id="cascade-live-basic" class="secondary" type="button" hidden>Continue basic mode</button>
+            <button id="cascade-live-hide" class="secondary" type="button" hidden>Hide assistant</button>
+            <button id="cascade-live-reset" class="secondary" type="button">Reset flow</button>
+          </div>
+          <div class="cascade-live-output">
+            <section>
+              <div class="cart-title">App decision</div>
+              <strong id="cascade-live-decision">Waiting for check</strong>
+              <p id="cascade-live-decision-copy">The app has not enabled, degraded, or hidden the assistant yet.</p>
+            </section>
+            <section>
+              <div class="cart-title">Provider evidence</div>
+              <ul id="cascade-live-providers"></ul>
+            </section>
+            <section>
+              <div class="cart-title">User preference</div>
+              <p id="cascade-live-preference">No preference recorded.</p>
+            </section>
+          </div>
+        </div>
+      </section>
       <div class="cascade-grid">
         <section class="cascade-control-panel" aria-label="Cascade controls">
           <div class="cascade-toolbar">

@@ -827,6 +827,7 @@ select:focus-visible {
 }
 
 .cascade-intro,
+.cascade-live-flow,
 .cascade-grid,
 .cascade-evidence {
   display: grid;
@@ -848,11 +849,81 @@ select:focus-visible {
   align-items: start;
 }
 
+.cascade-live-flow {
+  grid-template-columns: minmax(0, 0.9fr) minmax(380px, 0.75fr);
+  align-items: stretch;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: clamp(18px, 3vw, 28px);
+  background:
+    linear-gradient(135deg, rgb(184 243 111 / 7%), transparent 44%),
+    #10140f;
+}
+
+.cascade-live-copy {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+}
+
+.cascade-live-copy h2,
+.cascade-live-copy p {
+  margin: 0;
+}
+
+.cascade-live-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--line);
+}
+
+.cascade-live-steps article {
+  display: grid;
+  gap: 8px;
+  min-height: 144px;
+  padding: 15px;
+  background: var(--panel);
+}
+
+.cascade-live-steps article[data-active="true"] {
+  background: #192117;
+}
+
+.cascade-live-steps span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--accent);
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.cascade-live-steps strong,
+.cascade-live-steps p {
+  margin: 0;
+}
+
+.cascade-live-steps p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .cascade-control-panel,
 .cascade-runtime,
 .cascade-evidence > div,
 .cascade-summary-grid article,
-.cascade-lists section {
+.cascade-lists section,
+.cascade-user-card,
+.cascade-live-output section {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--panel);
@@ -860,10 +931,107 @@ select:focus-visible {
 
 .cascade-control-panel,
 .cascade-runtime,
-.cascade-evidence > div {
+.cascade-evidence > div,
+.cascade-user-card {
   display: grid;
   gap: 14px;
   padding: 16px;
+}
+
+.cascade-user-card {
+  align-content: start;
+  background: #eef1ea;
+  color: #15201d;
+}
+
+.cascade-user-card p {
+  color: #435046;
+}
+
+.cascade-user-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.cascade-user-card-top div {
+  display: grid;
+  gap: 4px;
+}
+
+.cascade-user-card-top span:first-child {
+  color: #426300;
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.cascade-user-card-top strong {
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.04;
+}
+
+.cascade-user-card .status-chip {
+  margin: 0;
+  color: #135f42;
+  background: #e0f0e8;
+  border-color: #bed8cc;
+}
+
+.cascade-user-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cascade-user-actions button {
+  flex: 1 1 150px;
+}
+
+.cascade-user-actions .secondary {
+  color: #15201d;
+  background: #dde7df;
+  border-color: #c7d4ca;
+}
+
+.cascade-live-output {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 10px;
+}
+
+.cascade-live-output section {
+  min-width: 0;
+  padding: 13px;
+  background: #f8faf5;
+}
+
+.cascade-live-output section:first-child {
+  grid-row: span 2;
+}
+
+.cascade-live-output strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.cascade-live-output p,
+.cascade-live-output ul {
+  margin-bottom: 0;
+  color: #435046;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.cascade-live-output ul {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+  padding-left: 17px;
 }
 
 .cascade-control-panel {
@@ -1521,6 +1689,7 @@ pre code {
   .ops-layout,
   .ops-lower-grid,
   .cascade-intro,
+  .cascade-live-flow,
   .cascade-grid,
   .cascade-evidence,
   .account-row,
@@ -1551,7 +1720,9 @@ pre code {
 
   .architecture-diagram,
   .runtime-loop-diagram,
-  .cascade-summary-grid {
+  .cascade-summary-grid,
+  .cascade-live-steps,
+  .cascade-live-output {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1605,8 +1776,14 @@ pre code {
   .mission-grid,
   .context-grid,
   .cascade-summary-grid,
-  .cascade-lists {
+  .cascade-lists,
+  .cascade-live-steps,
+  .cascade-live-output {
     grid-template-columns: 1fr;
+  }
+
+  .cascade-live-output section:first-child {
+    grid-row: auto;
   }
 
   .docs-sidebar nav {

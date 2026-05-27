@@ -1,9 +1,11 @@
 import {
+  chromeAI,
   createCascadeReadinessController,
   createMissionProfile,
   createModelProvider,
   tool,
   validateMissionProfile,
+  webLLM,
   type CascadeReadinessSnapshot,
   type DownloadPolicy,
   type LanguageModelV3,
@@ -81,17 +83,56 @@ const fakeModel = (provider: string): LanguageModelV3 => ({
 let state = { ...defaultState }
 let controller = makeController(state)
 let events: string[] = []
+let liveGeneration = 0
+let liveController = makeLiveController(liveGeneration)
+let liveChecked = false
 
 export function mountCascadeDemo() {
   const root = document.querySelector<HTMLElement>('#cascade-lab')
   if (!root) return
 
+  bindLiveFlow()
   syncControlsFromState()
   bindControls()
   bindButtons()
   bindWizard()
   renderAll(controller.getSnapshot())
   void runCheck('Initial readiness check')
+}
+
+function bindLiveFlow() {
+  renderLiveFlow(liveController.getSnapshot())
+  document.getElementById('cascade-live-check')?.addEventListener('click', () => {
+    liveChecked = true
+    void liveController.check()
+  })
+  document.getElementById('cascade-live-enable-chrome')?.addEventListener('click', () => {
+    liveChecked = true
+    setLivePreference('chrome-ai')
+    void liveController.promptDownload('chrome-ai')
+  })
+  document.getElementById('cascade-live-enable-webllm')?.addEventListener('click', () => {
+    liveChecked = true
+    setLivePreference('webllm')
+    void liveController.promptDownload('webllm')
+  })
+  document.getElementById('cascade-live-basic')?.addEventListener('click', () => {
+    liveChecked = true
+    setLivePreference('basic')
+    liveController.useFallback()
+  })
+  document.getElementById('cascade-live-hide')?.addEventListener('click', () => {
+    liveChecked = true
+    setLivePreference('hidden')
+    liveController.hideAgent('Assistant hidden by this visitor preference.')
+  })
+  document.getElementById('cascade-live-reset')?.addEventListener('click', () => {
+    localStorage.removeItem(livePreferenceKey)
+    liveGeneration += 1
+    liveChecked = false
+    liveController = makeLiveController(liveGeneration)
+    renderLiveFlow(liveController.getSnapshot())
+  })
 }
 
 function bindControls() {
@@ -177,6 +218,48 @@ function makeController(next: CascadeLabState) {
   })
 }
 
+const livePreferenceKey = 'edgekit:cascade-live-preference'
+
+function makeLiveController(generation: number) {
+  const preference = getLivePreference()
+  return createCascadeReadinessController({
+    providers: [
+      chromeAI(),
+      webLLM({
+        model: 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
+        modelSize: 'approximately 400 MB',
+      }),
+    ],
+    downloadPolicy: preference === 'basic' || preference === 'hidden' ? 'never' : 'prompt',
+    fallback: true,
+    edgeView: true,
+    approvals: true,
+    tools: {
+      searchDocs: tool({
+        description: 'Search edgekit documentation in basic mode or local agent mode.',
+        inputSchema: z.object({ query: z.string().optional() }),
+        execute: async input => ({ ok: true, input }),
+      }),
+    },
+    requiredTools: ['searchDocs'],
+    requiredCapabilities: ['tools', 'edgeview'],
+    visibilityPolicy: preference === 'hidden' ? () => 'hide' : 'show-basic-when-local-unavailable',
+    modelResolveTimeoutMs: 1_500,
+    messages: {
+      checking: 'Checking this browser for local AI support...',
+      ready: 'Local AI is ready. This app can show the full assistant.',
+      downloadable: 'A browser-local model is available, but this app needs your consent before preparing it.',
+      fallback: 'Local AI is unavailable or declined. This app can still offer transparent basic mode.',
+      hidden: 'The assistant is hidden for this visitor until they reset the flow.',
+      unavailable: 'This browser cannot run the local agent path right now.',
+      error: 'The capability check failed. Retry, use basic mode, or hide the assistant.',
+    },
+    onSnapshot: snapshot => {
+      if (generation === liveGeneration) renderLiveFlow(snapshot)
+    },
+  })
+}
+
 function providersFor(browser: BrowserScenario) {
   const chrome = createModelProvider({
     id: 'chrome-ai',
@@ -233,6 +316,113 @@ function providersFor(browser: BrowserScenario) {
   })
 
   return [chrome, webllm, cloud]
+}
+
+function renderLiveFlow(snapshot: CascadeReadinessSnapshot) {
+  if (!liveChecked && snapshot.providers.length === 0) {
+    setText('cascade-live-mode', 'not checked')
+    setText('cascade-live-title', 'Set up the edgekit assistant')
+    setText('cascade-live-message', 'Check this browser to see whether the full local assistant can run, whether a model download needs consent, or whether this app should offer basic mode.')
+    setText('cascade-live-decision', 'Waiting for check')
+    setText('cascade-live-decision-copy', 'The app has not enabled, degraded, or hidden the assistant yet.')
+    setText('cascade-live-preference', 'No preference recorded.')
+    renderList('cascade-live-providers', [])
+    setHidden('cascade-live-enable-chrome', true)
+    setHidden('cascade-live-enable-webllm', true)
+    setHidden('cascade-live-basic', true)
+    setHidden('cascade-live-hide', false)
+    setStepState(snapshot)
+    return
+  }
+
+  const preference = getLivePreference()
+  setText('cascade-live-mode', snapshot.mode)
+  setText('cascade-live-title', liveTitle(snapshot))
+  setText('cascade-live-message', snapshot.message || 'Check this browser before showing agent-only features.')
+  setText('cascade-live-decision', liveDecision(snapshot))
+  setText('cascade-live-decision-copy', liveDecisionCopy(snapshot))
+  setText('cascade-live-preference', livePreferenceCopy(preference, snapshot))
+  renderList('cascade-live-providers', snapshot.providers.map(provider =>
+    `${provider.label}: ${provider.status}${provider.modelSize ? ` (${provider.modelSize})` : ''}${provider.message ? ` - ${provider.message}` : ''}`))
+  setStepState(snapshot)
+
+  const chromeDownloadable = hasDownloadableProvider(snapshot, 'chrome-ai')
+  const webllmDownloadable = hasDownloadableProvider(snapshot, 'webllm')
+  setHidden('cascade-live-enable-chrome', !chromeDownloadable)
+  setHidden('cascade-live-enable-webllm', !webllmDownloadable)
+  setHidden('cascade-live-basic', snapshot.mode === 'local-ready' || snapshot.mode === 'checking' || snapshot.mode === 'hidden')
+  setHidden('cascade-live-hide', snapshot.mode === 'hidden')
+}
+
+function liveTitle(snapshot: CascadeReadinessSnapshot) {
+  if (snapshot.mode === 'checking') return 'Checking local AI support'
+  if (snapshot.mode === 'local-ready') return snapshot.recommendedAction.label === 'Use cloud route'
+    ? 'Cloud route is ready'
+    : 'Local assistant is ready'
+  if (snapshot.mode === 'downloadable') return 'Permission needed'
+  if (snapshot.mode === 'fallback-ready') return 'Basic mode is available'
+  if (snapshot.mode === 'hidden') return 'Assistant is hidden'
+  if (snapshot.mode === 'error') return 'Setup needs attention'
+  return 'Choose a supported path'
+}
+
+function liveDecision(snapshot: CascadeReadinessSnapshot) {
+  if (snapshot.shouldHideFeatures) return 'Hide assistant entry point'
+  if (snapshot.canRunAgent) return 'Show full local assistant'
+  if (snapshot.mode === 'downloadable') return 'Ask for model-download consent'
+  if (snapshot.canUseFallback) return 'Show transparent basic mode'
+  return 'Show setup guidance'
+}
+
+function liveDecisionCopy(snapshot: CascadeReadinessSnapshot) {
+  if (snapshot.shouldHideFeatures) return 'The host app should keep the sidecar launcher out of the UI until this preference or policy changes.'
+  if (snapshot.canRunAgent) return 'The app can enable the assistant, registered tools, EdgeView actions, approvals, telemetry, and audit hooks.'
+  if (snapshot.mode === 'downloadable') return 'No model download has started. The user must pick the provider path first.'
+  if (snapshot.canUseFallback) return 'The user can still search docs or use deterministic app help while local AI remains off.'
+  return 'Tell the user exactly what is missing instead of showing a broken chat box.'
+}
+
+function livePreferenceCopy(preference: string | null, snapshot: CascadeReadinessSnapshot) {
+  if (preference === 'chrome-ai') return 'User chose Chrome AI/Nano when the browser allows it.'
+  if (preference === 'webllm') return 'User chose the app-configured WebLLM model.'
+  if (preference === 'basic') return 'User chose basic mode; model downloads are disabled until reset.'
+  if (preference === 'hidden') return 'User hid the assistant for this session until reset.'
+  if (snapshot.mode === 'downloadable') return 'Waiting for the user to choose Chrome AI, WebLLM, or basic mode.'
+  return 'No preference recorded.'
+}
+
+function hasDownloadableProvider(snapshot: CascadeReadinessSnapshot, id: string) {
+  return snapshot.providers.some(provider => provider.id === id && provider.status === 'downloadable')
+}
+
+function getLivePreference() {
+  try {
+    return localStorage.getItem(livePreferenceKey)
+  } catch {
+    return null
+  }
+}
+
+function setLivePreference(value: 'chrome-ai' | 'webllm' | 'basic' | 'hidden') {
+  try {
+    localStorage.setItem(livePreferenceKey, value)
+  } catch {
+    // Ignore private-mode storage failures; the runtime snapshot still drives UI.
+  }
+}
+
+function setStepState(snapshot: CascadeReadinessSnapshot) {
+  const activeStep =
+    !liveChecked && snapshot.providers.length === 0
+      ? 'check'
+      : snapshot.mode === 'checking'
+      ? 'check'
+      : snapshot.mode === 'downloadable' || snapshot.mode === 'fallback-ready' || snapshot.mode === 'unavailable'
+        ? 'choose'
+        : 'launch'
+  for (const element of document.querySelectorAll<HTMLElement>('[data-live-step]')) {
+    element.dataset.active = element.dataset.liveStep === activeStep ? 'true' : 'false'
+  }
 }
 
 function readState(): CascadeLabState {
@@ -422,6 +612,11 @@ function setChecked(id: string, value: boolean) {
 function setText(id: string, text: string) {
   const element = document.getElementById(id)
   if (element) element.textContent = text
+}
+
+function setHidden(id: string, hidden: boolean) {
+  const element = document.getElementById(id) as HTMLElement | null
+  if (element) element.hidden = hidden
 }
 
 function renderList(id: string, items: string[]) {

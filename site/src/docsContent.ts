@@ -1122,7 +1122,7 @@ chat?.registerTools({ searchProducts, addToCart })`,
         body: [
           '`<edge-cascade-wizard>` is optional UI for `createCascadeReadinessController()`. Use it for demos, setup panels, public capability disclosure, or internal diagnostics.',
           'Production apps can replace it completely. The durable contract is the controller snapshot and the `edgekit-cascade-snapshot` / `edgekit-cascade-action` events.',
-          'The public cascade lab at `/demos/cascade/` shows model readiness, Nano download consent, RBAC-narrowed tools, validation, fallback, opt-out, and hidden feature policies as a resettable workflow.',
+          'The public cascade lab at `/demos/cascade/` includes both a real visitor setup flow and a developer matrix. The visitor flow checks the current browser, asks before Chrome AI or app-selected WebLLM downloads, offers basic mode, and can hide the assistant. The matrix shows model readiness, RBAC-narrowed tools, validation, fallback, opt-out, and hidden feature policies as resettable scenarios.',
         ],
         code: {
           language: 'ts',

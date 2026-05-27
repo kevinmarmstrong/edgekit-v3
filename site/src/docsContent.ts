@@ -1601,6 +1601,8 @@ EDGEKIT_SUITE_TARGET=live pnpm research:suite`,
         title: 'Guarantee table',
         body: [
           '`requiredTools`, safe profile application, registered executable tools, tool `needsApproval`, telemetry, audit primitives, and profile validation have runtime behavior today.',
+          'EdgeView action forms are also runtime-mediated. Submitted forms resolve against the active tool surface, including `toolProvider` and RBAC-filtered manifests. Host-owned `registerActions()` forms are trusted user-confirmed CTAs; arbitrary EdgeView or AG-UI forms cannot execute tools hidden from the current session or marked `needsApproval`.',
+          'Model-history redaction applies before tool results and approval responses are retained for later turns. It redacts payloads while preserving protocol metadata such as `toolName`, `toolCallId`, and approval ids so approval-gated flows remain executable.',
           '`synthesis`, mission-level `policy`, `uiAffordances`, and optimization metadata are authoring and harness contracts today. Use outcome tests to prove their intended behavior.',
         ],
       },

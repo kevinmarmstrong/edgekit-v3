@@ -17,6 +17,7 @@ const demoLinks = [
   { label: 'AG-UI event stream', href: '/demos/ag-ui/', description: 'Generated forms, charts, tables, and cards from an event stream.' },
   { label: 'SaaS admin workflow', href: '/demos/admin/', description: 'Account search, plan changes, and suspensions behind approval.' },
   { label: 'Mission control', href: '/demos/mission-control/', description: 'Telemetry for runs, tools, approvals, and model fallback.' },
+  { label: 'Cascade and permission lab', href: '/demos/cascade/', description: 'Resettable browser-model, permission, fallback, validation, and feature-gating flows.' },
 ]
 const siteBasePath = import.meta.env.BASE_URL.replace(/\/$/, '')
 

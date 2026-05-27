@@ -22,7 +22,7 @@ test('homepage links into the full documentation site', async ({ page }) => {
   await expect(page.locator('a.doc-card[href="/edgekit/docs/runtime-guarantees/"]')).toBeVisible()
   await expect(page.locator('a.doc-card[href="/edgekit/docs/30-minute-sidecar/"]')).toBeVisible()
   await expect(page.getByRole('link', { name: /Outcome Quality/ })).toHaveAttribute('href', /\/edgekit\/docs\/outcome-quality\/$/)
-  await expect(page.locator('.demo-grid a.demo-card')).toHaveCount(6)
+  await expect(page.locator('.demo-grid a.demo-card')).toHaveCount(7)
   await expect(page.locator('.site-header nav').getByRole('link', { name: 'Admin' })).toHaveCount(0)
   await expect(page.locator('edge-chat')).toHaveCount(1)
   await expect(page.locator('#site-assistant')).toBeVisible()
@@ -33,6 +33,10 @@ test('homepage links into the full documentation site', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Field ops ERP Work orders, inventory reservation, and technician dispatch' })).toHaveAttribute(
     'href',
     'demos/operations/',
+  )
+  await expect(page.getByRole('link', { name: 'Cascade lab Browser model readiness, permissions, fallbacks, and feature gating' })).toHaveAttribute(
+    'href',
+    'demos/cascade/',
   )
 
   await page.getByRole('link', { name: 'Read the docs' }).click()
@@ -205,4 +209,51 @@ test('public demos expose cascade readiness without forcing model downloads', as
   await expect(commerceWizard).toContainText(/Cascade readiness/)
   await expect(commerceWizard).toContainText(/approvals/)
   await expect(page.getByTestId('download-prompt')).toHaveCount(0)
+})
+
+test('cascade and permission lab exercises model, permission, validation, fallback, and reset flows', async ({ page }) => {
+  await page.goto(`${siteURL}demos/cascade/?cacheBust=${Date.now()}`)
+
+  await expect(page.getByRole('heading', { name: 'Cascade and permission lab' })).toBeVisible()
+  await page.locator('#cascade-run').click()
+
+  await expect(page.locator('#cascade-action')).toHaveText('Use local agent')
+  await expect(page.locator('#cascade-feature-state')).toHaveText('Full agent')
+  await expect(page.locator('#cascade-providers')).toContainText('Chrome AI / Nano: ready')
+  await expect(page.locator('#cascade-validation')).toContainText('warning')
+
+  await page.locator('#cascade-browser').selectOption('nano-downloadable')
+  await page.locator('#cascade-download-policy').selectOption('prompt')
+  await page.locator('#cascade-run').click()
+  await expect(page.locator('#cascade-action')).toHaveText('Enable local AI')
+  await expect(page.locator('#cascade-message')).toContainText('consent')
+  await page.locator('#cascade-accept-download').click()
+  await expect(page.locator('#cascade-action')).toHaveText('Use local agent')
+
+  await page.locator('#cascade-workflow').selectOption('shopping')
+  await page.locator('#cascade-role').selectOption('visitor')
+  await page.locator('#cascade-run').click()
+  await expect(page.locator('#cascade-feature-state')).toHaveText('Needs setup')
+  await expect(page.locator('#cascade-validation-message')).toContainText('addToCart')
+  await expect(page.locator('#cascade-copy')).toContainText('Do not enable the full agent')
+
+  await page.locator('#cascade-role').selectOption('customer')
+  await page.locator('#cascade-approvals').uncheck()
+  await page.locator('#cascade-run').click()
+  await expect(page.locator('#cascade-capabilities')).toContainText('Missing: approvals')
+  await expect(page.locator('#cascade-action')).toHaveText('Complete setup')
+
+  await page.locator('#cascade-browser').selectOption('unsupported')
+  await page.locator('#cascade-fallback').check()
+  await page.locator('#cascade-approvals').check()
+  await page.locator('#cascade-workflow').selectOption('docs')
+  await page.locator('#cascade-role').selectOption('visitor')
+  await page.locator('#cascade-run').click()
+  await expect(page.locator('#cascade-feature-state')).toHaveText('Basic mode available')
+  await page.locator('#cascade-hide').click()
+  await expect(page.locator('#cascade-feature-state')).toHaveText('Hidden')
+
+  await page.locator('#cascade-reset').click()
+  await expect(page.locator('#cascade-feature-state')).toHaveText('Full agent')
+  await expect(page.locator('#cascade-json')).toContainText('"browser": "chrome-ready"')
 })

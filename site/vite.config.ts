@@ -22,6 +22,7 @@ export default defineConfig({
         'demo-ag-ui': resolve(__dirname, 'demos/ag-ui/index.html'),
         'demo-admin': resolve(__dirname, 'demos/admin/index.html'),
         'demo-mission-control': resolve(__dirname, 'demos/mission-control/index.html'),
+        'demo-cascade': resolve(__dirname, 'demos/cascade/index.html'),
         docs: resolve(__dirname, 'docs/index.html'),
         'docs-getting-started': resolve(__dirname, 'docs/getting-started/index.html'),
         'docs-30-minute-sidecar': resolve(__dirname, 'docs/30-minute-sidecar/index.html'),
@@ -96,6 +97,7 @@ ${links}
 - [AG-UI event stream](${publicDocsPath('/demos/ag-ui/')})
 - [SaaS admin workflow](${publicDocsPath('/demos/admin/')})
 - [Mission control telemetry](${publicDocsPath('/demos/mission-control/')})
+- [Cascade and permission lab](${publicDocsPath('/demos/cascade/')})
 
 ## Repository
 

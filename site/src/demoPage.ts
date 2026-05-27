@@ -1,6 +1,6 @@
 import './styles.css'
 
-type DemoSlug = 'ecommerce' | 'operations' | 'docs' | 'ag-ui' | 'admin' | 'mission-control'
+type DemoSlug = 'ecommerce' | 'operations' | 'docs' | 'ag-ui' | 'admin' | 'mission-control' | 'cascade'
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '')
 const root = document.querySelector<HTMLElement>('#demo-root')
@@ -36,6 +36,11 @@ const demoMeta: Record<DemoSlug, { title: string; label: string; summary: string
     title: 'Mission control demo',
     label: 'Telemetry primitive',
     summary: 'Local run, tool, approval, and model-availability telemetry from a deployed Edgekit sidecar.',
+  },
+  cascade: {
+    title: 'Cascade and permission lab',
+    label: 'Cascade lab',
+    summary: 'A resettable self-service readiness lab for browser models, download consent, permissions, validation, fallback, and feature gating.',
   },
 }
 
@@ -92,7 +97,145 @@ function renderDemo(slug: DemoSlug) {
   if (slug === 'admin') return adminDemo()
   if (slug === 'operations') return operationsDemo()
   if (slug === 'mission-control') return missionDemo()
+  if (slug === 'cascade') return cascadeDemo()
   return ecommerceDemo()
+}
+
+function cascadeDemo() {
+  return `
+    <section class="cascade-lab" id="cascade-lab">
+      <div class="cascade-intro">
+        <div>
+          <p class="section-label">Capability and permission workflow</p>
+          <h2>Run every public-browser state before users hit it.</h2>
+          <p>
+            This lab exercises the same readiness contract a host app can put behind any UI:
+            Chrome AI, WebLLM, cloud-route escalation, user download preferences, opt-out,
+            RBAC-filtered tools, approval requirements, Mission Profile validation, fallback,
+            hidden features, and resettable recovery paths.
+          </p>
+        </div>
+        ${productionNotes([
+          'Use the controller snapshot to drive your own modal, banner, settings page, disabled CTA, or silent feature gate.',
+          'Keep auth and permissions in the host app; Edgekit only narrows the visible tool surface and reports missing capabilities.',
+          'Treat model downloads as explicit user or enterprise policy decisions, never a surprise side effect.',
+        ])}
+      </div>
+      <div class="cascade-grid">
+        <section class="cascade-control-panel" aria-label="Cascade controls">
+          <div class="cascade-toolbar">
+            <button id="cascade-run" type="button">Run readiness</button>
+            <button id="cascade-reset" class="secondary" type="button">Reset</button>
+          </div>
+          <label>
+            Browser and model state
+            <select id="cascade-browser">
+              <option value="chrome-ready">Chrome AI ready</option>
+              <option value="nano-downloadable">Nano downloadable</option>
+              <option value="webllm-ready">WebLLM isolated host</option>
+              <option value="cloud-only">Cloud route only</option>
+              <option value="enterprise-blocked">Enterprise policy blocked</option>
+              <option value="unsupported">Unsupported browser</option>
+            </select>
+          </label>
+          <label>
+            User model preference
+            <select id="cascade-download-policy">
+              <option value="prompt">Prompt before model download</option>
+              <option value="never">Opt out of model downloads</option>
+              <option value="auto">Managed app auto-download</option>
+            </select>
+          </label>
+          <label>
+            Signed-in role
+            <select id="cascade-role">
+              <option value="visitor">Visitor</option>
+              <option value="customer">Customer</option>
+              <option value="support">Support agent</option>
+              <option value="admin">Admin</option>
+            </select>
+          </label>
+          <label>
+            Workflow intent
+            <select id="cascade-workflow">
+              <option value="docs">Docs Q&A</option>
+              <option value="shopping">Shopping action</option>
+              <option value="support">Support case</option>
+              <option value="admin">Admin mutation</option>
+              <option value="private-data">Private data lookup</option>
+            </select>
+          </label>
+          <label>
+            Visibility policy
+            <select id="cascade-visibility">
+              <option value="show-basic-when-local-unavailable">Show basic mode when local unavailable</option>
+              <option value="hide-until-ready">Hide until full local agent is ready</option>
+              <option value="show-always">Always show agent surface</option>
+            </select>
+          </label>
+          <div class="cascade-switches" aria-label="Integration switches">
+            <label><input id="cascade-fallback" type="checkbox" checked /> Basic fallback available</label>
+            <label><input id="cascade-edgeview" type="checkbox" checked /> EdgeView/action UI installed</label>
+            <label><input id="cascade-approvals" type="checkbox" checked /> Approval UI installed</label>
+          </div>
+          <div class="cascade-toolbar">
+            <button id="cascade-accept-download" class="secondary" type="button">Accept download prompt</button>
+            <button id="cascade-use-fallback" class="secondary" type="button">Use fallback</button>
+            <button id="cascade-hide" class="secondary" type="button">Hide agent</button>
+          </div>
+        </section>
+
+        <section class="cascade-runtime" aria-label="Readiness runtime">
+          <edge-cascade-wizard id="cascade-lab-wizard"></edge-cascade-wizard>
+          <div class="cascade-summary-grid">
+            <article>
+              <span>Recommended app action</span>
+              <strong id="cascade-action">Not checked</strong>
+              <p id="cascade-message">Run readiness to see what the host app should do.</p>
+            </article>
+            <article>
+              <span>Feature visibility</span>
+              <strong id="cascade-feature-state">Unknown</strong>
+              <p id="cascade-feature-message">The host app can show, hide, or degrade the sidecar.</p>
+            </article>
+            <article>
+              <span>Validation</span>
+              <strong id="cascade-validation">Waiting</strong>
+              <p id="cascade-validation-message">Mission Profile and registered tool checks run on every scenario.</p>
+            </article>
+          </div>
+          <div class="cascade-lists">
+            <section>
+              <div class="cart-title">Provider ladder</div>
+              <ul id="cascade-providers"></ul>
+            </section>
+            <section>
+              <div class="cart-title">Required capabilities</div>
+              <ul id="cascade-capabilities"></ul>
+            </section>
+            <section>
+              <div class="cart-title">Visible tools</div>
+              <ul id="cascade-tools"></ul>
+            </section>
+            <section>
+              <div class="cart-title">User-facing copy</div>
+              <ul id="cascade-copy"></ul>
+            </section>
+          </div>
+        </section>
+      </div>
+      <section class="cascade-evidence" aria-label="Cascade evidence">
+        <div>
+          <div class="cart-title">Timeline</div>
+          <ol id="cascade-events"></ol>
+        </div>
+        <div>
+          <div class="cart-title">Snapshot JSON</div>
+          <pre id="cascade-json">{}</pre>
+        </div>
+      </section>
+    </section>
+  `
 }
 
 function docsDemo() {

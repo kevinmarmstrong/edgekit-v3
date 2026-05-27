@@ -1001,6 +1001,57 @@ describe('createCascadeReadinessController', () => {
     expect(snapshot.capabilities).toEqual(expect.arrayContaining(['local-model', 'chrome-ai', 'tools', 'approvals']))
   })
 
+  it('does not mark the agent runnable when required integration capabilities are missing', async () => {
+    const controller = createCascadeReadinessController({
+      providers: [
+        createModelProvider({
+          id: 'chrome-ai',
+          label: 'Chrome AI',
+          resolve: async () => fakeModel,
+        }),
+      ],
+      requiredCapabilities: ['local-model', 'tools', 'approvals', 'edgeview'],
+      requiredTools: ['searchAccounts', 'suspendAccount'],
+      tools: { searchAccounts: {} },
+      approvals: false,
+      edgeView: false,
+    })
+
+    const snapshot = await controller.check()
+
+    expect(snapshot.mode).toBe('local-ready')
+    expect(snapshot.canRunAgent).toBe(false)
+    expect(snapshot.missingCapabilities).toEqual(expect.arrayContaining(['tools', 'approvals', 'edgeview']))
+    expect(snapshot.recommendedAction).toMatchObject({
+      type: 'suggest',
+      label: 'Complete setup',
+    })
+  })
+
+  it('does not treat a cloud route as satisfying a required local model', async () => {
+    const controller = createCascadeReadinessController({
+      providers: [
+        createModelProvider({
+          id: 'cloud-route',
+          label: 'Cloud route',
+          resolve: async () => fakeModel,
+        }),
+      ],
+      requiredCapabilities: ['local-model', 'cloud-route'],
+    })
+
+    const snapshot = await controller.check()
+
+    expect(snapshot.capabilities).toContain('cloud-route')
+    expect(snapshot.capabilities).not.toContain('local-model')
+    expect(snapshot.canRunAgent).toBe(false)
+    expect(snapshot.missingCapabilities).toEqual(['local-model'])
+    expect(snapshot.recommendedAction).toMatchObject({
+      type: 'suggest',
+      label: 'Complete setup',
+    })
+  })
+
   it('marks a provider as downloadable and recommends prompting when downloads are allowed', async () => {
     const controller = createCascadeReadinessController({
       providers: [

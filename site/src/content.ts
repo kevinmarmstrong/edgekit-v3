@@ -134,6 +134,13 @@ export const docChunks: DocChunk[] = [
   },
   {
     slug: 'concepts',
+    title: 'Cascade Permission Lab',
+    tags: ['cascade', 'permissions', 'rbac', 'fallback', 'download policy', 'demo'],
+    body:
+      'The cascade and permission lab is a resettable public demo for browser model states, Nano download consent, WebLLM isolated-host readiness, developer cloud routes, user opt-out, RBAC-narrowed tools, approval UI, EdgeView installation, Mission Profile validation, fallback, and hidden feature policies.',
+  },
+  {
+    slug: 'concepts',
     title: 'Human Approval',
     tags: ['hitl', 'approval', 'safety'],
     body:
@@ -352,9 +359,9 @@ export const docChunks: DocChunk[] = [
   {
     slug: 'overview',
     title: 'Separate Demo Pages',
-    tags: ['demo', 'ecommerce', 'admin', 'ag-ui', 'mission control'],
+    tags: ['demo', 'ecommerce', 'admin', 'ag-ui', 'mission control', 'cascade'],
     body:
-      'Each public demo has its own route: ecommerce retrofit, docs Q&A, AG-UI event stream, SaaS admin workflow, and mission control telemetry. The homepage now links to dedicated workflow pages instead of burying every agent surface on one long page.',
+      'Each public demo has its own route: ecommerce retrofit, field ops ERP, docs Q&A, AG-UI event stream, SaaS admin workflow, mission control telemetry, and the cascade and permission lab. The homepage links to dedicated workflow pages instead of burying every agent surface on one long page.',
   },
   {
     slug: 'runtime-guarantees',

@@ -2910,10 +2910,10 @@ function buildCascadeSnapshot(
   const toolsReady = requiredToolsReady(options.tools, options.requiredTools)
   const capabilities = new Set<CascadeCapability>()
 
-  if (providers.some(provider => provider.status === 'ready')) capabilities.add('local-model')
+  if (providers.some(provider => provider.status === 'ready' && isLocalModelProvider(provider.id))) capabilities.add('local-model')
   if (providers.some(provider => provider.id === 'chrome-ai' && provider.status === 'ready')) capabilities.add('chrome-ai')
   if (providers.some(provider => provider.id === 'webllm' && provider.status === 'ready')) capabilities.add('webllm')
-  if (providers.some(provider => /cloud|route|server/i.test(provider.id) && provider.status === 'ready')) capabilities.add('cloud-route')
+  if (providers.some(provider => isCloudRouteProvider(provider.id) && provider.status === 'ready')) capabilities.add('cloud-route')
   if (fallback) capabilities.add('no-model-fallback')
   if (toolsReady) capabilities.add('tools')
   if (options.approvals !== false) capabilities.add('approvals')
@@ -2944,7 +2944,7 @@ function buildCascadeSnapshot(
     requiredCapabilities,
     missingCapabilities,
     recommendedAction: { type: 'message', label: 'Checking', message: '' } satisfies CascadeRecommendedAction,
-    canRunAgent: mode === 'local-ready',
+    canRunAgent: mode === 'local-ready' && missingCapabilities.length === 0,
     canUseFallback: fallback,
     shouldHideFeatures: false,
     downloadPolicy,
@@ -2972,6 +2972,7 @@ function buildCascadeSnapshot(
     forcedMessage,
     hidden: shouldHide,
     fallbackPreferred: options.visibilityPolicy === 'show-basic-when-local-unavailable',
+    missingCapabilities,
   })
 
   const message = forcedMessage ?? recommendedAction.message
@@ -2983,7 +2984,7 @@ function buildCascadeSnapshot(
     requiredCapabilities,
     missingCapabilities,
     recommendedAction,
-    canRunAgent: mode === 'local-ready',
+    canRunAgent: mode === 'local-ready' && missingCapabilities.length === 0,
     canUseFallback: fallback,
     shouldHideFeatures: shouldHide,
     downloadPolicy,
@@ -3004,8 +3005,11 @@ function recommendedCascadeAction(
     forcedMessage?: string
     hidden?: boolean
     fallbackPreferred?: boolean
+    missingCapabilities?: CascadeCapability[]
   },
 ): CascadeRecommendedAction {
+  const missingCapabilities = context.missingCapabilities ?? []
+
   if (context.hidden || mode === 'hidden') {
     return {
       type: 'hide',
@@ -3022,10 +3026,22 @@ function recommendedCascadeAction(
     }
   }
 
+  const providerOnlyMissing = missingCapabilities.every(capability =>
+    capability === 'local-model' || capability === 'chrome-ai' || capability === 'webllm' || capability === 'cloud-route',
+  )
+
+  if (missingCapabilities.length > 0 && !(mode === 'downloadable' && providerOnlyMissing)) {
+    return {
+      type: 'suggest',
+      label: 'Complete setup',
+      message: `Missing required ${missingCapabilities.length === 1 ? 'capability' : 'capabilities'}: ${missingCapabilities.join(', ')}.`,
+    }
+  }
+
   if (mode === 'local-ready' && context.ready) {
     return {
       type: 'continue',
-      label: 'Use local agent',
+      label: isCloudRouteProvider(context.ready.id) ? 'Use cloud route' : 'Use local agent',
       provider: context.ready.id,
       message: context.messages?.ready ?? `${context.ready.label} is ready.`,
     }
@@ -3080,6 +3096,14 @@ function requiredToolsReady(tools?: Record<string, unknown>, requiredTools?: str
   if (!requiredTools || requiredTools.length === 0) return true
   if (!tools) return false
   return requiredTools.every(name => Object.prototype.hasOwnProperty.call(tools, name))
+}
+
+function isCloudRouteProvider(id: string) {
+  return /cloud|route|server/i.test(id)
+}
+
+function isLocalModelProvider(id: string) {
+  return !isCloudRouteProvider(id)
 }
 
 function providerLabelFromId(id: string) {

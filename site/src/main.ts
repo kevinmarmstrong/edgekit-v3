@@ -19,6 +19,7 @@ import { searchDocs } from './content'
 import { docsPages, docsPath } from './docsContent'
 import { composeEdgekitAnswer } from './answerComposer'
 import { mountSiteAssistant } from './siteAssistant'
+import { mountCascadeDemo } from './cascadeDemo'
 import './styles.css'
 
 type Product = {
@@ -275,6 +276,7 @@ renderMissionControl()
 wireDocSearch()
 mountAdminDemo()
 mountOpsDemo()
+mountCascadeDemo()
 mountSiteAssistant({ telemetry: missionControl })
 
 function renderDocCards() {

@@ -35,7 +35,8 @@ body {
 
 body,
 button,
-input {
+input,
+select {
   color: var(--ink);
 }
 
@@ -485,6 +486,7 @@ dl {
 .ecommerce-demo,
 .ops-demo,
 .admin-demo,
+.cascade-lab,
 .mission-section,
 .split-section {
   display: grid;
@@ -738,6 +740,15 @@ input {
   font: inherit;
 }
 
+select {
+  min-width: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: #0f120f;
+  padding: 12px;
+  font: inherit;
+}
+
 input:focus-visible,
 button:focus-visible,
 a:focus-visible,
@@ -813,6 +824,164 @@ select:focus-visible {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
   gap: 20px;
+}
+
+.cascade-intro,
+.cascade-grid,
+.cascade-evidence {
+  display: grid;
+  gap: 18px;
+}
+
+.cascade-intro {
+  grid-template-columns: minmax(0, 0.92fr) minmax(320px, 0.58fr);
+  align-items: start;
+}
+
+.cascade-intro h2,
+.cascade-intro p {
+  margin-bottom: 0;
+}
+
+.cascade-grid {
+  grid-template-columns: minmax(300px, 420px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.cascade-control-panel,
+.cascade-runtime,
+.cascade-evidence > div,
+.cascade-summary-grid article,
+.cascade-lists section {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+
+.cascade-control-panel,
+.cascade-runtime,
+.cascade-evidence > div {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.cascade-control-panel {
+  position: sticky;
+  top: 86px;
+}
+
+.cascade-control-panel label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.cascade-switches {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: #10140f;
+}
+
+.cascade-switches label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cascade-switches input {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+}
+
+.cascade-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cascade-toolbar button {
+  flex: 1 1 140px;
+}
+
+.cascade-runtime edge-cascade-wizard {
+  display: block;
+}
+
+.cascade-summary-grid,
+.cascade-lists {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--line);
+}
+
+.cascade-summary-grid article,
+.cascade-lists section {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 15px;
+}
+
+.cascade-summary-grid article {
+  min-height: 142px;
+}
+
+.cascade-summary-grid span {
+  width: fit-content;
+  color: var(--accent);
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.cascade-summary-grid strong {
+  overflow-wrap: anywhere;
+  font-size: clamp(18px, 2vw, 24px);
+}
+
+.cascade-summary-grid p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.cascade-lists {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cascade-lists ul,
+.cascade-evidence ol {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.cascade-evidence {
+  grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.2fr);
+}
+
+#cascade-json {
+  max-height: 420px;
+  white-space: pre-wrap;
+  overflow: auto;
+  color: #dfe8d6;
+  font-size: 12px;
+  line-height: 1.55;
 }
 
 .catalog {
@@ -1351,6 +1520,9 @@ pre code {
   .admin-layout,
   .ops-layout,
   .ops-lower-grid,
+  .cascade-intro,
+  .cascade-grid,
+  .cascade-evidence,
   .account-row,
   .frame-body,
   .docs-shell {
@@ -1360,6 +1532,7 @@ pre code {
   .commerce-agent,
   .admin-agent,
   .ops-agent,
+  .cascade-control-panel,
   .docs-sidebar {
     position: static;
   }
@@ -1377,7 +1550,8 @@ pre code {
   }
 
   .architecture-diagram,
-  .runtime-loop-diagram {
+  .runtime-loop-diagram,
+  .cascade-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1415,6 +1589,7 @@ pre code {
   .ecommerce-demo,
   .ops-demo,
   .admin-demo,
+  .cascade-lab,
   .mission-section,
   .split-section {
     padding: 20px;
@@ -1428,7 +1603,9 @@ pre code {
   .ops-command-strip,
   .ops-work-orders,
   .mission-grid,
-  .context-grid {
+  .context-grid,
+  .cascade-summary-grid,
+  .cascade-lists {
     grid-template-columns: 1fr;
   }
 

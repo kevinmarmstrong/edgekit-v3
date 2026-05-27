@@ -9,6 +9,7 @@ import {
   tool,
   validateMissionProfile,
   webLLM,
+  type EdgeKnowledgeResult,
   type EdgeKnowledgeSource,
 } from '@kevinmarmstrong/edgekit'
 import type { EdgeCascadeWizard, EdgeChat } from '@kevinmarmstrong/edgekit-ui'
@@ -29,7 +30,27 @@ const source: EdgeKnowledgeSource = {
       }),
     })
     if (!response.ok) throw new Error(`Knowledge search failed: ${response.status}`)
-    return response.json()
+    const payload = await response.json() as {
+      results?: Array<{
+        id?: unknown
+        title?: unknown
+        body?: unknown
+        citation?: unknown
+        source?: unknown
+        score?: unknown
+      }>
+    }
+    return (payload.results ?? []).map((item): EdgeKnowledgeResult => ({
+      id: String(item.id ?? crypto.randomUUID()),
+      title: String(item.title ?? 'Untitled result'),
+      excerpt: String(item.body ?? ''),
+      source: typeof item.source === 'string' ? item.source : 'cloudflare-sidecar-worker',
+      score: typeof item.score === 'number' ? item.score : undefined,
+      citations: typeof item.citation === 'string'
+        ? [{ id: String(item.id ?? item.citation), label: String(item.title ?? item.citation), uri: item.citation }]
+        : [],
+      metadata: { roles: context.session.identity?.roles ?? ['visitor'] },
+    }))
   },
   freshness: () => ({ stale: false, updatedAt: new Date().toISOString() }),
 }

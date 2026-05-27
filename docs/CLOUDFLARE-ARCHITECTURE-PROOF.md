@@ -32,7 +32,7 @@ Current verified proof host:
 https://edgekit-cloudflare-sidecar.kevinmichaelarmstrong.workers.dev
 ```
 
-The example does not require provider secrets. Without `EDGEKIT_CLOUD_ROUTE_URL`, `/api/edgekit/cloud-route` returns a deterministic stub that proves the route shape. With `EDGEKIT_CLOUD_ROUTE_URL` and optional `EDGEKIT_CLOUD_ROUTE_TOKEN`, the Worker forwards to a developer-owned model route.
+The example does not require provider secrets. Without `EDGEKIT_CLOUD_ROUTE_URL`, `/api/edgekit/cloud-route` returns a deterministic stub that proves the route shape. With `EDGEKIT_CLOUD_ROUTE_URL`, `EDGEKIT_CLOUD_ROUTE_CLIENT_TOKEN`, and optional `EDGEKIT_CLOUD_ROUTE_TOKEN`, the Worker can forward to a developer-owned model route.
 
 ## Headers
 
@@ -63,6 +63,17 @@ The example route supports:
 
 - `GET /api/edgekit/cloud-route` for provider-matrix reachability checks.
 - `POST /api/edgekit/cloud-route` for deterministic fallback or developer-owned forwarding.
+
+Forwarding is deliberately locked behind `EDGEKIT_CLOUD_ROUTE_CLIENT_TOKEN`.
+When an upstream `EDGEKIT_CLOUD_ROUTE_URL` is configured, unauthenticated public
+POST requests receive `401` and forwarding remains disabled until the Worker has
+a client-facing bearer token policy. The GET readiness response returns a
+misconfigured `501` state when an upstream URL is present without that client
+token, so provider-matrix checks cannot silently pass a broken forwarding lane.
+The example also caps forwarded payloads at
+64KB, requires JSON, and forwards only parsed JSON objects. Production teams
+should replace the demo token check with their tenant/session authorization,
+rate limits, redaction, telemetry, and abuse controls.
 
 ## Intake
 

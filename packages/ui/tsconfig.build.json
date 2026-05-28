@@ -8,5 +8,6 @@
       "@kevinmarmstrong/edgekit": ["../core/dist/index.d.ts"]
     }
   },
-  "include": ["src"]
+  "include": ["src/index.ts"],
+  "exclude": ["src/**/*.test.ts"]
 }

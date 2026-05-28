@@ -41,6 +41,11 @@ Run each architecture as its own evidence lane. Do not merge these claims:
 - **Cloud route**: developer-owned escalation endpoint. A local stub proves
   routing shape; an external URL proves hosted-provider reachability.
 
+Read success metrics inside the lane boundary. A no-model row with success rate
+1.0 means graceful fallback delivered a useful basic answer; it is not evidence
+that a model-backed agent executed. Chrome AI, WebLLM, and server-route rows only
+become product claims when their host prerequisites are present and recorded.
+
 | Lane | What It Proves | Command |
 | --- | --- | --- |
 | Deterministic local | Integration contracts, demos, docs, seeded prompt variants, scripted workflow control | `pnpm research:suite` |

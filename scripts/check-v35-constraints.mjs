@@ -55,6 +55,9 @@ function checkReadmeLength() {
 }
 
 function checkDocAudiences() {
+  // Scope is intentionally Markdown only: root *.md, docs/**/*.md, docs/**/SKILL.md,
+  // and .github/**/*.md. Mermaid diagrams, CSV inventories, JSON fixtures, and TS
+  // templates are generated or code artifacts and do not carry Audience headers.
   const files = [
     ...rootMarkdownFiles(),
     ...walk(path.join(root, 'docs')).filter(file => file.endsWith('.md') || path.basename(file) === 'SKILL.md'),
@@ -122,6 +125,10 @@ function checkPackageBudgets() {
 function checkSiblingDependencies() {
   const siblingAdrs = new Map([
     ['@kevinmarmstrong/edgekit-knowledge -> @kevinmarmstrong/edgekit-skills', 'docs/adrs/knowledge-depends-on-skills.md'],
+    ['@kevinmarmstrong/edgekit-react -> @kevinmarmstrong/edgekit-skills', 'docs/adrs/react-depends-on-skills.md'],
+    ['@kevinmarmstrong/edgekit-react -> @kevinmarmstrong/edgekit-ui', 'docs/adrs/react-depends-on-ui.md'],
+    ['@kevinmarmstrong/edgekit-ui -> @kevinmarmstrong/edgekit-governance', 'docs/adrs/ui-depends-on-governance.md'],
+    ['@kevinmarmstrong/edgekit-ui -> @kevinmarmstrong/edgekit-skills', 'docs/adrs/ui-depends-on-skills.md'],
   ])
 
   for (const pkg of fs.readdirSync(path.join(root, 'packages'))) {
@@ -135,7 +142,7 @@ function checkSiblingDependencies() {
       const key = `${packageName} -> ${dep}`
       const adrPath = siblingAdrs.get(key)
       if (!adrPath || !fs.existsSync(path.join(root, adrPath))) {
-        warnings.push(`${key} is a cross-package dependency without a dedicated ADR entry`)
+        failures.push(`${key} is a cross-package dependency without a dedicated ADR entry`)
       }
     }
   }

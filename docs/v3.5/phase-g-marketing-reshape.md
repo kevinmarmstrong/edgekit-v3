@@ -24,7 +24,9 @@ Phase G can only make browser-local claims against a COOP/COEP host. The ecommer
 ## Deployment Status
 
 - Local preview smoke is green for the Phase G hero.
-- Production GitHub Pages still needs the root repo commit, push, Actions deploy, and live smoke before Phase G is adopter-visible on `https://kevinmarmstrong.github.io/edgekit/`.
+- Production GitHub Pages deploy is green for commit `068a46b`.
+- Cache-busted production fetch is green: `curl -H 'Cache-Control: no-cache' -sL "https://kevinmarmstrong.github.io/edgekit/?cacheBust=$(date +%s)"` returned the new H1 `Add an AI agent to your existing app. Don't rewrite the app.` and the `appCloudRoute` cascade snippet.
+- GitHub Pages currently sends `cache-control: max-age=600`, so stale uncached fetches can temporarily show old content from the CDN.
 
 ## Mirror Smoke
 
@@ -39,6 +41,5 @@ Phase G can only make browser-local claims against a COOP/COEP host. The ecommer
 
 ## Remaining
 
-- Collapse the problem matrix to three numbered claims after Phase H provider-matrix data exists.
 - Reshape docs by audience and add CI for `Audience:` headers.
-- Bring `README.md` under 120 lines.
+- Continue Phase F external replacements for the remaining internal preview demos.

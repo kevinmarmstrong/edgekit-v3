@@ -147,6 +147,40 @@ agent.registerTools({ searchProducts, addToCart })</code></pre>
       </div>
     </section>
 
+    <section class="value-section home-value-section" id="value-props">
+      <div class="section-heading">
+        <p class="section-label">Problem to solution</p>
+        <h2>Three production blockers Edgekit absorbs.</h2>
+        <p>
+          The provider matrix is evidence by lane, not a blended score. These cards name the
+          production friction and the proof shape that supports each claim.
+        </p>
+      </div>
+      <div class="value-matrix" aria-label="Edgekit challenge and solution matrix">
+        <article>
+          <span class="value-label">Cost</span>
+          <h3>Cloud tokens should not be the default meter.</h3>
+          <p>No-model fallback row: success rate 1.0 means a useful basic answer shipped with no provider route configured.</p>
+          <span class="value-label solution">edgekit</span>
+          <p>Try Chrome AI and WebLLM first, then escalate only through an app-owned route when the workflow justifies it.</p>
+        </article>
+        <article>
+          <span class="value-label">Authority</span>
+          <h3>Your app remains the system of record.</h3>
+          <p>Provider rows track tool-call accuracy separately from latency so "answered" cannot hide broken app execution.</p>
+          <span class="value-label solution">edgekit</span>
+          <p>Register existing APIs as typed tools while auth, state, permissions, and business rules stay in the host app.</p>
+        </article>
+        <article>
+          <span class="value-label">Guardrails</span>
+          <h3>Risky mutations need visible consent and evidence.</h3>
+          <p>Workflow gates require 0 required safety failures before a release claim is credible.</p>
+          <span class="value-label solution">edgekit</span>
+          <p>Use approvals, telemetry, and audit events around actions that change carts, accounts, records, or plans.</p>
+        </article>
+      </div>
+    </section>
+
     <section class="docs-section home-summary-section" id="overview">
       <div class="section-heading">
         <p class="section-label">Builder overview</p>

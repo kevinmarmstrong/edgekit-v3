@@ -1,6 +1,6 @@
 {
   "name": "@kevinmarmstrong/edgekit-governance",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "description": "Governance primitives for Edgekit: audit, redaction, policy, and offline journals.",
   "publishConfig": {

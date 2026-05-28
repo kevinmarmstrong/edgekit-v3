@@ -2,6 +2,11 @@ Audience: adopter
 
 # Changelog
 
+## v0.3.1 - First Registry-Installable Release
+
+- Republished the v0.3 package set with pnpm's publish path so workspace package links resolve to registry-safe `^0.3.1` ranges for npm consumers.
+- Supersedes `0.3.0`, whose package tarballs were published with unresolved `workspace:^` dependency specs and should not be used for new installs.
+
 ## v0.3.0 - v3.5 Refactor In Progress
 
 - Extracted optional runtime cohorts into sibling packages: `@kevinmarmstrong/edgekit-skills`, `@kevinmarmstrong/edgekit-knowledge`, `@kevinmarmstrong/edgekit-governance`, `@kevinmarmstrong/edgekit-mcp`, and `@kevinmarmstrong/edgekit-agui`.

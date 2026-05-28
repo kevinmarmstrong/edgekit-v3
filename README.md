@@ -1,45 +1,40 @@
-# edgekit
+# Edgekit
 
-Browser-native agent runtime for adding an AI sidecar to an existing web app. The agent runs in the visitor's browser through Chrome AI or WebLLM, uses Vercel AI SDK tool calling, and calls the app capabilities you register as tools.
+**Add a local-first AI sidecar to your web app without giving up control of state, tools, or approvals.**
 
-## Status
+Edgekit is an embeddable browser-native agent runtime for product teams that want agentic help inside an existing web app, not a hosted chatbot bolted beside it. It runs local-first through Chrome AI or WebLLM when available, can escalate only through developer-provided routes, and calls the app capabilities you explicitly register as tools.
 
-Release candidate scaffold. The Phase 0 spike is validated, the core package, docs index CLI, and web component build, and the ecommerce/docs demos have automated browser smoke coverage.
+The host app keeps ownership of auth, business state, data access, permissions, and mutations. Edgekit provides the sidecar runtime: model routing, tool calling, approval UX, EdgeView rendering, telemetry hooks, audit events, memory adapters, AG-UI support, and validation helpers.
 
-**Important**: For production use, we strongly recommend the **Skills + Mission Profiles** pattern over raw `configure()` + tools. See:
-- [WORLD-CLASS-DEFINITION.md](./WORLD-CLASS-DEFINITION.md) — What "ready for real production use" means for both elite developers and agent-assisted teams.
-- [docs/GETTING-STARTED-REAL-APPS.md](./docs/GETTING-STARTED-REAL-APPS.md) — The recommended path to shipping a high-quality, localized sidecar with excellent outcome quality.
-- [docs/30-MINUTE-PRODUCTION-SIDECAR.md](./docs/30-MINUTE-PRODUCTION-SIDECAR.md) — The fastest guided path from starter profile to tested sidecar.
-- [docs/AGENT-ADOPTION-KIT.md](./docs/AGENT-ADOPTION-KIT.md) — Coding-agent skills, recipe scaffolds, and outcome loops for low-friction implementation.
-- [docs/RECIPE-CATALOG.md](./docs/RECIPE-CATALOG.md) — Opinionated install paths such as support workflow, Knowledge Access, and Astro intake plus knowledge.
-- [docs/REPRODUCIBILITY.md](./docs/REPRODUCIBILITY.md) — How to verify provider paths, fallback behavior, live Pages, cloud routes, and outcome evidence outside the maintainer machine.
-- [docs/CLEAN-ROOM-ADOPTION-PROOF.md](./docs/CLEAN-ROOM-ADOPTION-PROOF.md) — Packed-artifact adoption proof outside the monorepo.
-- [docs/CLOUDFLARE-ARCHITECTURE-PROOF.md](./docs/CLOUDFLARE-ARCHITECTURE-PROOF.md) — Worker-hosted architecture proof for COOP/COEP, knowledge, intake, and explicit cloud-route lanes.
-- [docs/RUNTIME-GUARANTEES.md](./docs/RUNTIME-GUARANTEES.md) — What Edgekit enforces at runtime vs. what is an authoring/harness contract.
-- [docs/DISTRIBUTION-READINESS.md](./docs/DISTRIBUTION-READINESS.md) — Package, fresh-app, and public release readiness.
-- [docs/PRODUCTION-RECIPES.md](./docs/PRODUCTION-RECIPES.md) — Telemetry, audit, RBAC, state, and escalation recipes.
-- [docs/SKILL-OPTIMIZATION.md](./docs/SKILL-OPTIMIZATION.md) — SkillOpt-inspired guidance for improving Skills through bounded patches, held-out validation, protected slow-state sections, and per-skill scoring.
-- [ARCHITECTURE.md](./ARCHITECTURE.md) — The three-layer model (Primitives → Skills → Profiles) that enables safe, rapid evolution.
-- [LOOP-STATUS.md](./LOOP-STATUS.md) — Live status of the current world-class iteration loop (what we're actively working on right now).
+For production work, start with **Skills + Mission Profiles**:
+
+- **Skills** package app capabilities with descriptions, examples, approval policy, synthesis expectations, and UI hints.
+- **Mission Profiles** assemble Skills, instructions, defaults, and glue for one localized sidecar experience.
+- **Tools** remain app-owned executable functions, registered explicitly by the host app.
 
 ## Quick Start
+
+Install the workspace, build packages, and open the demo:
 
 ```bash
 pnpm install
 pnpm build
-pnpm test
-pnpm test:e2e
-pnpm eval:models
-pnpm eval:adoption
-pnpm research:agents
-pnpm research:suite
-pnpm research:full
 pnpm dev:ecommerce
 ```
 
 Open the ecommerce demo at `http://127.0.0.1:5173`.
 Open the public docs and demo site at `https://kevinmarmstrong.github.io/edgekit/`.
 Open the full documentation at `https://kevinmarmstrong.github.io/edgekit/docs/`.
+
+Build a first sidecar by picking one narrow mission, creating Skills for the app capabilities it needs, assembling a Mission Profile, registering real app-owned tools, and mounting `<edge-chat>`.
+
+Recommended adoption path:
+
+- [30-Minute Production Sidecar](./docs/30-MINUTE-PRODUCTION-SIDECAR.md): fastest path from starter profile to tested sidecar.
+- [Getting Started For Real Apps](./docs/GETTING-STARTED-REAL-APPS.md): the full Skills + Mission Profiles walkthrough.
+- [Recipe Catalog](./docs/RECIPE-CATALOG.md): scaffold repeatable app patterns such as support workflow, Knowledge Access, and Astro intake plus knowledge.
+- [Production Recipes](./docs/PRODUCTION-RECIPES.md): telemetry, audit, RBAC, state hydration, and escalation patterns.
+- [Runtime Guarantees](./docs/RUNTIME-GUARANTEES.md): what Edgekit enforces at runtime and what your app must own.
 
 ## Architecture At A Glance
 
@@ -201,31 +196,43 @@ pnpm --filter @kevinmarmstrong/edgekit-cli index -- README.md DESIGN.md --out ed
 
 The generated JSON is portable: register it behind a normal Edgekit tool and let the agent search it like any other app capability.
 
-## Workflow Testing
+## Maintainer / Release Evidence
 
-The ecommerce demo includes a deterministic test model at `/?agentMode=scripted`. It is not a user-facing model path; it exists so CI can prove the embedded agent contract end to end:
+This section is for maintainers and release reviewers. New adopters should start with the Quick Start, 30-minute sidecar guide, and production recipes above.
 
-- natural-language request parsing, including "find me size nine white nike dunks and put in cart"
-- `searchProducts` tool calls against the app catalog
-- approval prompts before guarded `addToCart` mutations
-- approve and reject paths that update, or preserve, cart state
+Core release checks:
 
-Use `pnpm test:workflows` while tuning app workflows. Use real Chrome AI/WebLLM sessions separately for model quality, prompt tuning, and provider behavior.
+- `pnpm test`: unit coverage for model cascade, approval resume, and docs indexing.
+- `pnpm typecheck`: strict TypeScript across core, UI, CLI, example, site, and spike.
+- `pnpm build`: package and demo production builds.
+- `pnpm test:e2e`: browser smoke for ecommerce, scripted workflows, and graceful no-model fallback.
+- `pnpm test:workflows`: focused ecommerce workflow coverage.
 
-## Research Agent Loops
+Release evidence and adoption-quality loops:
 
-`pnpm research:agents` runs the higher-signal loop for product readiness. It opens the docs site and demos in Chromium, sends realistic user prompts, checks answer quality, verifies guarded mutations, probes AG-UI rendering, confirms dogfooding, and writes JSON plus Markdown evidence to `research-results/agent-research-loop.*`.
+- `pnpm eval:models`: real-browser model cascade evals for Chrome AI/WebLLM prompt quality.
+- `pnpm eval:adoption`: developer-facing answer quality for integration, authority boundaries, local-first value, and security guidance.
+- `pnpm research:agents`: public-surface readiness loop across docs, ecommerce, AG-UI, admin, mission-control, and agent-readable docs.
+- `pnpm research:env`: machine/browser preflight evidence.
+- `pnpm research:suite`: expansive outcome suite with prompt variants, provider fallback probes, architecture probes, and rubric thresholds.
+- `pnpm research:full`: build, environment preflight, suite, and adoption-quality evidence in one pass.
 
 ```bash
+pnpm test
+pnpm typecheck
+pnpm build
+pnpm test:e2e
+pnpm eval:models
+pnpm eval:adoption
 pnpm research:agents
-EDGEKIT_RESEARCH_TARGET=live pnpm research:agents
-EDGEKIT_RESEARCH_HEADLESS=0 pnpm research:agents
-EDGEKIT_RESEARCH_STRICT=0 pnpm research:agents
+pnpm research:env
+pnpm research:suite
+pnpm research:full
 ```
 
-Use this when tuning the real solution surface, not just the fixtures. Fix failures in EdgeKit contracts, harnesses, prompts, or reusable demo integration patterns before adding demo-specific patches.
+Provider/reproducibility variants are documented in [docs/REPRODUCIBILITY.md](./docs/REPRODUCIBILITY.md), [docs/DISTRIBUTION-READINESS.md](./docs/DISTRIBUTION-READINESS.md), [docs/CLEAN-ROOM-ADOPTION-PROOF.md](./docs/CLEAN-ROOM-ADOPTION-PROOF.md), and [docs/CLOUDFLARE-ARCHITECTURE-PROOF.md](./docs/CLOUDFLARE-ARCHITECTURE-PROOF.md).
 
-## Skill Optimization
+Release-definition and iteration context lives in [WORLD-CLASS-DEFINITION.md](./WORLD-CLASS-DEFINITION.md), [docs/WORLD-CLASS-READINESS-ANALYSIS.md](./docs/WORLD-CLASS-READINESS-ANALYSIS.md), [ARCHITECTURE.md](./ARCHITECTURE.md), and [LOOP-STATUS.md](./LOOP-STATUS.md).
 
 Edgekit Skills are inspectable context artifacts that can be improved without changing runtime model weights. Inspired by [SkillOpt: Executive Strategy for Self-Evolving Agent Skills](https://arxiv.org/pdf/2605.23904), Edgekit supports bounded, validation-gated Skill optimization contracts:
 
@@ -236,46 +243,6 @@ Edgekit Skills are inspectable context artifacts that can be improved without ch
 - report per-skill effect sizes instead of hiding movement in aggregate scores
 
 See [docs/SKILL-OPTIMIZATION.md](./docs/SKILL-OPTIMIZATION.md).
-
-`pnpm research:env` checks the local machine and browser preconditions. `pnpm research:suite` is the broader confidence loop. It reads `evals/agent-suite/scenarios.json` and `evals/agent-suite/rubric.json`, runs seeded prompt variants across browser demos, then runs architecture probes for hybrid routing, supervisor handoffs, response cache, tool repair, MCP adapters, guarded tool policy, offline journals, parallel-safe tools, PII redaction, provider fallback, and loaded-page offline behavior.
-
-```bash
-pnpm research:env
-pnpm research:suite
-pnpm research:full
-pnpm chrome:profile
-pnpm test:routes
-EDGEKIT_SUITE_TARGET=live pnpm research:suite
-EDGEKIT_SUITE_PROMPT_LIMIT=2 pnpm research:suite
-EDGEKIT_SUITE_SEED=42 pnpm research:suite
-EDGEKIT_SUITE_HEADLESS=0 pnpm research:suite
-EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:full
-EDGEKIT_CHROME_USER_DATA_DIR="$HOME/.edgekit/chrome-profile" EDGEKIT_SUITE_HEADLESS=0 EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:full
-EDGEKIT_CHROME_CDP_URL=http://127.0.0.1:9223 EDGEKIT_REQUIRE_REAL_PROVIDERS=1 EDGEKIT_SUITE_PROVIDER_MODES=chrome pnpm research:suite
-EDGEKIT_SUITE_PROVIDER_MODES=cloud-route EDGEKIT_SUITE_CLOUD_ROUTE_URL=https://edgekit-cloudflare-sidecar.kevinmichaelarmstrong.workers.dev/api/edgekit/cloud-route EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:suite
-EDGEKIT_SUITE_PROVIDER_MODES=none pnpm research:suite
-pnpm proof:clean-room-adoption
-pnpm test:cloudflare-sidecar
-```
-
-Use `research:agents` as the fast public-surface check, `research:suite` as the expandable tuning loop, and `research:full` when you want build + environment preflight + outcome matrix in one pass. Add new prompt variants or scenario packs before adding narrow code fixes. The rubric currently requires no required failures, no required skips, an average score of at least `0.98`, and category confidence ratings at or above their thresholds.
-
-`pnpm eval:adoption` is the answer-quality gate for developer adoption prompts. It opens the docs Q&A and dogfood assistant, sends implementation-oriented questions, rejects stock docs-search snippets, and writes JSON plus Markdown transcripts to `research-results/adoption-quality.*`. Use it when tuning whether EdgeKit actually explains how to add an agent to an app, not merely whether `searchDocs` returned.
-
-For strict real-provider runs, use a dedicated Chrome profile instead of a daily browser profile. Create `~/.edgekit/chrome-profile`, launch Chrome with that user-data directory and a remote debugging port, enable Chrome AI/Nano flags, let the local model download, and then set `EDGEKIT_CHROME_CDP_URL` before running the strict loop.
-
-## Release Checks
-
-- `pnpm test`: unit coverage for model cascade, approval resume, and docs indexing.
-- `pnpm typecheck`: strict TypeScript across core, UI, CLI, example, site, and spike.
-- `pnpm build`: package and demo production builds.
-- `pnpm test:e2e`: browser smoke for the ecommerce demo, scripted agent workflows, and graceful no-model fallback.
-- `pnpm test:workflows`: focused Playwright coverage for the ecommerce workflow suite.
-- `pnpm eval:models`: real-browser model cascade evals for Chrome AI/WebLLM prompt quality. See `MODEL_EVALS.md`.
-- `pnpm eval:adoption`: adoption-quality browser eval for developer-facing answers, integration boundaries, safety guidance, and non-snippet synthesis.
-- `pnpm research:agents`: research loop for answer quality, workflow state, safety, docs exports, and deployed demo behavior.
-- `pnpm research:suite`: expansive outcome suite with rubric thresholds, prompt variants, architecture probes, and resilience checks.
-- `pnpm research:full`: build, environment preflight, and expansive suite for the >95% category confidence and >98% average-score gate.
 
 ## Notes
 

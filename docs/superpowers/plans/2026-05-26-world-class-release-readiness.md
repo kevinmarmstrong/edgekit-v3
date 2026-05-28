@@ -79,7 +79,7 @@ These lanes can run in parallel after the profile API stabilizes. Final verifica
 - Modify: `site/src/docsContent.ts`
   - Surface new docs pages and testing guidance on GitHub Pages.
 - Modify: `site/src/content.ts`
-  - Ensure dogfood assistant can answer profile, testing, production, and local-first questions.
+  - Ensure site assistant can answer profile, testing, production, and local-first questions.
 
 ### Documentation
 
@@ -106,7 +106,7 @@ These lanes can run in parallel after the profile API stabilizes. Final verifica
 - Modify: `tests/e2e/agent-loops.spec.ts`
   - Public ecommerce CTA execution path.
   - Docs Q&A profile path.
-  - Dogfood answers about profiles and production.
+  - Site assistant answers about profiles and production.
 - Modify: `tests/e2e/docs.spec.ts`
   - Site docs nav and raw markdown/llms coverage for new docs.
 - Modify: `tests/e2e/admin.spec.ts`

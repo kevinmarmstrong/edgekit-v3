@@ -5,14 +5,20 @@ const siteURL = 'http://127.0.0.1:4174/edgekit/'
 test('homepage links into the full documentation site', async ({ page }) => {
   await page.goto(siteURL)
 
-  await expect(page.getByRole('heading', { name: 'Edgekit is the docs-first runtime for adding local agents to real app workflows.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Add a local-first AI sidecar to your web app without giving up control.' })).toBeVisible()
   await expect(page.locator('.home-summary-grid article')).toHaveCount(3)
   await expect(page.getByRole('heading', { name: 'Zero variable token cost on the default path.' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Sensitive context does not leave by default.' })).toBeVisible()
   await expect(page.locator('.home-proof-grid article')).toHaveCount(3)
   await expect(page.locator('.primitive-list a')).toHaveCount(8)
   await expect(page.getByRole('heading', { name: 'Read by job, not by marketing funnel.' })).toBeVisible()
-  await expect(page.locator('#doc-card-grid a.doc-card')).toHaveCount(25)
+  await expect(page.locator('#doc-card-grid a.doc-card')).toHaveCount(31)
+  await expect(page.locator('a.doc-card[href="/edgekit/docs/should-i-use-edgekit/"]')).toBeVisible()
+  await expect(page.locator('a.doc-card[href="/edgekit/docs/framework-recipes/"]')).toBeVisible()
+  await expect(page.locator('a.doc-card[href="/edgekit/docs/faq/"]')).toBeVisible()
+  await expect(page.locator('a.doc-card[href="/edgekit/docs/glossary/"]')).toBeVisible()
+  await expect(page.locator('a.doc-card[href="/edgekit/docs/proof-center/"]')).toBeVisible()
+  await expect(page.locator('a.doc-card[href="/edgekit/docs/enterprise-evaluation/"]')).toBeVisible()
   await expect(page.locator('a.doc-card[href="/edgekit/docs/mission-profiles/"]')).toBeVisible()
   await expect(page.locator('a.doc-card[href="/edgekit/docs/skill-optimization/"]')).toBeVisible()
   await expect(page.locator('a.doc-card[href="/edgekit/docs/knowledge-access/"]')).toBeVisible()
@@ -41,16 +47,29 @@ test('homepage links into the full documentation site', async ({ page }) => {
 test('agent-readable documentation exports are available', async ({ page }) => {
   const llms = await page.request.get(`${siteURL}llms.txt`)
   expect(llms.ok()).toBeTruthy()
-  await expect(llms.text()).resolves.toContain('edgekit is a browser-native agent runtime')
+  await expect(llms.text()).resolves.toContain('Edgekit adds a local-first AI sidecar')
   const llmsText = await llms.text()
   expect(llmsText).toContain('(/edgekit/llms-full.txt)')
+  expect(llmsText).toContain('(/edgekit/llms-maintainers.txt)')
+  expect(llmsText).toContain('(/edgekit/docs/should-i-use-edgekit.md)')
+  expect(llmsText).toContain('(/edgekit/docs/framework-recipes.md)')
   expect(llmsText).toContain('(/edgekit/docs/knowledge-access.md)')
   expect(llmsText).not.toContain('](/docs/')
   expect(llmsText).not.toContain('](/demos/')
 
   const full = await page.request.get(`${siteURL}llms-full.txt`)
   expect(full.ok()).toBeTruthy()
+  await expect(full.text()).resolves.toContain('# edgekit adopter implementation export')
   await expect(full.text()).resolves.toContain('# Local-first agent sidecars')
+  await expect(full.text()).resolves.toContain('# Framework recipes')
+  const fullText = await full.text()
+  expect(fullText.length).toBeLessThan(50_000)
+  expect(fullText).not.toContain('# Reproducibility and provider evidence')
+
+  const maintainers = await page.request.get(`${siteURL}llms-maintainers.txt`)
+  expect(maintainers.ok()).toBeTruthy()
+  await expect(maintainers.text()).resolves.toContain('# edgekit maintainer and release evidence export')
+  await expect(maintainers.text()).resolves.toContain('# Maintainer reproducibility guide')
 
   const advanced = await page.request.get(`${siteURL}docs/advanced.md`)
   expect(advanced.ok()).toBeTruthy()
@@ -137,9 +156,10 @@ test('docs pages expose core documentation sections and navigation', async ({ pa
   await expect(page.getByText('createAgent(options)')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Approval resume' })).toBeVisible()
 
-  await page.getByRole('link', { name: 'Testing' }).click()
+  await page.locator('.docs-sidebar').getByRole('link', { name: /Maintainer Tests/ }).click()
   await expect(page).toHaveURL(/\/edgekit\/docs\/testing\/$/)
-  await expect(page.getByRole('heading', { name: 'Testing agent workflows' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Maintainer testing loops' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Maintainer deterministic workflow tests' })).toBeVisible()
   await expect(page.locator('pre code').filter({ hasText: 'pnpm eval:models' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Research loops' })).toBeVisible()
   await expect(page.locator('pre code').filter({ hasText: 'pnpm research:agents' })).toBeVisible()
@@ -147,7 +167,15 @@ test('docs pages expose core documentation sections and navigation', async ({ pa
   await expect(page.locator('pre code').filter({ hasText: 'pnpm research:suite' })).toBeVisible()
   await expect(page.locator('pre code').filter({ hasText: 'pnpm research:full' })).toBeVisible()
 
-  await page.getByRole('link', { name: 'Enterprise' }).click()
+  await page.goto(`${siteURL}docs/framework-recipes/`)
+  await expect(page.getByRole('heading', { name: 'Framework recipes' })).toBeVisible()
+  await expect(page.locator('.docs-article edge-chat')).toHaveCount(0)
+  await expect(page.locator('.docs-article code').filter({ hasText: '<edge-chat>' }).first()).toBeVisible()
+
+  await page.goto(`${siteURL}docs/should-i-use-edgekit/`)
+  await expect(page.locator('.docs-next').getByRole('link', { name: /Next: Quick Start/ })).toBeVisible()
+
+  await page.getByRole('link', { name: 'Enterprise', exact: true }).click()
   await expect(page).toHaveURL(/\/edgekit\/docs\/advanced\/$/)
   await expect(page.getByRole('heading', { name: 'Enterprise controls' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Identity and session context' })).toBeVisible()
@@ -175,7 +203,7 @@ test('docs pages expose core documentation sections and navigation', async ({ pa
   await expect(page.getByRole('heading', { name: 'React wrapper' })).toBeVisible()
 })
 
-test('dogfood assistant is mounted across docs and demo pages', async ({ page }) => {
+test('site assistant is mounted across docs and demo pages', async ({ page }) => {
   await page.goto(`${siteURL}docs/`)
   await expect(page.locator('#site-assistant')).toBeVisible()
   await page.locator('#site-assistant .site-assistant-toggle').click()

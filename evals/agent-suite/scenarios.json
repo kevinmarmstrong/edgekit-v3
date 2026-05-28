@@ -116,8 +116,8 @@
       ]
     },
     {
-      "id": "dogfood-demo-discovery",
-      "surface": "dogfood-assistant-demos",
+      "id": "site-assistant-demo-discovery",
+      "surface": "site-assistant-demos",
       "required": true,
       "prompts": [
         "what demos can I try?",

@@ -4,31 +4,44 @@ import { mountSiteAssistant } from './siteAssistant'
 
 const navGroups = [
   {
-    title: 'Start here',
-    slugs: ['overview', 'getting-started', '30-minute-sidecar', 'adoption-kit', 'recipes'],
+    title: 'Start',
+    slugs: ['overview', 'should-i-use-edgekit', 'getting-started', '30-minute-sidecar', 'faq', 'glossary'],
   },
   {
-    title: 'Core model',
-    slugs: ['concepts', 'mission-profiles', 'knowledge-access', 'skill-optimization', 'outcome-quality'],
+    title: 'Concepts',
+    slugs: ['concepts', 'mission-profiles', 'knowledge-access', 'outcome-quality'],
   },
   {
-    title: 'Implementation',
-    slugs: ['api', 'ui', 'cli', 'advanced', 'ecosystem'],
+    title: 'Recipes',
+    slugs: ['framework-recipes', 'recipes', 'adoption-kit'],
   },
   {
     title: 'Production',
     slugs: [
       'production',
       'runtime-guarantees',
-      'distribution-readiness',
       'production-recipes',
       'security-threat-model',
+      'advanced',
+      'enterprise-evaluation',
       'migration-upgrades',
     ],
   },
   {
-    title: 'Validation',
-    slugs: ['testing', 'reproducibility', 'adopter-simulation', 'deployment'],
+    title: 'Reference',
+    slugs: ['api', 'ui', 'cli', 'ecosystem'],
+  },
+  {
+    title: 'Maintainers',
+    slugs: [
+      'proof-center',
+      'testing',
+      'reproducibility',
+      'distribution-readiness',
+      'adopter-simulation',
+      'skill-optimization',
+      'deployment',
+    ],
   },
 ]
 
@@ -70,7 +83,8 @@ if (root) {
         </nav>
         <div class="docs-sidebar-links">
           <a href="${withBase('/llms.txt')}">llms.txt</a>
-          <a href="${withBase('/llms-full.txt')}">Full context</a>
+          <a href="${withBase('/llms-full.txt')}">Adopter context</a>
+          <a href="${withBase('/llms-maintainers.txt')}">Maintainer context</a>
         </div>
       </aside>
 
@@ -87,7 +101,8 @@ if (root) {
           <p>${activePage.summary}</p>
           <div class="docs-utility-links" aria-label="Documentation utilities">
             <a href="${withBase(markdownPath(activePage.slug))}">Raw Markdown</a>
-            <a href="${withBase('/llms-full.txt')}">llms-full.txt</a>
+            <a href="${withBase('/llms-full.txt')}">Adopter export</a>
+            <a href="${withBase('/llms-maintainers.txt')}">Maintainer export</a>
           </div>
         </header>
 
@@ -169,7 +184,7 @@ function renderSection(section: (typeof activePage.sections)[number]) {
   return `
     <section class="docs-block" id="${section.id}">
       <h2>${section.title}</h2>
-      ${section.body.map(paragraph => `<p>${paragraph}</p>`).join('')}
+      ${section.body.map(paragraph => `<p>${formatInlineCode(paragraph)}</p>`).join('')}
       ${section.diagram ? renderDiagram(section.diagram) : ''}
       ${
         section.bullets
@@ -230,9 +245,10 @@ function renderDiagram(diagram: 'architecture' | 'runtime-loop') {
 }
 
 function renderPreviousNext() {
-  const index = docsPages.findIndex(page => page.slug === activePage.slug)
-  const previous = docsPages[index - 1]
-  const next = docsPages[index + 1]
+  const orderedPages = getOrderedDocsPages()
+  const index = orderedPages.findIndex(page => page.slug === activePage.slug)
+  const previous = orderedPages[index - 1]
+  const next = orderedPages[index + 1]
 
   return `
     ${previous ? `<a href="${withBase(docsPath(previous))}">Previous: ${previous.navLabel}</a>` : '<span></span>'}
@@ -242,6 +258,16 @@ function renderPreviousNext() {
 
 function getNavGroup(slug: string) {
   return navGroups.find(group => group.slugs.includes(slug))?.title ?? 'Reference'
+}
+
+function getOrderedDocsPages() {
+  const pagesBySlug = new Map(docsPages.map(page => [page.slug, page]))
+  const groupedSlugs = new Set(navGroups.flatMap(group => group.slugs))
+  const groupedPages = navGroups
+    .flatMap(group => group.slugs.map(slug => pagesBySlug.get(slug)))
+    .filter(Boolean) as typeof docsPages
+  const uncategorizedPages = docsPages.filter(page => !groupedSlugs.has(page.slug))
+  return [...groupedPages, ...uncategorizedPages]
 }
 
 function markdownPath(slug: string) {
@@ -294,7 +320,7 @@ function withBase(path: string) {
 }
 
 function formatInlineCode(text: string) {
-  return text.replace(/`([^`]+)`/g, '<code>$1</code>')
+  return escapeHtml(text).replace(/`([^`]+)`/g, '<code>$1</code>')
 }
 
 function escapeHtml(text: string) {

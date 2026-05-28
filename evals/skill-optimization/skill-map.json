@@ -52,8 +52,8 @@
       "skillIds": ["search-docs"],
       "heldOut": true
     },
-    "dogfood-demo-discovery": {
-      "profileId": "site-dogfood-v1",
+    "site-assistant-demo-discovery": {
+      "profileId": "site-assistant-v1",
       "skillIds": ["list-demos"],
       "heldOut": true
     },
@@ -68,7 +68,7 @@
       "heldOut": true
     },
     "profile-adoption-guidance": {
-      "profileId": "site-dogfood-v1",
+      "profileId": "site-assistant-v1",
       "skillIds": ["search-docs"],
       "heldOut": true
     },
@@ -93,7 +93,7 @@
       "heldOut": true
     },
     "offline-loaded-assistant": {
-      "profileId": "site-dogfood-v1",
+      "profileId": "site-assistant-v1",
       "skillIds": ["search-docs", "list-demos"],
       "heldOut": true
     },

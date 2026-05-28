@@ -1,3 +1,5 @@
+import { docsPages } from './docsContent'
+
 export type DocChunk = {
   slug: string
   title: string
@@ -5,7 +7,7 @@ export type DocChunk = {
   tags: string[]
 }
 
-export const docChunks: DocChunk[] = [
+const curatedDocChunks: DocChunk[] = [
   {
     slug: 'overview',
     title: 'North Star',
@@ -351,8 +353,8 @@ export const docChunks: DocChunk[] = [
   },
   {
     slug: 'overview',
-    title: 'Dogfood Site Assistant',
-    tags: ['demo', 'dogfood', 'site assistant', 'docs'],
+    title: 'Site Assistant',
+    tags: ['demo', 'site-assistant', 'site assistant', 'docs'],
     body:
       'The public Pages site mounts an Edgekit assistant across the homepage, docs, and demo pages. It uses the same edge-chat component, Chrome AI cascade, deterministic fallback, docs search tool, and demo catalog tool that adopters can wire into their own apps.',
   },
@@ -420,6 +422,26 @@ export const docChunks: DocChunk[] = [
       'Migration moves mission-specific prompts, required tools, synthesis rules, and safety intent into Mission Profiles while executable tools stay app-owned. Upgrade gates compare validation and outcome scores before accepting core changes.',
   },
 ]
+
+const docsPageChunks: DocChunk[] = docsPages.map(page => ({
+  slug: page.slug,
+  title: page.title,
+  tags: [page.slug, page.navLabel, ...page.sections.map(section => section.title)]
+    .join(' ')
+    .toLowerCase()
+    .split(/[^a-z0-9-]+/)
+    .filter(Boolean),
+  body: [
+    page.summary,
+    ...page.sections.flatMap(section => [
+      section.title,
+      ...section.body,
+      ...(section.bullets ?? []),
+    ]),
+  ].join(' '),
+}))
+
+export const docChunks: DocChunk[] = [...docsPageChunks, ...curatedDocChunks]
 
 export function searchDocs(query: string) {
   const terms = query

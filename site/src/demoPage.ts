@@ -620,7 +620,7 @@ function missionDemo() {
         <p class="section-label">Mission control primitive</p>
         <h2>Observe edge agents without centralizing the runtime.</h2>
         <p>
-          This dashboard is powered by local telemetry hooks from the site-wide dogfood assistant.
+          This dashboard is powered by local telemetry hooks from the site-wide site assistant.
           In production, send the same events to your analytics, logging, or compliance backend.
         </p>
         ${proofGrid([

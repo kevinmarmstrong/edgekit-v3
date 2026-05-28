@@ -24,10 +24,16 @@ export default defineConfig({
         'demo-mission-control': resolve(__dirname, 'demos/mission-control/index.html'),
         'demo-cascade': resolve(__dirname, 'demos/cascade/index.html'),
         docs: resolve(__dirname, 'docs/index.html'),
+        'docs-should-i-use-edgekit': resolve(__dirname, 'docs/should-i-use-edgekit/index.html'),
         'docs-getting-started': resolve(__dirname, 'docs/getting-started/index.html'),
         'docs-30-minute-sidecar': resolve(__dirname, 'docs/30-minute-sidecar/index.html'),
+        'docs-framework-recipes': resolve(__dirname, 'docs/framework-recipes/index.html'),
+        'docs-faq': resolve(__dirname, 'docs/faq/index.html'),
+        'docs-glossary': resolve(__dirname, 'docs/glossary/index.html'),
         'docs-adoption-kit': resolve(__dirname, 'docs/adoption-kit/index.html'),
         'docs-recipes': resolve(__dirname, 'docs/recipes/index.html'),
+        'docs-proof-center': resolve(__dirname, 'docs/proof-center/index.html'),
+        'docs-enterprise-evaluation': resolve(__dirname, 'docs/enterprise-evaluation/index.html'),
         'docs-concepts': resolve(__dirname, 'docs/concepts/index.html'),
         'docs-knowledge-access': resolve(__dirname, 'docs/knowledge-access/index.html'),
         'docs-api': resolve(__dirname, 'docs/api/index.html'),
@@ -65,23 +71,46 @@ function agentDocsPlugin() {
     name: 'edgekit-agent-docs',
     generateBundle() {
       const markdownPages = docsPages.map(page => ({ page, markdown: pageToMarkdown(page) }))
-      const links = markdownPages
+      const maintainerSlugs = new Set([
+        'proof-center',
+        'testing',
+        'reproducibility',
+        'distribution-readiness',
+        'adopter-simulation',
+        'skill-optimization',
+        'deployment',
+      ])
+      const adopterPages = markdownPages.filter(({ page }) => !maintainerSlugs.has(page.slug))
+      const maintainerPages = markdownPages.filter(({ page }) => maintainerSlugs.has(page.slug))
+      const adopterLinks = adopterPages
+        .map(({ page }) => `- [${page.title}](${publicDocsPath(docsPath(page))}): ${page.summary}`)
+        .join('\n')
+      const maintainerLinks = maintainerPages
         .map(({ page }) => `- [${page.title}](${publicDocsPath(docsPath(page))}): ${page.summary}`)
         .join('\n')
       const llms = `# edgekit
 
-edgekit is a browser-native agent runtime with local-first, privacy-first defaults for adding AI workflows to existing web apps without making every interaction an unpredictable cloud-token cost. It uses browser-native models first, supports tuned model cascades and optional cloud fallback, and keeps app state, identity, tools, and approval boundaries under host control.
+Edgekit adds a local-first AI sidecar to an existing web app without taking control of app state, tools, auth, or approvals.
 
-The project should be understood as open-source agent infrastructure, not a SaaS landing page. Developers usually arrive with a concrete blocker: unbounded token spend, sensitive app context, existing APIs that must remain authoritative, model-fit tradeoffs, slow orchestration, offline workflows, mutation approvals, auditability, RBAC-filtered tools, or safe MCP integration. The documentation maps those problems to Edgekit primitives.
+Use Edgekit when an agent belongs inside a product workflow and must call app-owned tools, preserve host-app authority, prefer Chrome AI or WebLLM before explicit fallback routes, and expose visible approval, telemetry, audit, and generative UI contracts. Treat it as open-source agent infrastructure, not a hosted chatbot service.
 
-## Documentation
+## Adopter implementation context
 
-${links}
+${adopterLinks}
+
+## Maintainer and release evidence
+
+${maintainerLinks}
 
 ## Agent ingestion
 
-- [Full documentation export](${publicDocsPath('/llms-full.txt')})
+- [Adopter implementation export](${publicDocsPath('/llms-full.txt')})
+- [Maintainer/release export](${publicDocsPath('/llms-maintainers.txt')})
 - [Overview Markdown](${publicDocsPath('/docs.md')})
+- [Should I Use Edgekit? Markdown](${publicDocsPath('/docs/should-i-use-edgekit.md')})
+- [Framework Recipes Markdown](${publicDocsPath('/docs/framework-recipes.md')})
+- [FAQ Markdown](${publicDocsPath('/docs/faq.md')})
+- [Glossary Markdown](${publicDocsPath('/docs/glossary.md')})
 - [Adoption Kit Markdown](${publicDocsPath('/docs/adoption-kit.md')})
 - [Recipe Catalog Markdown](${publicDocsPath('/docs/recipes.md')})
 - [Enterprise controls Markdown](${publicDocsPath('/docs/advanced.md')})
@@ -103,10 +132,15 @@ ${links}
 
 - [GitHub](https://github.com/kevinmarmstrong/edgekit)
 `
-      const full = boundedFullExport(markdownPages)
+      const full = boundedFullExport(adopterPages, 'edgekit adopter implementation export')
+      const maintainers = boundedFullExport(
+        maintainerPages,
+        'edgekit maintainer and release evidence export',
+      )
 
       this.emitFile({ type: 'asset', fileName: 'llms.txt', source: llms })
       this.emitFile({ type: 'asset', fileName: 'llms-full.txt', source: full })
+      this.emitFile({ type: 'asset', fileName: 'llms-maintainers.txt', source: maintainers })
       for (const { page, markdown } of markdownPages) {
         const fileName = page.slug === 'overview' ? 'docs.md' : `docs/${page.slug}.md`
         this.emitFile({ type: 'asset', fileName, source: markdown })
@@ -120,10 +154,10 @@ function publicDocsPath(path: string) {
   return `${siteBase.replace(/\/$/, '')}/${path.replace(/^\//, '')}`
 }
 
-function boundedFullExport(markdownPages: Array<{ markdown: string }>) {
+function boundedFullExport(markdownPages: Array<{ markdown: string }>, title: string) {
   const maxChars = 49_000
-  const header = '# edgekit documentation export\n\n'
-  const note = '\n\n---\n\nExport truncated to keep llms-full.txt below the 50K-character agent-ingestion budget. Use the individual /docs/*.md endpoints for complete page-level context.\n'
+  const header = `# ${title}\n\n`
+  const note = '\n\n---\n\nExport truncated to keep this file below the 50K-character agent-ingestion budget. Use the individual /docs/*.md endpoints for complete page-level context.\n'
   let full = header
   for (const { markdown } of markdownPages) {
     const addition = `${full === header ? '' : '\n\n---\n\n'}${markdown}`

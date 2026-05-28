@@ -81,7 +81,7 @@ pnpm research:full
 
 `pnpm eval:models` may report local model unavailable on machines without Chrome AI/WebLLM support. That is acceptable unless `EDGEKIT_REQUIRE_REAL_MODEL=1` is set.
 
-`pnpm eval:adoption` is the developer-answer-quality loop. It opens the docs Q&A and dogfood assistant, asks implementation and safety questions, rejects stock docs-search snippets, records transcripts, and requires answers to explain the integration path, host-app authority, local-first value, and security boundaries.
+`pnpm eval:adoption` is the developer-answer-quality loop. It opens the docs Q&A and site assistant, asks implementation and safety questions, rejects stock docs-search snippets, records transcripts, and requires answers to explain the integration path, host-app authority, local-first value, and security boundaries.
 
 `pnpm research:agents` is the product-readiness loop. It runs realistic prompts across the docs, ecommerce, AG-UI, admin, mission-control, and agent-readable docs surfaces; records transcripts and screenshots; and scores answer quality, workflow state, safety, observability, and integration transparency.
 

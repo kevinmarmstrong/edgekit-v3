@@ -62,10 +62,10 @@ const scenarios = [
     run: runDocsQa,
   },
   {
-    id: 'dogfood-assistant-demos',
-    title: 'Dogfood assistant exposes demos',
+    id: 'site-assistant-demos',
+    title: 'Site assistant exposes demos',
     required: true,
-    run: runDogfoodAssistant,
+    run: runSiteAssistant,
   },
   {
     id: 'ag-ui-rich-components',
@@ -346,7 +346,7 @@ async function runDocsQa(page, checks) {
   return text
 }
 
-async function runDogfoodAssistant(page, checks) {
+async function runSiteAssistant(page, checks) {
   await page.goto(withCacheBust(`${siteURL}/demos/docs/`), { waitUntil: 'networkidle' })
   const assistant = page.locator('#site-assistant')
   await assistant.locator('.site-assistant-toggle').click()
@@ -357,7 +357,7 @@ async function runDogfoodAssistant(page, checks) {
   for (const demo of ['Ecommerce retrofit', 'Docs Q&A', 'AG-UI event stream', 'SaaS admin workflow', 'Mission control']) {
     addCheck(checks, 'answerQuality', `lists ${demo}`, text.includes(demo))
   }
-  addCheck(checks, 'dogfood', 'site-wide assistant is mounted on the docs demo page', (await assistant.count()) === 1)
+  addCheck(checks, 'site-assistant', 'site-wide assistant is mounted on the docs demo page', (await assistant.count()) === 1)
   return text
 }
 

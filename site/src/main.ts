@@ -291,18 +291,18 @@ function renderHomePage() {
     <section class="hero home-hero" aria-labelledby="home-title">
       <div class="hero-copy home-hero-copy">
         <p class="hero-kicker">Browser-native agent sidecars</p>
-        <h1 id="home-title">Edgekit is the docs-first runtime for adding local agents to real app workflows.</h1>
+        <h1 id="home-title">Add a local-first AI sidecar to your web app without giving up control.</h1>
         <p>
-          Mount a sidecar inside your product, expose existing app capabilities as typed tools,
+          Mount an agent inside your product, expose existing app capabilities as typed tools,
           and keep the host app authoritative over state, permissions, approvals, telemetry, and
-          audit. The default path is local-first: Chrome AI, WebLLM, then an explicit fallback only
-          when the app chooses one.
+          audit. The default cascade is local-first: Chrome AI, WebLLM, then an explicit fallback
+          only when the app chooses one.
         </p>
         <div class="hero-actions home-hero-actions" aria-label="Primary Edgekit links">
           <a class="button primary" href="${withBase('/docs/')}">Read the docs</a>
+          <a class="button secondary" href="${withBase('/docs/should-i-use-edgekit/')}">Should I use it?</a>
           <a class="button secondary" href="${withBase('/docs/getting-started/')}">Quick start</a>
           <a class="button secondary" href="${withBase('/demos/ecommerce/')}">Open demos</a>
-          <a class="button secondary" href="${withBase('/llms.txt')}">Agent docs</a>
         </div>
       </div>
       <div class="hero-visual home-architecture-card" aria-label="Edgekit architecture overview">
@@ -465,14 +465,14 @@ chat.registerTools({ searchCases, createTicket })</code></pre>
         <p>Direct entry points for implementation details, agent-readable context, and production review.</p>
       </div>
       <div class="primitive-list home-link-list" aria-label="Edgekit reference links">
+        <a href="${withBase('/docs/should-i-use-edgekit/')}">Should I use it?</a>
         <a href="${withBase('/docs/mission-profiles/')}">Mission Profiles</a>
-        <a href="${withBase('/docs/skill-optimization/')}">Skill optimization</a>
-        <a href="${withBase('/docs/advanced/#state-hydration')}">State hydration</a>
-        <a href="${withBase('/docs/advanced/#dynamic-tool-exposure')}">Dynamic tool exposure</a>
-        <a href="${withBase('/docs/advanced/#telemetry')}">Telemetry</a>
-        <a href="${withBase('/docs/testing/')}">Testing</a>
+        <a href="${withBase('/docs/framework-recipes/')}">Framework recipes</a>
+        <a href="${withBase('/docs/production-recipes/')}">Production recipes</a>
+        <a href="${withBase('/docs/enterprise-evaluation/')}">Enterprise evaluation</a>
         <a href="${withBase('/docs/security-threat-model/')}">Threat model</a>
-        <a href="${withBase('/llms-full.txt')}">Full agent context</a>
+        <a href="${withBase('/docs/proof-center/')}">Proof center</a>
+        <a href="${withBase('/llms-full.txt')}">Agent context</a>
       </div>
     </section>
   `

@@ -28,7 +28,7 @@ The demo bed is not a marketing carousel. It is a measured product lab.
 | Docs Q&A | `demos/docs` | Strong: docs search, implementation answers, Skill optimization answers |
 | AG-UI | `demos/ag-ui` | Strong: forms, charts, tables, cards, provider transparency |
 | SaaS admin | `demos/admin` | Strong: account search, plan update, suspension, approval/rejection |
-| Mission control | `demos/mission-control` | Strong: local telemetry and site-wide dogfood assistant events |
+| Mission control | `demos/mission-control` | Strong: local telemetry and site-wide site assistant events |
 | ERP / field ops | `demos/operations` | Stronger: work-order triage, inventory reservation, technician dispatch, role capability clarity, approval/audit/telemetry, scripted-mode transparency, and online/offline posture |
 | Cascade and permissions | `demos/cascade` | Strong: browser model states, Nano download consent, WebLLM/cloud-route posture, opt-out, RBAC tool narrowing, approval/EdgeView setup, validation, fallback, hide, and reset loops |
 

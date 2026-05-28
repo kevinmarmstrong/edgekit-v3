@@ -300,7 +300,7 @@ async function runSurface(page, surface, prompt, checks) {
   if (surface === 'docs-adoption-kit-recipes') return runDocsAdoptionKitRecipes(page, prompt, checks)
   if (surface === 'docs-reproducibility') return runDocsReproducibility(page, prompt, checks)
   if (surface === 'docs-skill-optimization') return runDocsSkillOptimization(page, prompt, checks)
-  if (surface === 'dogfood-assistant-demos') return runDogfoodAssistant(page, prompt, checks)
+  if (surface === 'site-assistant-demos') return runSiteAssistant(page, prompt, checks)
   if (surface === 'field-ops-inventory-reservation') return runFieldOpsReservation(page, prompt, checks)
   if (surface === 'field-ops-dispatch-reject') return runFieldOpsDispatchReject(page, prompt, checks)
   if (surface === 'field-ops-supervisor-eta') return runFieldOpsSupervisorEta(page, prompt, checks)
@@ -494,7 +494,7 @@ async function runDocsSkillOptimization(page, prompt, checks) {
   return text
 }
 
-async function runDogfoodAssistant(page, prompt, checks) {
+async function runSiteAssistant(page, prompt, checks) {
   await page.goto(withCacheBust(`${siteURL}/demos/docs/`), { waitUntil: 'networkidle' })
   const assistant = page.locator('#site-assistant')
   await assistant.locator('.site-assistant-toggle').click()
@@ -505,7 +505,7 @@ async function runDogfoodAssistant(page, prompt, checks) {
   for (const demo of ['Ecommerce retrofit', 'Field ops ERP', 'Docs Q&A', 'AG-UI event stream', 'SaaS admin workflow', 'Mission control']) {
     addCheck(checks, 'answerQuality', `lists ${demo}`, text.includes(demo))
   }
-  addCheck(checks, 'dogfood', 'site-wide EdgeKit assistant is mounted', (await assistant.count()) === 1)
+  addCheck(checks, 'site-assistant', 'site-wide EdgeKit assistant is mounted', (await assistant.count()) === 1)
   return text
 }
 

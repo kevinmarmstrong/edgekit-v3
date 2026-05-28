@@ -63,7 +63,7 @@ export function mountSiteAssistant(options: SiteAssistantOptions = {}) {
   wrapper.setAttribute('aria-label', 'edgekit site assistant')
   wrapper.innerHTML = `
     <button class="site-assistant-toggle" type="button" aria-expanded="false" aria-controls="site-assistant-panel">
-      <span>Dogfood assistant</span>
+      <span>Site assistant</span>
       <strong>Ask edgekit</strong>
     </button>
     <section class="site-assistant-panel" id="site-assistant-panel" aria-label="Ask edgekit about this site">
@@ -94,7 +94,7 @@ export function mountSiteAssistant(options: SiteAssistantOptions = {}) {
 
   const chat = wrapper.querySelector<EdgeChat>('edge-chat#site-assistant-chat')
   chat?.configure({
-    sessionId: 'site-dogfood-assistant',
+    sessionId: 'site-assistant',
     telemetry: options.telemetry,
     model: [chromeAI()],
     downloadPolicy: 'never',
@@ -177,7 +177,7 @@ function answerSiteQuestion(input: string, basePath: string) {
   const normalized = input.toLowerCase()
   if (normalized.includes('demo') || normalized.includes('try') || normalized.includes('show')) {
     return [
-      'Local browser AI is unavailable here, so the dogfood assistant answered through its deterministic site map.',
+      'Local browser AI is unavailable here, so the site assistant answered through its deterministic site map.',
       '',
       ...demoLinks.map(demo => `${demo.label}: ${demo.description} ${basePath}${demo.href}`),
     ].join('\n')
@@ -185,7 +185,7 @@ function answerSiteQuestion(input: string, basePath: string) {
 
   const matches = searchDocs(input)
   if (matches.length === 0) {
-    return 'Local browser AI is unavailable here, and the dogfood assistant did not find a matching docs section.'
+    return 'Local browser AI is unavailable here, and the site assistant did not find a matching docs section.'
   }
 
   return composeEdgekitAnswer({

@@ -62,7 +62,7 @@ test('standalone ecommerce scripted loop searches, renders CTA, and mutates only
   await expect(page.locator('#cart-state')).toContainText('1x Nike Dunk Low (size 11)')
 })
 
-test('docs Q&A and dogfood assistant answer project questions instead of generic chat', async ({ page }) => {
+test('docs Q&A and site assistant answer project questions instead of generic chat', async ({ page }) => {
   await page.goto(`${siteURL}demos/docs/?cacheBust=${Date.now()}`)
 
   const docsDemo = page.locator('#qa')

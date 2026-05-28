@@ -1,3 +1,5 @@
+Audience: adopter
+
 # Production Readiness
 
 Use this checklist before shipping Edgekit to real users. The bar is not "the chat responds"; the bar is reliable agentic work inside the app under the app's authority.

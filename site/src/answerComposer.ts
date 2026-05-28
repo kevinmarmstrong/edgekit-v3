@@ -174,9 +174,9 @@ export function composeEdgekitAnswer({ input, results, mode = 'docs-demo', curre
     return [
       'Use the reproducibility guide to keep provider claims honest and repeatable.',
       '',
-      'Run deterministic gates first (`pnpm test`, `pnpm typecheck`, `pnpm build`, `pnpm test:e2e`, `pnpm eval:adoption`, `pnpm research:suite`). Then run each architecture as a separate provider lane: Chrome AI/Nano through CDP, WebLLM on a cross-origin-isolated host, a developer-owned cloud route, no-model fallback, and live GitHub Pages.',
+      'Run deterministic gates first (`pnpm test`, `pnpm typecheck`, `pnpm build`, `pnpm test:e2e`, `pnpm eval:adoption`, `pnpm research:suite`, `pnpm research:quality`). Then run each local-first architecture as a separate provider-matrix lane: Chrome AI ready, Chrome AI downloading, WebLLM auto, WebLLM declined, a developer-owned server route or cloud route, no-model fallback, and live GitHub Pages.',
       '',
-      'The evidence to keep is `research-results/agent-suite.json`, `research-results/provider-matrix.md`, screenshots, the commit SHA, browser version, model availability result, and whether strict provider flags were enabled. A green deterministic run, a green strict provider run, and a green live Pages run are related but not interchangeable claims.',
+      'The evidence to keep is `research-results/agent-suite.json`, `research-results/quality-bar.md`, `research-results/provider-matrix.md`, screenshots, the commit SHA, browser version, model availability result, and whether strict provider flags were enabled. A green deterministic run, a green randomized-prompt run, a green strict provider run, and a green live Pages run are related but not interchangeable claims.',
       sourceNote,
     ]
       .filter(Boolean)
@@ -201,7 +201,7 @@ export function detectAnswerIntent(input: string) {
   const normalized = input.toLowerCase()
   if (/\b(jwt|cookie|token|database|db|credential|secret)\b/.test(normalized)) return 'unsafe-secrets-or-database'
   if (/\b(cascade readiness|capability wizard|edge-cascade-wizard|download prompt|model download|hide agent|basic mode|fallback mode|browser state|nano.*download|downloaded nano)\b/.test(normalized)) return 'cascade-readiness'
-  if (/\b(reproduc|provider matrix|chrome ai|nano|webllm|cloud route|github pages|live pages|strict provider|model availability|works on.*machine)\b/.test(normalized)) return 'reproducibility'
+  if (/\b(reproduc|provider matrix|browser-local|browser local|local path|chrome ai|nano|webllm|cloud route|server route|github pages|live pages|strict provider|model availability|works on.*machine|claiming .*works|measure .*works|overclaim|green run)\b/.test(normalized)) return 'reproducibility'
   if (/\b(adoption kit|agent skills?|skill\.md|recipes?|edgekit-init|astro|intake|scaffold|scaffolding|onboarding)\b/.test(normalized)) return 'adoption-kit'
   if (/\b(starter|template|30.minute|thirty.minute|new mission|first sidecar|first agent|support workflow)\b/.test(normalized)) return 'starter-path'
   if (/\b(chatbot|chat bot|different|instead of chat)\b/.test(normalized)) return 'chatbot-difference'

@@ -1,3 +1,5 @@
+Audience: adopter
+
 # Astro Intake And Knowledge Recipe
 
 Use this recipe when an Astro site needs a local-first sidecar that can answer questions from site knowledge and collect an intake request.

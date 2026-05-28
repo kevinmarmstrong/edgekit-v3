@@ -1,3 +1,5 @@
+Audience: contributor
+
 # Edgekit Agent Guide
 
 **Read ARCHITECTURE.md first.** It contains the current North Star goal, first principles, and success criteria that all major work should be measured against.

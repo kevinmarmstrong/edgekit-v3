@@ -1,3 +1,5 @@
+Audience: contributor
+
 # edgekit coding instructions
 
 Read `AGENTS.md` before changing this repo. Edgekit is a browser-native agent sidecar with configurable adapters, not a hosted chatbot platform.

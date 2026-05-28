@@ -1,3 +1,5 @@
+Audience: adopter
+
 # Production Recipes
 
 These recipes show the minimum production shape for real applications.

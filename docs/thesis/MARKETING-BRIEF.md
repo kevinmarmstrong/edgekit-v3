@@ -1,3 +1,5 @@
+Audience: thesis
+
 # Edgekit Marketing Brief
 
 ## Working Position

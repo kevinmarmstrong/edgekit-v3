@@ -1,3 +1,5 @@
+Audience: adopter
+
 # Migration And Upgrades
 
 Edgekit is designed so core primitives can improve without forcing every app integration to rewrite.

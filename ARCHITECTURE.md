@@ -1,3 +1,5 @@
+Audience: contributor
+
 # Edgekit Architecture — North Star & First Principles
 
 **Last updated:** 2026-05-26 (living document)

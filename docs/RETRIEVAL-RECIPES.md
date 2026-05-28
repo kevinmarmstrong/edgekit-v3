@@ -1,3 +1,5 @@
+Audience: adopter
+
 # Retrieval Recipes
 
 These recipes show how to plug retrieval into Edgekit without turning Edgekit into a RAG framework.

@@ -1,3 +1,5 @@
+Audience: adopter
+
 # Testing Outcome Quality
 
 Do not stop at "the code ran." Test whether the agent achieved the user outcome.

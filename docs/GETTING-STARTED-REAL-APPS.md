@@ -1,3 +1,5 @@
+Audience: adopter
+
 # Getting Started — Building a Production-Grade Sidecar
 
 This guide is for developers who want to ship a real, high-quality, localized agentic sidecar into a production application **today**.

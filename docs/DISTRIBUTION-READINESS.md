@@ -1,3 +1,5 @@
+Audience: adopter
+
 # Distribution Readiness
 
 Use this before publishing Edgekit packages.

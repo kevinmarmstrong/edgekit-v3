@@ -1,0 +1,35 @@
+{
+  "version": "edgekit.quality-bar.v1",
+  "description": "Seeded randomized prompt layer for Phase H. These prompts target free-form ecommerce and docs answers before provider-specific proof is claimed.",
+  "flows": [
+    {
+      "id": "ecommerce",
+      "surface": "external-ecommerce-demo",
+      "requiredFacts": ["Nike Dunk Low", "$64.99", "sizes 9, 10, 11", "white/black"],
+      "prompts": [
+        "I need the white/black dunk low facts before I decide.",
+        "What does the Nike Dunk cost and what sizes are in stock?",
+        "Can you summarize the white Nike Dunk option without adding it?",
+        "Is there a size 9 Dunk Low and what is the price?"
+      ]
+    },
+    {
+      "id": "docs-integration",
+      "surface": "docs-qa",
+      "requiredFacts": ["host app owns state", "tools", "approvals", "local-first"],
+      "prompts": [
+        "How does Edgekit add an agent without taking over my app state?",
+        "Where do approvals and existing APIs fit in an Edgekit integration?"
+      ]
+    },
+    {
+      "id": "docs-provider-proof",
+      "surface": "docs-qa",
+      "requiredFacts": ["local-first", "provider matrix", "Chrome AI", "WebLLM", "no-model"],
+      "prompts": [
+        "What should I measure before claiming the browser-local path works?",
+        "How do I explain provider evidence without overclaiming one green run?"
+      ]
+    }
+  ]
+}

@@ -1,13 +1,16 @@
+Audience: contributor
+
 # EdgeKit Agent Suite
 
-This directory contains the expandable outcome harness for EdgeKit.
+This directory contains deterministic regression and outcome coverage for EdgeKit.
 
 - `scenarios.json` defines prompt packs and browser surfaces.
 - `rubric.json` defines the confidence thresholds.
 - `pnpm research:env` checks the local machine/browser preconditions.
 - `pnpm eval:adoption` scores developer-facing answer quality and rejects stock docs-search snippets.
-- `pnpm research:suite` runs the browser, provider, and architecture outcome matrix.
-- `pnpm research:full` runs build, environment preflight, the full suite, and adoption-quality eval in one command.
+- `pnpm research:suite` runs the browser, provider, and architecture regression matrix.
+- `pnpm research:quality` runs randomized ecommerce/docs prompts with rubric judging and optional external LLM judge.
+- `pnpm research:full` runs build, environment preflight, the suite, randomized quality bar, and adoption-quality eval in one command.
 
 The default suite is secret-free and should pass through deterministic fallback or scripted paths. Real browser/provider runs are opt-in:
 

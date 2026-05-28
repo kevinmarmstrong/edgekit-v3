@@ -1,3 +1,5 @@
+Audience: adopter
+
 # 30-Minute Production Sidecar
 
 This is the fastest supported path for an agent-assisted developer to add a high-quality Edgekit sidecar to a real app surface.

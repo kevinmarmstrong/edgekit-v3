@@ -1,3 +1,5 @@
+Audience: contributor
+
 ---
 name: edgekit-outcome-tester
 description: Use when evaluating whether an Edgekit sidecar actually works for realistic prompts, actions, approvals, citations, and app state.

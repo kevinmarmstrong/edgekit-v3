@@ -1,3 +1,5 @@
+Audience: adopter
+
 # Knowledge Access Skills
 
 Edgekit treats retrieval as a Skill category, not as a built-in RAG platform.

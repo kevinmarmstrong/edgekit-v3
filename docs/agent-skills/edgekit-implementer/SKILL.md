@@ -1,3 +1,5 @@
+Audience: contributor
+
 ---
 name: edgekit-implementer
 description: Use when adding Edgekit to an app or site. Creates Skills, one Mission Profile, app-owned tools, approval gates, and sidecar mounting code.

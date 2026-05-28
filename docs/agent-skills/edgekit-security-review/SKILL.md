@@ -1,3 +1,5 @@
+Audience: contributor
+
 ---
 name: edgekit-security-review
 description: Use when reviewing an Edgekit integration for auth, RBAC, secret handling, approvals, audit, MCP, tool policy, and Knowledge Access boundaries.

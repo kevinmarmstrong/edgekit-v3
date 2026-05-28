@@ -1,3 +1,5 @@
+Audience: contributor
+
 ---
 name: edgekit-skill-optimizer
 description: Use when improving Edgekit Skills or Mission Profiles from harness results through bounded, validation-gated edits.

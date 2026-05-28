@@ -1,3 +1,5 @@
+Audience: adopter
+
 # Runtime Guarantees
 
 Edgekit has two kinds of contracts:

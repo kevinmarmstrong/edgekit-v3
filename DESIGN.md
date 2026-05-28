@@ -1,3 +1,5 @@
+Audience: contributor
+
 # edgekit — Design Document
 
 ## Status: APPROVED — Ready for Implementation

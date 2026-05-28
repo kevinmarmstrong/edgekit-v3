@@ -1,3 +1,5 @@
+Audience: adopter
+
 # Security Threat Model
 
 Edgekit assumes the host application is authoritative for data, identity, authorization, and business logic.

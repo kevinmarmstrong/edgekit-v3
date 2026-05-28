@@ -1,3 +1,5 @@
+Audience: adopter
+
 # Skill Optimization
 
 Edgekit treats Skills and Mission Profiles as inspectable, versioned artifacts that can improve over time without changing the deployed runtime model. The runtime stays local-first and low-cost; optimization happens in development, CI, or research loops.

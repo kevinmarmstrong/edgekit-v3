@@ -1,3 +1,5 @@
+Audience: adopter
+
 # Mission Profile Authoring
 
 Mission Profiles are the app-owned artifact for one localized Edgekit sidecar. They let you describe the mission, expected tools, safety posture, synthesis requirements, and runtime defaults without moving business logic out of the host app.

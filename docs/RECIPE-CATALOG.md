@@ -1,3 +1,5 @@
+Audience: adopter
+
 # Recipe Catalog
 
 Recipes are opinionated paths for common app patterns. They keep onboarding fast without cluttering the core docs or changing Edgekit into a framework-specific product.

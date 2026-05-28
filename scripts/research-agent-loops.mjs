@@ -547,7 +547,7 @@ function summarize(results) {
   }
 
   summary.averageScore = scored === 0 ? 0 : round(scoreTotal / scored)
-  summary.shipReady = summary.requiredFailed === 0 && summary.averageScore >= 0.9
+  summary.releaseGate = summary.requiredFailed === 0 && summary.averageScore >= 0.9
   return summary
 }
 
@@ -588,7 +588,7 @@ Summary:
 - Skipped: ${payload.summary.skipped}
 - Required failed: ${payload.summary.requiredFailed}
 - Average score: ${payload.summary.averageScore}
-- Ship ready: ${payload.summary.shipReady ? 'yes' : 'no'}
+- Release gate: ${payload.summary.releaseGate ? 'pass' : 'needs review'}
 
 **By category:**
 ${byCat || '(aggregated from checks)'}

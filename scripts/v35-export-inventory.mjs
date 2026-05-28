@@ -402,6 +402,7 @@ function walk(dir, files = []) {
 }
 
 const scanFiles = walk(root).filter((file) => file !== sourcePath && file !== import.meta.filename)
+  .filter((file) => path.relative(root, file) !== 'scripts/check-v35-constraints.mjs')
 
 function callSites(name) {
   const pattern = new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g')

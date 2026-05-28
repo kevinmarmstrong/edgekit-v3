@@ -190,9 +190,9 @@ async function runEnvironmentProbe(browser) {
       }
     })
     const modes = providerModes()
-    const needsChromeProvider = requireRealProviders && modes.some(mode => mode === 'chrome' || mode === 'cascade')
-    const needsWebLlmProvider = requireRealProviders && modes.some(mode => mode === 'webllm' || mode === 'cascade')
-    const needsCloudRouteProvider = requireRealProviders && modes.includes('cloud-route')
+    const needsChromeProvider = requireRealProviders && modes.some(mode => providerModeSpec(mode).requiresChrome)
+    const needsWebLlmProvider = requireRealProviders && modes.some(mode => providerModeSpec(mode).requiresWebLlm)
+    const needsCloudRouteProvider = requireRealProviders && modes.some(mode => providerModeSpec(mode).requiresServer)
     const providerHostCapabilities = needsWebLlmProvider
       ? await probeProviderHostCapabilities(page, ecommerceURL ?? siteURL)
       : capabilities
@@ -704,8 +704,9 @@ async function runProviderMatrix(browser) {
   const modes = providerModes()
   const results = []
   for (const mode of modes) {
-    if (mode === 'cloud-route') {
-      results.push(await probeCloudRouteProvider())
+    const spec = providerModeSpec(mode)
+    if (spec.kind === 'server') {
+      results.push(await probeCloudRouteProvider(mode))
       continue
     }
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
@@ -715,10 +716,9 @@ async function runProviderMatrix(browser) {
     let notes = ''
     let screenshot = ''
     try {
-      const scripted = mode === 'scripted'
-      const url = scripted
+      const url = spec.scripted
         ? `${ecommerceURL}/?agentMode=scripted`
-        : `${ecommerceURL}/?modelMode=${encodeURIComponent(mode)}&downloadPolicy=${process.env.EDGEKIT_SUITE_DOWNLOAD_POLICY ?? 'never'}`
+        : `${ecommerceURL}/?modelMode=${encodeURIComponent(spec.ecommerceMode)}&downloadPolicy=${encodeURIComponent(spec.downloadPolicy)}`
       await page.goto(url, { waitUntil: 'networkidle' })
       await sendPrompt(page, 'find me size nine white nike dunks')
       const strictProviderMode = isStrictExecutableProviderMode(mode)
@@ -775,10 +775,10 @@ async function runProviderMatrix(browser) {
 }
 
 function isStrictExecutableProviderMode(mode) {
-  return requireRealProviders && ['chrome', 'webllm', 'cascade'].includes(mode)
+  return requireRealProviders && providerModeSpec(mode).strictExecutable
 }
 
-async function probeCloudRouteProvider() {
+async function probeCloudRouteProvider(mode = 'server') {
   const checks = []
   const startedAt = Date.now()
   const url = process.env.EDGEKIT_SUITE_CLOUD_ROUTE_URL
@@ -793,9 +793,9 @@ async function probeCloudRouteProvider() {
     transcript = `Cloud route ${url} reachable=${reachable}`
   }
   const result = makeResult({
-    id: 'provider:cloud-route',
+    id: `provider:${mode}`,
     suiteId: 'provider-matrix',
-    title: 'Provider matrix: cloud route',
+    title: `Provider matrix: ${mode}`,
     layer: 'provider',
     required: requireRealProviders,
     prompt: '',
@@ -805,22 +805,56 @@ async function probeCloudRouteProvider() {
     notes: '',
     durationMs: Date.now() - startedAt,
   })
-  Object.assign(result, providerProofMetadata('cloud-route', {
+  Object.assign(result, providerProofMetadata(mode, {
     host: 'developer-route',
-    command: providerCommand('cloud-route'),
+    command: providerCommand(mode),
     evidence: url || 'EDGEKIT_SUITE_CLOUD_ROUTE_URL not set',
   }))
   return result
 }
 
 function providerMatrixSkipsForTarget() {
+  return providerModes().map(mode => {
+    const spec = providerModeSpec(mode)
+    return {
+      id: `provider:${mode}`,
+      suiteId: 'provider-matrix',
+      title: `Provider matrix: ${mode}`,
+      layer: 'provider',
+      required: false,
+      prompt: spec.kind === 'server' ? '' : 'find me size nine white nike dunks',
+      outcome: 'skipped',
+      score: 0,
+      durationMs: 0,
+      checks: [
+        {
+          category: 'environment',
+          label: `${mode} provider matrix lane is local-preview only`,
+          passed: true,
+          details: `target=${target}; run EDGEKIT_SUITE_TARGET=local pnpm research:suite for executable provider rows`,
+          required: false,
+        },
+      ],
+      transcript: 'Provider execution rows are intentionally not run against GitHub Pages/live targets. Live proof is recorded by browser scenarios; provider proof belongs to local or strict local runs.',
+      screenshot: '',
+      notes: '',
+      ...providerProofMetadata(mode, {
+        host: target,
+        command: providerCommand(mode),
+        evidence: 'skipped-live-target',
+      }),
+    }
+  })
+}
+
+function legacyProviderMatrixSkipsForTarget() {
   return providerModes().map(mode => ({
     id: `provider:${mode}`,
     suiteId: 'provider-matrix',
     title: `Provider matrix: ${mode}`,
     layer: 'provider',
     required: false,
-    prompt: mode === 'cloud-route' ? '' : 'find me size nine white nike dunks',
+    prompt: providerModeSpec(mode).kind === 'server' ? '' : 'find me size nine white nike dunks',
     outcome: 'skipped',
     score: 0,
     durationMs: 0,
@@ -845,7 +879,7 @@ function providerMatrixSkipsForTarget() {
 }
 
 function providerModes() {
-  return (process.env.EDGEKIT_SUITE_PROVIDER_MODES ?? 'chrome,webllm,cascade,none,scripted,cloud-route')
+  return (process.env.EDGEKIT_SUITE_PROVIDER_MODES ?? 'chrome-ready,chrome-downloading,webllm-auto,webllm-declined,server,no-model')
     .split(',')
     .map(mode => mode.trim())
     .filter(Boolean)
@@ -971,27 +1005,51 @@ async function probeResponseCache(checks) {
 }
 
 async function probeToolRepair(checks) {
-  let calls = 0
+  let repairCalls = 0
   const agent = edgekit.createAgent({
     systemPrompt: 'Helpful.',
     model: [fakeModel()],
     tools: { searchProducts: {} },
-    streamText: () => {
-      calls += 1
-      if (calls === 1) {
-        return {
-          fullStream: (async function* () {
+    generateText: async () => {
+      repairCalls += 1
+      return { toolCalls: [{ toolName: 'searchProducts', input: { query: 'Nike Dunk Low', size: '9' } }] }
+    },
+    streamText: options => {
+      const repairToolCall = options.experimental_repairToolCall
+      return {
+        fullStream: (async function* () {
+          const repaired = await repairToolCall({
+            toolCall: {
+              toolCallId: 'repair-search-products',
+              toolName: 'searchProducts',
+              input: '{"query":"Nike Dunk Low","size":9}',
+            },
+            tools: options.tools,
+            system: options.system,
+            messages: options.messages,
+            error: { name: 'AI_TypeValidationError', message: 'size must be a string' },
+          })
+          if (!repaired) {
             yield { type: 'error', error: { name: 'AI_TypeValidationError', message: 'size must be a string' } }
-          })(),
-          response: Promise.resolve({ messages: [] }),
-        }
+            return
+          }
+          yield {
+            type: 'tool-call',
+            toolCallId: 'repair-search-products',
+            toolName: 'searchProducts',
+            input: JSON.parse(repaired.input),
+          }
+          yield { type: 'text-delta', delta: 'Found Nike Dunk Low in size 9.' }
+        })(),
+        response: Promise.resolve({
+          messages: [{ role: 'assistant', content: [{ type: 'text', text: 'Found Nike Dunk Low in size 9.' }] }],
+        }),
       }
-      return textStream('Found Nike Dunk Low in size 9.')
     },
     toolRepair: { maxAttempts: 2 },
   })
   const events = await collect(agent.send('find size nine dunks'))
-  addCheck(checks, 'resilience', 'validation-shaped failure triggered repair retry', calls === 2)
+  addCheck(checks, 'resilience', 'validation-shaped failure triggered repair retry', repairCalls === 1)
   addCheck(checks, 'safety', 'repair failure was not shown as raw user error', !events.some(event => event.type === 'error'))
   addCheck(checks, 'answerQuality', 'repair produced useful final answer', events.some(event => event.type === 'done' && /Nike Dunk Low/.test(event.text)))
   return JSON.stringify(events)
@@ -1192,9 +1250,127 @@ function proofLevel() {
   return 'local-resilience'
 }
 
+function providerModeSpec(mode) {
+  const specs = {
+    'chrome-ready': {
+      kind: 'browser',
+      ecommerceMode: 'chrome',
+      downloadPolicy: 'never',
+      strictExecutable: true,
+      requiresChrome: true,
+    },
+    'chrome-downloading': {
+      kind: 'browser',
+      ecommerceMode: 'chrome',
+      downloadPolicy: 'auto',
+      strictExecutable: false,
+      requiresChrome: true,
+    },
+    'webllm-auto': {
+      kind: 'browser',
+      ecommerceMode: 'webllm',
+      downloadPolicy: 'auto',
+      strictExecutable: true,
+      requiresWebLlm: true,
+    },
+    'webllm-declined': {
+      kind: 'browser',
+      ecommerceMode: 'webllm',
+      downloadPolicy: 'never',
+      strictExecutable: false,
+      requiresWebLlm: true,
+    },
+    server: {
+      kind: 'server',
+      strictExecutable: false,
+      requiresServer: true,
+    },
+    'no-model': {
+      kind: 'browser',
+      ecommerceMode: 'none',
+      downloadPolicy: 'never',
+      strictExecutable: false,
+    },
+    chrome: {
+      kind: 'browser',
+      ecommerceMode: 'chrome',
+      downloadPolicy: process.env.EDGEKIT_SUITE_DOWNLOAD_POLICY ?? 'never',
+      strictExecutable: true,
+      requiresChrome: true,
+    },
+    webllm: {
+      kind: 'browser',
+      ecommerceMode: 'webllm',
+      downloadPolicy: process.env.EDGEKIT_SUITE_DOWNLOAD_POLICY ?? 'never',
+      strictExecutable: true,
+      requiresWebLlm: true,
+    },
+    cascade: {
+      kind: 'browser',
+      ecommerceMode: 'cascade',
+      downloadPolicy: process.env.EDGEKIT_SUITE_DOWNLOAD_POLICY ?? 'never',
+      strictExecutable: true,
+      requiresChrome: true,
+      requiresWebLlm: true,
+    },
+    none: {
+      kind: 'browser',
+      ecommerceMode: 'none',
+      downloadPolicy: 'never',
+      strictExecutable: false,
+    },
+    scripted: {
+      kind: 'browser',
+      scripted: true,
+      strictExecutable: false,
+    },
+    'cloud-route': {
+      kind: 'server',
+      strictExecutable: false,
+      requiresServer: true,
+    },
+  }
+  return specs[mode] ?? {
+    kind: 'browser',
+    ecommerceMode: mode,
+    downloadPolicy: process.env.EDGEKIT_SUITE_DOWNLOAD_POLICY ?? 'never',
+    strictExecutable: false,
+  }
+}
+
 function providerProofMetadata(mode, overrides = {}) {
   const strictCdp = proofLevel() === 'strict-cdp-real-providers'
   const definitions = {
+    'chrome-ready': {
+      proofLane: strictCdp ? 'Chrome AI ready via CDP' : 'Chrome AI ready candidate',
+      hostRequirement: 'Real Chrome profile with downloaded Nano and CDP for strict proof.',
+      strictMeaning: strictCdp ? 'Proves the ready Chrome AI path.' : 'Records route behavior unless strict CDP provider flags are set.',
+    },
+    'chrome-downloading': {
+      proofLane: 'Chrome AI downloading/consent state',
+      hostRequirement: 'Chrome AI present but model not yet ready; downloadPolicy=auto for controlled evals.',
+      strictMeaning: 'Proves the app exposes readiness/download state honestly rather than crashing or hiding fallback.',
+    },
+    'webllm-auto': {
+      proofLane: 'WebLLM auto-download on COOP/COEP host',
+      hostRequirement: 'WebGPU plus crossOriginIsolated=true from COOP/COEP headers.',
+      strictMeaning: 'Strict mode proves WebLLM can initialize and answer on an isolated host.',
+    },
+    'webllm-declined': {
+      proofLane: 'WebLLM declined/no-download fallback',
+      hostRequirement: 'No model download accepted; app must expose useful fallback.',
+      strictMeaning: 'Proves declining WebLLM does not create a broken empty chat.',
+    },
+    server: {
+      proofLane: 'Developer-owned server route',
+      hostRequirement: 'EDGEKIT_SUITE_CLOUD_ROUTE_URL must point at a reachable app-owned route for hosted-provider proof.',
+      strictMeaning: 'When real providers are required this fails if the server route is absent or unreachable.',
+    },
+    'no-model': {
+      proofLane: 'No-model fallback',
+      hostRequirement: 'No local model or server route is required.',
+      strictMeaning: 'Proves the basic-mode answer path is explicit and useful.',
+    },
     chrome: {
       proofLane: strictCdp ? 'strict Chrome AI/Nano CDP' : 'Chrome AI/Nano local candidate',
       hostRequirement: 'Real Chrome profile with LanguageModel or ai.languageModel; use EDGEKIT_CHROME_CDP_URL for downloaded Nano proof.',
@@ -1239,8 +1415,23 @@ function providerProofMetadata(mode, overrides = {}) {
 }
 
 function providerCommand(mode) {
-  if (mode === 'cloud-route') {
-    return 'EDGEKIT_SUITE_PROVIDER_MODES=cloud-route EDGEKIT_SUITE_CLOUD_ROUTE_URL=http://127.0.0.1:4198/api/edgekit/cloud-route EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:suite'
+  if (mode === 'server' || mode === 'cloud-route') {
+    return `EDGEKIT_SUITE_PROVIDER_MODES=${mode} EDGEKIT_SUITE_CLOUD_ROUTE_URL=http://127.0.0.1:4198/api/edgekit/cloud-route EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:suite`
+  }
+  if (mode === 'chrome-ready') {
+    return 'EDGEKIT_CHROME_CDP_URL=http://127.0.0.1:9223 EDGEKIT_SUITE_HEADLESS=0 EDGEKIT_REQUIRE_REAL_PROVIDERS=1 EDGEKIT_SUITE_PROVIDER_MODES=chrome-ready pnpm research:suite'
+  }
+  if (mode === 'chrome-downloading') {
+    return 'EDGEKIT_SUITE_PROVIDER_MODES=chrome-downloading EDGEKIT_SUITE_DOWNLOAD_POLICY=auto pnpm research:suite'
+  }
+  if (mode === 'webllm-auto') {
+    return 'EDGEKIT_SUITE_PROVIDER_MODES=webllm-auto EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:suite'
+  }
+  if (mode === 'webllm-declined') {
+    return 'EDGEKIT_SUITE_PROVIDER_MODES=webllm-declined pnpm research:suite'
+  }
+  if (mode === 'no-model') {
+    return 'EDGEKIT_SUITE_PROVIDER_MODES=no-model pnpm research:suite'
   }
   if (mode === 'chrome') {
     return 'EDGEKIT_CHROME_CDP_URL=http://127.0.0.1:9223 EDGEKIT_SUITE_HEADLESS=0 EDGEKIT_REQUIRE_REAL_PROVIDERS=1 EDGEKIT_SUITE_PROVIDER_MODES=chrome pnpm research:suite'
@@ -1422,7 +1613,10 @@ ${failures || 'No failed scenarios.'}
 
 function renderProviderMatrixMarkdown(payload) {
   const rows = payload.results
-    .map(result => `| ${result.id} | ${result.proofLane ?? result.mode ?? 'unknown'} | ${result.proofLevel ?? payload.proofLevel ?? 'unknown'} | ${result.outcome} | ${result.score} | ${result.required ? 'yes' : 'no'} | ${result.durationMs} |`)
+    .map(result => {
+      const metrics = providerMetrics(result)
+      return `| ${result.id} | ${result.proofLane ?? result.mode ?? 'unknown'} | ${result.proofLevel ?? payload.proofLevel ?? 'unknown'} | ${result.outcome} | ${result.durationMs} | ${metrics.successRate} | ${metrics.toolCallAccuracy} | ${result.required ? 'yes' : 'no'} |`
+    })
     .join('\n')
   const details = payload.results
     .map(result => {
@@ -1469,12 +1663,21 @@ Suite filter: ${payload.suiteFilter?.length ? payload.suiteFilter.join(', ') : '
 - \`live-pages\` proves the public static host; local provider execution rows are skipped there by design.
 - Cloud route proof is only hosted-provider proof when \`EDGEKIT_SUITE_CLOUD_ROUTE_URL\` points at a real external route. A local stub proves routing shape only.
 
-| Provider | Lane | Proof level | Outcome | Score | Required | Duration ms |
-| --- | --- | --- | --- | ---: | --- | ---: |
+| Provider | Lane | Proof level | Outcome | Latency ms | Success rate | Tool-call accuracy | Required |
+| --- | --- | --- | --- | ---: | ---: | ---: | --- |
 ${rows}
 
 ${details}
 `
+}
+
+function providerMetrics(result) {
+  const checks = result.checks ?? []
+  const passed = checks.filter(check => check.passed).length
+  const successRate = checks.length ? round(passed / checks.length) : 0
+  const toolChecks = checks.filter(check => ['integration', 'workflowState', 'generativeUi'].includes(check.category))
+  const toolCallAccuracy = toolChecks.length ? round(toolChecks.filter(check => check.passed).length / toolChecks.length) : 'n/a'
+  return { successRate, toolCallAccuracy }
 }
 
 async function sendPrompt(scope, prompt) {

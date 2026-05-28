@@ -1,3 +1,5 @@
+Audience: maintainer
+
 # edgekit public release checklist
 
 ## Current package names

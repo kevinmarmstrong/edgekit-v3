@@ -1,3 +1,5 @@
+Audience: adopter
+
 # Reproducibility Guide
 
 The goal is to make Edgekit evidence repeatable outside the maintainer machine.
@@ -22,6 +24,7 @@ pnpm build
 pnpm test:e2e
 pnpm eval:adoption
 pnpm research:suite
+pnpm research:quality
 ```
 
 ## Provider Matrix
@@ -40,12 +43,15 @@ Run each architecture as its own evidence lane. Do not merge these claims:
 
 | Lane | What It Proves | Command |
 | --- | --- | --- |
-| Deterministic local | Integration contracts, demos, docs, harness scoring, scripted workflow control | `pnpm research:suite` |
-| Chrome AI / Nano CDP | Browser-native model path through a real Chrome profile with downloaded Nano available | `EDGEKIT_CHROME_CDP_URL=http://127.0.0.1:9223 EDGEKIT_SUITE_HEADLESS=0 EDGEKIT_REQUIRE_REAL_PROVIDERS=1 EDGEKIT_SUITE_PROVIDER_MODES=chrome pnpm research:suite` |
+| Deterministic local | Integration contracts, demos, docs, seeded prompt variants, scripted workflow control | `pnpm research:suite` |
+| Randomized quality bar | Live ecommerce + docs prompts with deterministic rubric judging and optional external LLM judge | `pnpm research:quality` |
+| Chrome AI ready | Browser-native model path through a real Chrome profile with downloaded Nano available | `EDGEKIT_CHROME_CDP_URL=http://127.0.0.1:9223 EDGEKIT_SUITE_HEADLESS=0 EDGEKIT_REQUIRE_REAL_PROVIDERS=1 EDGEKIT_SUITE_PROVIDER_MODES=chrome-ready pnpm research:suite` |
+| Chrome AI downloading | User-visible readiness/download state for a controlled Chrome AI download attempt | `EDGEKIT_SUITE_PROVIDER_MODES=chrome-downloading pnpm research:suite` |
 | Strict model cascade | Ecommerce prompt/tool/approval paths against Chrome and cascade modes | `EDGEKIT_CHROME_CDP_URL=http://127.0.0.1:9223 EDGEKIT_EVAL_HEADLESS=0 EDGEKIT_REQUIRE_REAL_MODEL=1 EDGEKIT_EVAL_DOWNLOAD_POLICY=never pnpm eval:models` |
-| WebLLM host | WebLLM-capable host with WebGPU and `crossOriginIsolated=true` from COOP/COEP headers | `EDGEKIT_SUITE_PROVIDER_MODES=webllm EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:suite` |
-| Cloud route | Developer-owned model escalation endpoint | `EDGEKIT_SUITE_PROVIDER_MODES=cloud-route EDGEKIT_SUITE_CLOUD_ROUTE_URL=https://edgekit-cloudflare-sidecar.kevinmichaelarmstrong.workers.dev/api/edgekit/cloud-route EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:suite` |
-| No-model fallback | Honest basic-mode behavior when local models are unavailable | `EDGEKIT_SUITE_PROVIDER_MODES=none pnpm research:suite` |
+| WebLLM auto | WebLLM-capable host with WebGPU and `crossOriginIsolated=true` from COOP/COEP headers | `EDGEKIT_SUITE_PROVIDER_MODES=webllm-auto EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:suite` |
+| WebLLM declined | Honest fallback when WebLLM download is not accepted | `EDGEKIT_SUITE_PROVIDER_MODES=webllm-declined pnpm research:suite` |
+| Server route | Developer-owned model escalation endpoint | `EDGEKIT_SUITE_PROVIDER_MODES=server EDGEKIT_SUITE_CLOUD_ROUTE_URL=https://edgekit-cloudflare-sidecar.kevinmichaelarmstrong.workers.dev/api/edgekit/cloud-route EDGEKIT_REQUIRE_REAL_PROVIDERS=1 pnpm research:suite` |
+| No-model fallback | Honest basic-mode behavior when local models are unavailable | `EDGEKIT_SUITE_PROVIDER_MODES=no-model pnpm research:suite` |
 | Live Pages | Public docs and demos under GitHub Pages constraints | `EDGEKIT_SUITE_TARGET=live pnpm research:suite` |
 
 Launch a reusable Chrome profile when strict local-provider evidence matters:
@@ -114,6 +120,8 @@ offline-journal, and no-model architecture probes in the same run.
 - `research-results/agent-suite.json`: machine-readable scores, skips, category
   thresholds, provider notes, and required-failure status.
 - `research-results/agent-suite.md`: human-readable scenario summary.
+- `research-results/quality-bar.md`: randomized ecommerce/docs prompts, rubric
+  judgment, optional LLM-judge status, and user-visible output samples.
 - `research-results/provider-matrix.md`: provider-by-host pass, fail, and skip
   reasons.
 - `research-results/suite-screenshots/*`: browser screenshots for the tested

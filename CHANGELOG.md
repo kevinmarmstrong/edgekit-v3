@@ -1,3 +1,5 @@
+Audience: adopter
+
 # Changelog
 
 ## v0.3.0 - v3.5 Refactor In Progress
@@ -10,4 +12,5 @@
 - Phase E proved the packed-package adopter path: all nine publishable packages install from tarballs in a fresh app, the clean-room adoption harness passes with 0 required failures, and the external ecommerce demo is live at `https://edgekit-demo-ecommerce.pages.dev/` with GitHub Pages retained as a fallback/no-model reference.
 - Phase F retired the site-owned ecommerce runtime in favor of the external packed-package demo and fixed approval continuations: approval responses now carry the original `toolCall` so approved mutations resolve and execute against the same originating call shape. Custom approval UIs should treat `toolCall` as the source of truth for the approved or rejected call.
 - Phase G started the adopter-facing marketing reshape: the landing hero now leads with the existing-app promise, a copyable embed snippet, a live-demo GIF, and CTAs to the external quickstart, GitHub repo, and COOP/COEP ecommerce demo.
+- Phase H added the quality-bar layer: randomized ecommerce/docs prompts, optional external LLM judging, six-row provider matrix defaults, v3.5 constraint CI, and an `UPGRADE.md` template with a v0.3 worked example.
 - Deprecated DEFER exports are not part of the v0.3 public API contract and are scheduled for removal in v0.4 or the next planned breaking release.

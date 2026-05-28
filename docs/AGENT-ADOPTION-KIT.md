@@ -1,3 +1,5 @@
+Audience: adopter
+
 # Agent Adoption Kit
 
 The Adoption Kit is the low-friction path for developers and coding agents that need to add Edgekit to a real app without drifting into a generic chatbot.

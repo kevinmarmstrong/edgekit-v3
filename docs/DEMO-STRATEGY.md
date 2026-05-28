@@ -1,3 +1,5 @@
+Audience: adopter
+
 # Demo Strategy and Gap Analysis
 
 Edgekit demos should do two jobs at once:

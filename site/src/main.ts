@@ -269,6 +269,7 @@ agUiChat?.configure({ sessionId: 'site-agui-demo', telemetry: missionControl })
 agUiChat?.registerTools({ createSupportTicket, submitDemoRequest })
 agUiChat?.useAgent(createAgUiAgent({ run: mockAgUiRun, sessionId: 'site-agui-demo', telemetry: missionControl }))
 
+renderHomePage()
 renderDocCards()
 renderCatalog()
 renderCart()
@@ -278,6 +279,204 @@ mountAdminDemo()
 mountOpsDemo()
 mountCascadeDemo()
 mountSiteAssistant({ telemetry: missionControl })
+
+function renderHomePage() {
+  const home = document.querySelector<HTMLElement>('main#top')
+  if (!home) return
+
+  document.body.classList.add('docs-page', 'home-docs-page')
+
+  home.classList.add('home-overview-shell')
+  home.innerHTML = `
+    <section class="hero home-hero" aria-labelledby="home-title">
+      <div class="hero-copy home-hero-copy">
+        <p class="hero-kicker">Browser-native agent sidecars</p>
+        <h1 id="home-title">Edgekit is the docs-first runtime for adding local agents to real app workflows.</h1>
+        <p>
+          Mount a sidecar inside your product, expose existing app capabilities as typed tools,
+          and keep the host app authoritative over state, permissions, approvals, telemetry, and
+          audit. The default path is local-first: Chrome AI, WebLLM, then an explicit fallback only
+          when the app chooses one.
+        </p>
+        <div class="hero-actions home-hero-actions" aria-label="Primary Edgekit links">
+          <a class="button primary" href="${withBase('/docs/')}">Read the docs</a>
+          <a class="button secondary" href="${withBase('/docs/getting-started/')}">Quick start</a>
+          <a class="button secondary" href="${withBase('/demos/ecommerce/')}">Open demos</a>
+          <a class="button secondary" href="${withBase('/llms.txt')}">Agent docs</a>
+        </div>
+      </div>
+      <div class="hero-visual home-architecture-card" aria-label="Edgekit architecture overview">
+        <div class="home-stack">
+          <div>
+            <span class="section-label">Host application</span>
+            <h2>State, identity, permissions, and business logic stay in your app.</h2>
+          </div>
+          <ol class="home-architecture-stack">
+            <li><strong>Mission Profile</strong><span>App-owned instructions, defaults, synthesis rules, and workflow boundaries.</span></li>
+            <li><strong>Skills</strong><span>Composable capability packages with tools, examples, approval policy, and UI hints.</span></li>
+            <li><strong>Edgekit primitives</strong><span>Model cascade, guarded tools, EdgeView rendering, telemetry, audit, memory, MCP, and AG-UI.</span></li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="docs-section home-summary-section" id="overview">
+      <div class="section-heading">
+        <p class="section-label">Builder overview</p>
+        <h2>Why teams use Edgekit</h2>
+        <p>
+          Edgekit is for builders who need an agentic product surface without turning the app into
+          a hosted chatbot service. It favors inspectable contracts, local inference, and measured
+          outcome quality over landing-page abstractions.
+        </p>
+      </div>
+      <div class="home-summary-grid">
+        <article class="doc-card">
+          <span>Local-first economics</span>
+          <h3>Zero variable token cost on the default path.</h3>
+          <p>Browser models handle useful work before any cloud route is considered, reducing spend while keeping fast help close to the user.</p>
+        </article>
+        <article class="doc-card">
+          <span>Privacy boundary</span>
+          <h3>Sensitive context does not leave by default.</h3>
+          <p>Use state providers, redaction, local memory, and explicit fallback routes instead of sending broad app context to a remote provider.</p>
+        </article>
+        <article class="doc-card">
+          <span>Host authority</span>
+          <h3>The app owns execution and mutation.</h3>
+          <p>Edgekit calls registered tools; your app still enforces identity, RBAC, workflow state, approval, and persistence.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="how-section home-proof-section" id="how-it-works">
+      <div class="section-heading">
+        <p class="section-label">Proof and architecture</p>
+        <h2>Designed around the hard parts of production sidecars.</h2>
+        <p>
+          The runtime packages agent capabilities as Skills, assembles them into Mission Profiles,
+          and then validates real user-visible outcomes with the research harness.
+        </p>
+      </div>
+      <div class="home-proof-grid">
+        <article>
+          <span>Skills + profiles</span>
+          <h3>Localize the sidecar without forking the runtime.</h3>
+          <p>Skills describe capabilities. Mission Profiles compose those Skills for one app surface with mission-specific synthesis and safety rules.</p>
+        </article>
+        <article>
+          <span>Cascade + permissions</span>
+          <h3>Route deliberately, expose tools conditionally.</h3>
+          <p>Use Chrome AI/WebLLM readiness, explicit fallback, identity-aware tool hydration, RBAC manifests, and approval gates for risky actions.</p>
+        </article>
+        <article>
+          <span>Testing proof</span>
+          <h3>Measure whether facts survive to the user.</h3>
+          <p>The adoption and research loops score answer quality, synthesis faithfulness, workflow state, safety, observability, and fallback behavior.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="docs-section home-quickstart-section" id="quick-start">
+      <div class="section-heading">
+        <p class="section-label">Quick start</p>
+        <h2>The shortest path to a real sidecar.</h2>
+        <p>
+          Start with one mission, define two or three Skills, mount the component, register tools,
+          and run the outcome checks before adding broader routing or integrations.
+        </p>
+      </div>
+      <div class="home-quickstart-grid">
+        <ol class="home-checklist">
+          <li><strong>Choose one workflow.</strong><span>Support triage, catalog help, admin changes, docs Q&A, or intake.</span></li>
+          <li><strong>Create Skills.</strong><span>Package tool contracts, descriptions, examples, approval policy, and synthesis expectations.</span></li>
+          <li><strong>Apply a Mission Profile.</strong><span>Keep mission-specific instructions app-owned and versioned outside core.</span></li>
+          <li><strong>Register app tools.</strong><span>Call existing APIs and keep secrets, auth, and business rules in execution context.</span></li>
+          <li><strong>Validate outcomes.</strong><span>Run typecheck, build, e2e, adoption evals, and research scenarios as the surface matures.</span></li>
+        </ol>
+        <pre class="home-code"><code>import '@kevinmarmstrong/edgekit-ui'
+import { chromeAI } from '@kevinmarmstrong/edgekit'
+import { supportProfile } from './edgekit/support-profile'
+
+const chat = document.querySelector('edge-chat')
+chat.configure({ model: [chromeAI()] })
+chat.applyMissionProfile(supportProfile)
+chat.registerTools({ searchCases, createTicket })</code></pre>
+      </div>
+    </section>
+
+    <section class="docs-section home-docs-section" id="docs">
+      <div class="section-heading">
+        <p class="section-label">Documentation map</p>
+        <h2>Read by job, not by marketing funnel.</h2>
+        <p>
+          The docs are organized around adoption paths, architecture boundaries, API surfaces,
+          production controls, testing, and deployment.
+        </p>
+      </div>
+      <div class="doc-card-grid" id="doc-card-grid"></div>
+    </section>
+
+    <section class="demos-section home-demo-catalog" id="demos">
+      <div class="section-heading">
+        <p class="section-label">Demo catalog</p>
+        <h2>Working surfaces that keep their integration boundaries visible.</h2>
+        <p>
+          Each demo preserves the important truth: the sidecar assists inside an app workflow, tool
+          execution remains app-owned, and scripted/provider modes are disclosed.
+        </p>
+      </div>
+      <div class="demo-grid">
+        <a class="demo-card active" href="${withBase('/demos/ecommerce/')}">
+          <span>Public catalog</span>
+          <strong>Skills + Mission Profile, product search, generated CTAs, and guarded add-to-cart.</strong>
+        </a>
+        <a class="demo-card active-secondary" href="${withBase('/demos/docs/')}">
+          <span>Docs Q&A</span>
+          <strong>Project knowledge exposed as a search tool with synthesis-faithfulness checks.</strong>
+        </a>
+        <a class="demo-card active-secondary" href="${withBase('/demos/operations/')}">
+          <span>Field ops ERP</span>
+          <strong>Work orders, inventory reservation, and technician dispatch in one workflow.</strong>
+        </a>
+        <a class="demo-card active-secondary" href="${withBase('/demos/admin/')}">
+          <span>SaaS admin</span>
+          <strong>Guarded account changes, approvals, telemetry, and workflow recovery.</strong>
+        </a>
+        <a class="demo-card" href="${withBase('/demos/ag-ui/')}">
+          <span>AG-UI adapter</span>
+          <strong>Remote event streams rendered into declarative EdgeView UI.</strong>
+        </a>
+        <a class="demo-card" href="${withBase('/demos/cascade/')}">
+          <span>Cascade lab</span>
+          <strong>Browser model readiness, permission states, fallbacks, and feature gating.</strong>
+        </a>
+        <a class="demo-card" href="${withBase('/demos/mission-control/')}">
+          <span>Mission control</span>
+          <strong>Telemetry, approvals, errors, and tool usage hooks for product teams.</strong>
+        </a>
+      </div>
+    </section>
+
+    <section class="docs-section home-reference-section" aria-labelledby="reference-title">
+      <div class="section-heading">
+        <p class="section-label">Reference links</p>
+        <h2 id="reference-title">Common next reads</h2>
+        <p>Direct entry points for implementation details, agent-readable context, and production review.</p>
+      </div>
+      <div class="primitive-list home-link-list" aria-label="Edgekit reference links">
+        <a href="${withBase('/docs/mission-profiles/')}">Mission Profiles</a>
+        <a href="${withBase('/docs/skill-optimization/')}">Skill optimization</a>
+        <a href="${withBase('/docs/advanced/#state-hydration')}">State hydration</a>
+        <a href="${withBase('/docs/advanced/#dynamic-tool-exposure')}">Dynamic tool exposure</a>
+        <a href="${withBase('/docs/advanced/#telemetry')}">Telemetry</a>
+        <a href="${withBase('/docs/testing/')}">Testing</a>
+        <a href="${withBase('/docs/security-threat-model/')}">Threat model</a>
+        <a href="${withBase('/llms-full.txt')}">Full agent context</a>
+      </div>
+    </section>
+  `
+}
 
 function renderDocCards() {
   const grid = document.querySelector<HTMLElement>('#doc-card-grid')
@@ -303,6 +502,7 @@ function docsHref(slug: string) {
 
 function withBase(path: string) {
   if (path === '/') return `${basePath}/`
+  if (path.startsWith('/#')) return `${basePath}/${path.slice(1)}`
   return `${basePath}${path}`
 }
 

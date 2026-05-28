@@ -13,6 +13,8 @@ type Account = {
   status: 'Active' | 'At risk' | 'Suspended'
 }
 
+type AdminRole = 'admin' | 'billing' | 'support'
+
 const accounts: Account[] = [
   {
     id: 'northwind',
@@ -41,13 +43,26 @@ const accounts: Account[] = [
 ]
 
 const activity: string[] = ['No workflow actions yet']
+const adminMetrics = {
+  approvalsRequested: 0,
+  approvalsApproved: 0,
+  approvalsRejected: 0,
+}
+const roleCapabilities: Record<AdminRole, string[]> = {
+  admin: ['searchAccounts', 'updatePlan', 'suspendAccount'],
+  billing: ['searchAccounts', 'updatePlan'],
+  support: ['searchAccounts'],
+}
 
 export function mountAdminDemo() {
   const chat = document.querySelector<EdgeChat>('edge-chat#admin-chat')
   const scriptedMode = new URLSearchParams(window.location.search).get('adminAgentMode') === 'scripted'
 
-  renderAccounts()
-  renderActivity()
+  renderAdminState()
+  document.querySelector<HTMLSelectElement>('#admin-role')?.addEventListener('change', () => {
+    pushActivity(`Role changed to ${roleLabel(currentAdminRole())}`)
+    renderAdminState()
+  })
 
   chat?.configure(
     scriptedMode
@@ -60,6 +75,7 @@ export function mountAdminDemo() {
           downloadPolicy: 'never',
           toolChoice: 'required',
           toolProvider: ({ input }) => adminToolsForInput(input),
+          telemetry: trackAdminTelemetry,
           onNoModel: ({ input }) => answerFromAccounts(input),
       },
   )
@@ -68,11 +84,26 @@ export function mountAdminDemo() {
 }
 
 function adminToolsForInput(input: string) {
-  if (/\b(suspend|disable|block)\b/i.test(input)) return { searchAccounts, suspendAccount }
+  const role = currentAdminRole()
+  if (/\b(suspend|disable|block)\b/i.test(input)) return roleFilterTools({ searchAccounts, suspendAccount }, role)
   if (/\b(upgrade|downgrade|change|move|set|plan|enterprise|pro|starter)\b/i.test(input)) {
-    return { searchAccounts, updatePlan }
+    return roleFilterTools({ searchAccounts, updatePlan }, role)
   }
-  return { searchAccounts }
+  return roleFilterTools({ searchAccounts }, role)
+}
+
+function roleFilterTools<T extends Record<string, unknown>>(tools: T, role: AdminRole) {
+  return Object.fromEntries(
+    Object.entries(tools).filter(([toolName]) => canRoleUseTool(role, toolName)),
+  ) as Partial<T>
+}
+
+function trackAdminTelemetry(event: { name?: string; approved?: boolean }) {
+  if (event.name === 'approval-request') adminMetrics.approvalsRequested += 1
+  if (event.name === 'approval-decision') {
+    event.approved ? adminMetrics.approvalsApproved += 1 : adminMetrics.approvalsRejected += 1
+  }
+  if (event.name === 'approval-request' || event.name === 'approval-decision') renderAdminState()
 }
 
 const searchAccounts = tool({
@@ -101,12 +132,13 @@ const updatePlan = tool({
     plan: z.enum(['Starter', 'Pro', 'Enterprise']).describe('New account plan'),
   }),
   execute: async ({ accountId, plan }) => {
+    const role = currentAdminRole()
+    if (!canRoleUseTool(role, 'updatePlan')) return blockedRoleResult(role, 'updatePlan')
     const account = accounts.find(candidate => candidate.id === accountId)
     if (!account) return { success: false, error: 'Account not found' }
     account.plan = plan
     pushActivity(`Updated ${account.name} to ${plan}`)
-    renderAccounts()
-    renderActivity()
+    renderAdminState()
     return { success: true, account: account.name, plan }
   },
   needsApproval: true,
@@ -119,12 +151,13 @@ const suspendAccount = tool({
     reason: z.string().describe('Reason for suspension'),
   }),
   execute: async ({ accountId, reason }) => {
+    const role = currentAdminRole()
+    if (!canRoleUseTool(role, 'suspendAccount')) return blockedRoleResult(role, 'suspendAccount')
     const account = accounts.find(candidate => candidate.id === accountId)
     if (!account) return { success: false, error: 'Account not found' }
     account.status = 'Suspended'
     pushActivity(`Suspended ${account.name}: ${reason}`)
-    renderAccounts()
-    renderActivity()
+    renderAdminState()
     return { success: true, account: account.name, reason }
   },
   needsApproval: true,
@@ -157,6 +190,22 @@ function renderActivity() {
   const log = document.querySelector<HTMLElement>('#admin-activity')
   if (!log) return
   log.innerHTML = activity.map(item => `<li>${item}</li>`).join('')
+}
+
+function renderAdminState() {
+  renderAccounts()
+  renderActivity()
+  renderAdminSummary()
+}
+
+function renderAdminSummary() {
+  const role = currentAdminRole()
+  const visibleTools = roleCapabilities[role]
+  setText('admin-role-state', roleLabel(role))
+  setText('admin-role-detail', roleDetail(role))
+  setText('admin-visible-tools', `${visibleTools.length} tool${visibleTools.length === 1 ? '' : 's'}`)
+  setText('admin-tool-detail', visibleTools.join(', '))
+  setText('admin-approval-count', `${adminMetrics.approvalsRequested} requested`)
 }
 
 function answerFromAccounts(input: string) {
@@ -212,30 +261,44 @@ function createScriptedAdminStream() {
 }
 
 function initialAdminStream(tools: Record<string, unknown>, request: AdminRequest) {
+  const toolCall = approvalToolCall(request)
+  const role = currentAdminRole()
+  const blockedText = canRoleUseTool(role, toolCall.toolName) ? '' : formatBlockedRoleText(role, toolCall.toolName)
+
   return {
     fullStream: (async function* () {
       const searchInput = { query: request.accountId }
       yield { type: 'tool-call', toolCallId: 'tool-search-accounts', toolName: 'searchAccounts', input: searchInput }
       const output = await executeTool(tools.searchAccounts, searchInput)
       yield { type: 'tool-result', toolCallId: 'tool-search-accounts', toolName: 'searchAccounts', output }
+      if (blockedText) {
+        pushActivity(`Blocked ${toolCall.toolName}; ${roleLabel(role)} role is not authorized for this tool`)
+        renderAdminState()
+        yield { type: 'text-delta', delta: blockedText }
+        return
+      }
       yield {
         type: 'text-delta',
         delta: `${request.accountName} is ready for review. Approval is required before ${request.actionLabel}.`,
       }
+      adminMetrics.approvalsRequested += 1
+      renderAdminState()
       yield {
         type: 'tool-approval-request',
         approvalId: `approval-${request.action}`,
-        toolCall: approvalToolCall(request),
+        toolCall,
       }
     })(),
     response: Promise.resolve({
       messages: [
         {
           role: 'assistant',
-          content: [
-            { type: 'text', text: `${request.accountName} is ready for review.` },
-            { type: 'tool-approval-request', approvalId: `approval-${request.action}`, toolCall: approvalToolCall(request) },
-          ],
+          content: blockedText
+            ? [{ type: 'text', text: blockedText }]
+            : [
+                { type: 'text', text: `${request.accountName} is ready for review.` },
+                { type: 'tool-approval-request', approvalId: `approval-${request.action}`, toolCall },
+              ],
         },
       ],
     }),
@@ -244,8 +307,31 @@ function initialAdminStream(tools: Record<string, unknown>, request: AdminReques
 
 function approvedAdminStream(tools: Record<string, unknown>, request: AdminRequest, approvedToolCall: ApprovalToolCall | null) {
   const toolCall = approvedToolCall ?? approvalToolCall(request)
+  const role = currentAdminRole()
+  const blockedText = canRoleUseTool(role, toolCall.toolName) ? '' : formatBlockedRoleText(role, toolCall.toolName)
+
+  if (blockedText) {
+    return {
+      fullStream: (async function* () {
+        pushActivity(`Blocked ${toolCall.toolName}; ${roleLabel(role)} role is not authorized for this tool`)
+        renderAdminState()
+        yield { type: 'text-delta', delta: blockedText }
+      })(),
+      response: Promise.resolve({
+        messages: [
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: blockedText }],
+          },
+        ],
+      }),
+    }
+  }
+
   return {
     fullStream: (async function* () {
+      adminMetrics.approvalsApproved += 1
+      renderAdminState()
       yield toolCall
       const output = await executeTool(tools[toolCall.toolName], toolCall.input)
       yield { type: 'tool-result', toolCallId: toolCall.toolCallId, toolName: toolCall.toolName, output }
@@ -271,6 +357,10 @@ function approvedAdminStream(tools: Record<string, unknown>, request: AdminReque
   }
 }
 
+function formatBlockedRoleText(role: AdminRole, toolName: string) {
+  return `I did not run ${toolName}. ${roleLabel(role)} does not have that account-management capability.`
+}
+
 function formatAdminSuccess(toolCall: ApprovalToolCall, output: unknown, request: AdminRequest) {
   const outputRecord = isRecord(output) ? output : undefined
   const account = typeof outputRecord?.account === 'string' ? outputRecord.account : request.accountName
@@ -289,6 +379,8 @@ function formatAdminSuccess(toolCall: ApprovalToolCall, output: unknown, request
 function rejectedAdminStream(request: AdminRequest) {
   return {
     fullStream: (async function* () {
+      adminMetrics.approvalsRejected += 1
+      renderAdminState()
       yield {
         type: 'text-delta',
         delta: `I did not ${request.action === 'update-plan' ? 'update' : 'suspend'} ${request.accountName}.`,
@@ -395,6 +487,44 @@ async function executeTool(toolDefinition: unknown, input: Record<string, unknow
 function pushActivity(item: string) {
   if (activity.length === 1 && activity[0] === 'No workflow actions yet') activity.length = 0
   activity.unshift(item)
+}
+
+function currentAdminRole(): AdminRole {
+  const value = document.querySelector<HTMLSelectElement>('#admin-role')?.value
+  return value === 'billing' || value === 'support' ? value : 'admin'
+}
+
+function canRoleUseTool(role: AdminRole, toolName: string) {
+  return roleCapabilities[role].includes(toolName)
+}
+
+function blockedRoleResult(role: AdminRole, toolName: string) {
+  pushActivity(`Blocked ${toolName}; ${roleLabel(role)} role is not authorized for this tool`)
+  renderAdminState()
+  return {
+    success: false,
+    blocked: true,
+    error: `${roleLabel(role)} does not have permission to run ${toolName}`,
+    role,
+    toolName,
+  }
+}
+
+function roleLabel(role: AdminRole) {
+  if (role === 'billing') return 'Billing manager'
+  if (role === 'support') return 'Support viewer'
+  return 'Admin'
+}
+
+function roleDetail(role: AdminRole) {
+  if (role === 'billing') return 'Can search accounts and update plans with approval; suspension tools are hidden.'
+  if (role === 'support') return 'Can search account context only; all mutation tools are hidden.'
+  return 'Can search accounts, update plans, and suspend accounts with approval.'
+}
+
+function setText(id: string, text: string) {
+  const element = document.getElementById(id)
+  if (element) element.textContent = text
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

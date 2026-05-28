@@ -2,10 +2,43 @@ import './styles.css'
 import { docsPages, docsPath, getDocsPage } from './docsContent'
 import { mountSiteAssistant } from './siteAssistant'
 
+const navGroups = [
+  {
+    title: 'Start here',
+    slugs: ['overview', 'getting-started', '30-minute-sidecar', 'adoption-kit', 'recipes'],
+  },
+  {
+    title: 'Core model',
+    slugs: ['concepts', 'mission-profiles', 'knowledge-access', 'skill-optimization', 'outcome-quality'],
+  },
+  {
+    title: 'Implementation',
+    slugs: ['api', 'ui', 'cli', 'advanced', 'ecosystem'],
+  },
+  {
+    title: 'Production',
+    slugs: [
+      'production',
+      'runtime-guarantees',
+      'distribution-readiness',
+      'production-recipes',
+      'security-threat-model',
+      'migration-upgrades',
+    ],
+  },
+  {
+    title: 'Validation',
+    slugs: ['testing', 'reproducibility', 'adopter-simulation', 'deployment'],
+  },
+]
+
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '')
 const root = document.querySelector<HTMLElement>('#docs-root')
 const pageSlug = document.body.dataset.docPage ?? 'overview'
 const activePage = getDocsPage(pageSlug)
+const activeGroup = getNavGroup(activePage.slug)
+
+document.body.classList.add('docs-page')
 
 if (root) {
   document.title = `${activePage.title} · edgekit docs`
@@ -24,32 +57,39 @@ if (root) {
 
     <main class="docs-shell">
       <aside class="docs-sidebar" aria-label="Documentation pages">
-        <a class="docs-back" href="${withBase('/')}">Home</a>
-        <nav>
-          ${docsPages
-            .map(
-              page => `
-                <a class="${page.slug === activePage.slug ? 'current' : ''}" href="${withBase(docsPath(page))}">
-                  ${page.navLabel}
-                </a>
-              `,
-            )
-            .join('')}
+        <div class="docs-sidebar-header">
+          <a class="docs-back" href="${withBase('/')}">edgekit</a>
+          <p>Documentation</p>
+        </div>
+        <label class="docs-search">
+          <span>Search docs</span>
+          <input type="search" placeholder="Filter pages..." autocomplete="off" data-docs-filter>
+        </label>
+        <nav class="docs-nav" data-docs-nav>
+          ${renderDocsNav()}
         </nav>
+        <div class="docs-sidebar-links">
+          <a href="${withBase('/llms.txt')}">llms.txt</a>
+          <a href="${withBase('/llms-full.txt')}">Full context</a>
+        </div>
       </aside>
 
       <article class="docs-article">
         <header class="docs-hero">
-          <p class="section-label">edgekit docs</p>
+          <nav class="docs-breadcrumbs" aria-label="Breadcrumb">
+            <a href="${withBase('/')}">Home</a>
+            <span>/</span>
+            <a href="${withBase('/docs/')}">Docs</a>
+            <span>/</span>
+            <span>${activeGroup}</span>
+          </nav>
           <h1>${activePage.title}</h1>
           <p>${activePage.summary}</p>
+          <div class="docs-utility-links" aria-label="Documentation utilities">
+            <a href="${withBase(markdownPath(activePage.slug))}">Raw Markdown</a>
+            <a href="${withBase('/llms-full.txt')}">llms-full.txt</a>
+          </div>
         </header>
-
-        <nav class="docs-toc" aria-label="On this page">
-          ${activePage.sections
-            .map(section => `<a href="#${section.id}">${section.title}</a>`)
-            .join('')}
-        </nav>
 
         ${activePage.sections.map(renderSection).join('')}
 
@@ -57,11 +97,73 @@ if (root) {
           ${renderPreviousNext()}
         </footer>
       </article>
+
+      <aside class="docs-right-rail" aria-label="On this page">
+        <p>On this page</p>
+        <nav class="docs-toc">
+          ${activePage.sections
+            .map(section => `<a href="#${section.id}">${section.title}</a>`)
+            .join('')}
+        </nav>
+      </aside>
     </main>
   `
+
+  wireDocsEnhancements(root)
 }
 
 mountSiteAssistant()
+
+function renderDocsNav() {
+  const pagesBySlug = new Map(docsPages.map(page => [page.slug, page]))
+  const groupedSlugs = new Set(navGroups.flatMap(group => group.slugs))
+  const groupedNav = navGroups
+    .map(group => {
+      const links = group.slugs
+        .map(slug => pagesBySlug.get(slug))
+        .filter(Boolean)
+        .map(page => renderDocsNavLink(page!))
+        .join('')
+
+      if (!links) return ''
+      return `
+        <section class="docs-nav-group" data-docs-group>
+          <h2>${group.title}</h2>
+          <div>${links}</div>
+        </section>
+      `
+    })
+    .join('')
+
+  const uncategorizedLinks = docsPages
+    .filter(page => !groupedSlugs.has(page.slug))
+    .map(renderDocsNavLink)
+    .join('')
+
+  if (!uncategorizedLinks) return groupedNav
+
+  return `${groupedNav}
+    <section class="docs-nav-group" data-docs-group>
+      <h2>Reference</h2>
+      <div>${uncategorizedLinks}</div>
+    </section>
+  `
+}
+
+function renderDocsNavLink(page: (typeof docsPages)[number]) {
+  return `
+    <a
+      class="${page.slug === activePage.slug ? 'current' : ''}"
+      href="${withBase(docsPath(page))}"
+      aria-label="${escapeAttribute(page.navLabel)}"
+      data-docs-link
+      data-docs-search="${escapeAttribute(`${page.navLabel} ${page.title} ${page.summary}`)}"
+    >
+      <span>${page.navLabel}</span>
+      <small aria-hidden="true">${page.summary}</small>
+    </a>
+  `
+}
 
 function renderSection(section: (typeof activePage.sections)[number]) {
   return `
@@ -76,7 +178,13 @@ function renderSection(section: (typeof activePage.sections)[number]) {
       }
       ${
         section.code
-          ? `<pre><code data-language="${section.code.language}">${escapeHtml(section.code.text)}</code></pre>`
+          ? `<div class="docs-code-block">
+              <div class="docs-code-header">
+                <span>${section.code.language}</span>
+                <button type="button" data-copy-code>Copy</button>
+              </div>
+              <pre><code data-language="${section.code.language}">${escapeHtml(section.code.text)}</code></pre>
+            </div>`
           : ''
       }
     </section>
@@ -132,6 +240,53 @@ function renderPreviousNext() {
   `
 }
 
+function getNavGroup(slug: string) {
+  return navGroups.find(group => group.slugs.includes(slug))?.title ?? 'Reference'
+}
+
+function markdownPath(slug: string) {
+  return slug === 'overview' ? '/docs.md' : `/docs/${slug}.md`
+}
+
+function wireDocsEnhancements(container: HTMLElement) {
+  const filter = container.querySelector<HTMLInputElement>('[data-docs-filter]')
+  const links = Array.from(container.querySelectorAll<HTMLAnchorElement>('[data-docs-link]'))
+  const groups = Array.from(container.querySelectorAll<HTMLElement>('[data-docs-group]'))
+
+  filter?.addEventListener('input', () => {
+    const query = filter.value.trim().toLowerCase()
+    links.forEach(link => {
+      const haystack = link.dataset.docsSearch?.toLowerCase() ?? link.textContent?.toLowerCase() ?? ''
+      link.hidden = query.length > 0 && !haystack.includes(query)
+    })
+    groups.forEach(group => {
+      const groupLinks = Array.from(group.querySelectorAll<HTMLAnchorElement>('[data-docs-link]'))
+      group.hidden = groupLinks.every(link => link.hidden)
+    })
+  })
+
+  container.querySelectorAll<HTMLButtonElement>('[data-copy-code]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const block = button.closest('.docs-code-block')
+      const code = block?.querySelector('code')?.textContent ?? ''
+      if (!code) return
+
+      try {
+        await navigator.clipboard.writeText(code)
+        button.textContent = 'Copied'
+        window.setTimeout(() => {
+          button.textContent = 'Copy'
+        }, 1400)
+      } catch {
+        button.textContent = 'Unavailable'
+        window.setTimeout(() => {
+          button.textContent = 'Copy'
+        }, 1400)
+      }
+    })
+  })
+}
+
 function withBase(path: string) {
   if (path === '/') return `${basePath}/`
   if (path.startsWith('/#')) return `${basePath}/${path.slice(1)}`
@@ -147,4 +302,8 @@ function escapeHtml(text: string) {
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
+}
+
+function escapeAttribute(text: string) {
+  return escapeHtml(text).replaceAll('"', '&quot;')
 }

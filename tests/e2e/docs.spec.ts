@@ -5,39 +5,31 @@ const siteURL = 'http://127.0.0.1:4174/edgekit/'
 test('homepage links into the full documentation site', async ({ page }) => {
   await page.goto(siteURL)
 
-  await expect(page.getByRole('heading', { name: 'Add an agent to your app without handing every interaction to a cloud meter.' })).toBeVisible()
-  await expect(page.locator('.value-matrix article')).toHaveCount(8)
-  await expect(page.getByRole('heading', { name: 'Token costs become an open-ended liability.' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Sensitive app context crosses the wrong boundary.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Edgekit is the docs-first runtime for adding local agents to real app workflows.' })).toBeVisible()
+  await expect(page.locator('.home-summary-grid article')).toHaveCount(3)
+  await expect(page.getByRole('heading', { name: 'Zero variable token cost on the default path.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Sensitive context does not leave by default.' })).toBeVisible()
+  await expect(page.locator('.home-proof-grid article')).toHaveCount(3)
   await expect(page.locator('.primitive-list a')).toHaveCount(8)
-  await expect(page.getByRole('heading', { name: 'Start with the thesis, then jump to the implementation surface.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Read by job, not by marketing funnel.' })).toBeVisible()
   await expect(page.locator('#doc-card-grid a.doc-card')).toHaveCount(25)
-  await expect(page.getByRole('link', { name: /Mission Profiles/ })).toHaveAttribute('href', /\/edgekit\/docs\/mission-profiles\/$/)
-  await expect(page.getByRole('link', { name: /Skill Optimization/ })).toHaveAttribute('href', /\/edgekit\/docs\/skill-optimization\/$/)
-  await expect(page.getByRole('link', { name: /Knowledge Access Skills/ })).toHaveAttribute('href', /\/edgekit\/docs\/knowledge-access\/$/)
-  await expect(page.getByRole('link', { name: /Agent Adoption Kit/ })).toHaveAttribute('href', /\/edgekit\/docs\/adoption-kit\/$/)
-  await expect(page.getByRole('link', { name: /Recipe catalog/ })).toHaveAttribute('href', /\/edgekit\/docs\/recipes\/$/)
-  await expect(page.getByRole('link', { name: /Reproducibility guide/ })).toHaveAttribute('href', /\/edgekit\/docs\/reproducibility\/$/)
+  await expect(page.locator('a.doc-card[href="/edgekit/docs/mission-profiles/"]')).toBeVisible()
+  await expect(page.locator('a.doc-card[href="/edgekit/docs/skill-optimization/"]')).toBeVisible()
+  await expect(page.locator('a.doc-card[href="/edgekit/docs/knowledge-access/"]')).toBeVisible()
+  await expect(page.locator('a.doc-card[href="/edgekit/docs/adoption-kit/"]')).toBeVisible()
+  await expect(page.locator('a.doc-card[href="/edgekit/docs/recipes/"]')).toBeVisible()
+  await expect(page.locator('a.doc-card[href="/edgekit/docs/reproducibility/"]')).toBeVisible()
   await expect(page.locator('a.doc-card[href="/edgekit/docs/production/"]')).toBeVisible()
   await expect(page.locator('a.doc-card[href="/edgekit/docs/runtime-guarantees/"]')).toBeVisible()
   await expect(page.locator('a.doc-card[href="/edgekit/docs/30-minute-sidecar/"]')).toBeVisible()
-  await expect(page.getByRole('link', { name: /Outcome Quality/ })).toHaveAttribute('href', /\/edgekit\/docs\/outcome-quality\/$/)
+  await expect(page.locator('a.doc-card[href="/edgekit/docs/outcome-quality/"]')).toBeVisible()
   await expect(page.locator('.demo-grid a.demo-card')).toHaveCount(7)
   await expect(page.locator('.site-header nav').getByRole('link', { name: 'Admin' })).toHaveCount(0)
   await expect(page.locator('edge-chat')).toHaveCount(1)
   await expect(page.locator('#site-assistant')).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Live ecommerce Product search and guarded add-to-cart' })).toHaveAttribute(
-    'href',
-    'demos/ecommerce/',
-  )
-  await expect(page.getByRole('link', { name: 'Field ops ERP Work orders, inventory reservation, and technician dispatch' })).toHaveAttribute(
-    'href',
-    'demos/operations/',
-  )
-  await expect(page.getByRole('link', { name: 'Cascade lab Browser model readiness, permissions, fallbacks, and feature gating' })).toHaveAttribute(
-    'href',
-    'demos/cascade/',
-  )
+  await expect(page.locator('a.demo-card[href="/edgekit/demos/ecommerce/"]')).toBeVisible()
+  await expect(page.locator('a.demo-card[href="/edgekit/demos/operations/"]')).toBeVisible()
+  await expect(page.locator('a.demo-card[href="/edgekit/demos/cascade/"]')).toBeVisible()
 
   await page.getByRole('link', { name: 'Read the docs' }).click()
   await expect(page).toHaveURL(/\/edgekit\/docs\/$/)

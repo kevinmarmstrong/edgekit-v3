@@ -68,6 +68,11 @@ if (root) {
         <p class="section-label">${meta.label}</p>
         <h1>${meta.title}</h1>
         <p>${meta.summary}</p>
+        ${proofGrid([
+          ['Host surface', hostSurfaceCopy(demoSlug)],
+          ['Edgekit proves', proofCopy(demoSlug)],
+          ['Honest mode', honestModeCopy(demoSlug)],
+        ])}
       </section>
       ${renderDemo(demoSlug)}
     </main>
@@ -114,6 +119,11 @@ function cascadeDemo() {
             RBAC-filtered tools, approval requirements, Mission Profile validation, fallback,
             hidden features, and resettable recovery paths.
           </p>
+          ${proofGrid([
+            ['Provider ladder', 'Chrome AI first, then app-selected WebLLM, then an explicit developer cloud route or no-model fallback.'],
+            ['Permission state', 'Download consent, enterprise blocks, hidden features, and user opt-out are visible runtime states.'],
+            ['Profile gate', 'The lab validates required tools and capabilities before enabling the sidecar surface.'],
+          ])}
         </div>
         ${productionNotes([
           'Use the controller snapshot to drive your own modal, banner, settings page, disabled CTA, or silent feature gate.',
@@ -314,6 +324,11 @@ function docsDemo() {
           Chrome AI can answer using local model calls; unsupported browsers switch into basic
           docs mode and keep the docs searchable below.
         </p>
+        ${proofGrid([
+          ['Read-only tool', 'searchDocs is the only mission tool, so answers are grounded without giving the docs page mutation authority.'],
+          ['Faithfulness gate', 'The sidecar must carry section titles and relevant facts from retrieval into the visible answer.'],
+          ['Fallback path', 'Basic docs search stays usable when no browser-local model is available.'],
+        ])}
         ${productionNotes([
           'Replace the in-memory docs index with your own search or retrieval API.',
           'Keep the docs search tool read-only and cacheable when possible.',
@@ -349,6 +364,11 @@ function ecommerceDemo() {
           local model cascade, approval gates, generated CTAs, and graceful fallback.
         </p>
         <p><strong>Architecture note:</strong> This sidecar is localized via an <code>EdgeMissionProfile</code> (defined in the consuming page). Edgekit provides the runtime; the app owns the mission-specific behavior.</p>
+        ${proofGrid([
+          ['Catalog tools', 'searchProducts returns app-owned product facts; addToCart is a guarded mutation.'],
+          ['Action UI', 'EdgeView turns tool results into selectable product CTAs without moving cart state into Edgekit.'],
+          ['Approval + telemetry', 'Cart mutations stay explicit and can be tracked as host-owned workflow events.'],
+        ])}
         ${productionNotes([
           'Replace the sample catalog with your app-owned product search API.',
           'Keep checkout and cart mutations behind explicit approval.',
@@ -386,6 +406,11 @@ function operationsDemo() {
           technician assignment, role scope, audit evidence, and sync posture stay visible while
           the sidecar proposes guarded actions.
         </p>
+        ${proofGrid([
+          ['ERP workflow', 'Work orders, parts, technicians, SLA state, and audit records remain in the host app.'],
+          ['RBAC tools', 'The selected role narrows the tool manifest before the model can call anything.'],
+          ['Offline posture', 'The demo names which approved idempotent actions would queue in a host-owned journal.'],
+        ])}
         <label class="role-picker">
           Role
           <select id="ops-role" aria-label="Field ops role">
@@ -511,6 +536,11 @@ function agUiDemo() {
           a backend. Production apps replace the script with an AG-UI endpoint while keeping the same
           EdgeView renderer for charts, tables, cards, and forms.
         </p>
+        ${proofGrid([
+          ['Event protocol', 'The surface renders remote-style AG-UI events rather than pretending the static site has a live backend.'],
+          ['Generative UI', 'Charts, tables, cards, and forms land in the same EdgeView renderer used by hosted agents.'],
+          ['Secret boundary', 'A real endpoint would live behind the app backend with provider secrets and rate limits there.'],
+        ])}
         ${productionNotes([
           'Serve AG-UI events from a backend route that owns provider secrets and rate limits.',
           'Map provider events into EdgeView or A2UI-compatible payloads.',
@@ -536,6 +566,11 @@ function adminDemo() {
           The admin console exposes account search, plan updates, and suspension tools. edgekit keeps
           high-impact account changes behind explicit approval.
         </p>
+        ${proofGrid([
+          ['Admin authority', 'Account records, selected role, and mutation outcomes remain owned by the SaaS console.'],
+          ['Approval gate', 'Plan changes and suspensions require visible approval before tool execution.'],
+          ['RBAC + audit', 'The visible tool manifest, approval counts, and workflow log show what production telemetry would capture.'],
+        ])}
         ${productionNotes([
           'Bind tool manifests to the signed-in user and tenant.',
           'Keep account mutations behind approval, audit, and backend authorization.',
@@ -543,8 +578,26 @@ function adminDemo() {
         ])}
       </div>
       <div class="admin-layout">
-        <section class="account-list" aria-label="Customer accounts" id="admin-accounts"></section>
+        <section class="admin-console" aria-label="SaaS account console">
+          <div class="admin-command-strip">
+            <article><span>Selected role</span><strong id="admin-role-state">Admin</strong><p id="admin-role-detail">Can search accounts, update plans, and suspend accounts with approval.</p></article>
+            <article><span>Visible tools</span><strong id="admin-visible-tools">3 tools</strong><p id="admin-tool-detail">searchAccounts, updatePlan, suspendAccount</p></article>
+            <article><span>Approvals</span><strong id="admin-approval-count">0 requested</strong><p>High-impact account actions stay reviewable.</p></article>
+          </div>
+          <label class="role-picker">
+            Role
+            <select id="admin-role" aria-label="SaaS admin role">
+              <option value="admin">Admin</option>
+              <option value="billing">Billing manager</option>
+              <option value="support">Support viewer</option>
+            </select>
+          </label>
+          <section class="account-list" aria-label="Customer accounts" id="admin-accounts"></section>
+        </section>
         <aside class="admin-agent">
+          <aside class="ops-scripted-note" aria-label="Demo mode">
+            This public demo can run a scripted SaaS admin agent with <code>?adminAgentMode=scripted</code>. Scripted mode is honest: it exercises the same tools, approvals, account state, and workflow log without requiring provider secrets.
+          </aside>
           <edge-chat
             id="admin-chat"
             system-prompt="You are a precise SaaS admin assistant. Always search accounts before recommending or changing account state. Ask for approval before changing plans or suspending accounts."
@@ -570,6 +623,11 @@ function missionDemo() {
           This dashboard is powered by local telemetry hooks from the site-wide dogfood assistant.
           In production, send the same events to your analytics, logging, or compliance backend.
         </p>
+        ${proofGrid([
+          ['Local runtime', 'Agents still run in each host surface; mission control only receives telemetry events.'],
+          ['Operational signals', 'Runs, tool calls, approvals, model availability, and errors are visible without centralizing state.'],
+          ['Compliance boundary', 'Production apps add tenant/session identifiers and persistence in their own backend.'],
+        ])}
         ${productionNotes([
           'Forward telemetry to your observability stack with tenant and session identifiers.',
           'Track tool calls, approvals, rejections, model availability, and errors.',
@@ -615,6 +673,43 @@ function productionNotes(items: string[]) {
       <ul>${items.map(item => `<li>${item}</li>`).join('')}</ul>
     </aside>
   `
+}
+
+function proofGrid(items: Array<[string, string]>) {
+  return `
+    <div class="demo-proof-grid" aria-label="What this demo proves">
+      ${items.map(([label, copy]) => `<article><span>${label}</span><p>${copy}</p></article>`).join('')}
+    </div>
+  `
+}
+
+function hostSurfaceCopy(slug: DemoSlug) {
+  if (slug === 'ecommerce') return 'A public storefront with catalog cards, cart state, and guarded add-to-cart actions.'
+  if (slug === 'operations') return 'A field-service ERP dispatch console with work orders, parts, technicians, and SLA state.'
+  if (slug === 'docs') return 'A docs-first knowledge surface where Q&A augments, rather than replaces, the documentation.'
+  if (slug === 'ag-ui') return 'An AG-UI-compatible integration point for remote event streams and generated UI.'
+  if (slug === 'admin') return 'A SaaS account administration console with role scope and high-impact customer mutations.'
+  if (slug === 'mission-control') return 'An observability dashboard for distributed Edgekit sidecars.'
+  return 'A readiness lab for model cascade, permissions, validation, fallback, and feature gating.'
+}
+
+function proofCopy(slug: DemoSlug) {
+  if (slug === 'ecommerce') return 'Tool calls, action cards, approval, synthesis faithfulness, and host-owned cart state.'
+  if (slug === 'operations') return 'RBAC-filtered tools, approvals, audit events, repair knowledge, and offline-aware mutations.'
+  if (slug === 'docs') return 'Read-only retrieval, answer faithfulness, local-first Q&A, and basic docs fallback.'
+  if (slug === 'ag-ui') return 'AG-UI event rendering through EdgeView while provider secrets stay behind a backend.'
+  if (slug === 'admin') return 'Account search, plan changes, suspension approval, RBAC, and workflow telemetry.'
+  if (slug === 'mission-control') return 'Telemetry aggregation for runs, tools, approvals, errors, and local-model availability.'
+  return 'Cascade readiness across local models, cloud routes, permissions, validation, and degraded modes.'
+}
+
+function honestModeCopy(slug: DemoSlug) {
+  if (slug === 'ag-ui') return 'Scripted public event stream; production requires an AG-UI backend endpoint.'
+  if (slug === 'operations') return 'Provider mode uses Chrome AI when available; scripted mode is opt-in with ?opsAgentMode=scripted.'
+  if (slug === 'admin') return 'Provider mode uses Chrome AI when available; scripted mode is opt-in with ?adminAgentMode=scripted.'
+  if (slug === 'cascade') return 'No surprise model downloads; every local-model setup path requires consent or policy.'
+  if (slug === 'mission-control') return 'Reads local demo telemetry only; production persistence is app-owned.'
+  return 'Runs local-first when possible and falls back transparently when no local model is available.'
 }
 
 function withBase(path: string) {

@@ -52,7 +52,7 @@ When another coding agent starts from the website instead of this repo, point it
 3. `https://kevinmarmstrong.github.io/edgekit/llms-full.txt`
 4. `https://github.com/kevinmarmstrong/edgekit/tree/main/docs/agent-skills`
 
-Those public docs must be enough to find the v0.3.1 package shape and the implementation procedure without private maintainer context.
+Those public docs must be enough to find the v0.3.2 package shape and the implementation procedure without private maintainer context.
 
 ## Extension Points
 

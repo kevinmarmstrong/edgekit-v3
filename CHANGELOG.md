@@ -2,6 +2,13 @@ Audience: adopter
 
 # Changelog
 
+## v0.3.2 - First Website Install Followups
+
+- Added first-class `<edge-chat>` labeling and theming hooks: `agent-title`, `agent-subtitle`, `status-text`, CSS custom properties, and `::part()` selectors for host-site styling.
+- Expanded `mountChat()` so vanilla sites can apply a Mission Profile, register tools, configure fallback behavior, and set labels in one call.
+- Made the default browser model providers lazy in the agent/readiness paths. A dedicated lightweight no-model entrypoint remains the follow-up for bundlers that inline dynamic imports.
+- Updated the public quick start around npm install, `mountChat()`, and `downloadPolicy: "never"` fallback for existing websites.
+
 ## v0.3.1 - First Registry-Installable Release
 
 - Republished the v0.3 package set with pnpm's publish path so workspace package links resolve to registry-safe `^0.3.1` ranges for npm consumers.

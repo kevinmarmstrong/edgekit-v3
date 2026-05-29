@@ -1,6 +1,6 @@
 {
   "name": "@kevinmarmstrong/edgekit-cli",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "type": "module",
   "description": "Documentation indexing CLI for edgekit demos and RAG tools.",
   "publishConfig": {

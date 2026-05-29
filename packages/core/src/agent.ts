@@ -7,9 +7,7 @@ import { filterToolManifestsForSession, publicIdentity, resolveSessionContext, t
 import type { EdgeActivityEvent, EdgeTelemetrySink } from './telemetry'
 import { createTelemetryDispatcher } from './telemetry'
 import type { DownloadPolicy, DownloadPromptEvent, ModelProvider, ModelStatusEvent, NoModelEvent } from './cascade'
-import { resolveModel } from './cascade'
-import { chromeAI } from './providers/chrome-ai'
-import { webLLM } from './providers/web-llm'
+import { createModelProvider, resolveModel } from './cascade'
 import type { CascadeReadinessSnapshot, EdgeCascadeReadinessController } from './cascade/readiness'
 import type { EdgeMemoryCompactionContext, EdgeMemoryRecord, EdgeMemorySearchContext, EdgeMemoryStore } from './compat/knowledge'
 import type { EdgeAuditEvent, EdgeAuditTrail, EdgeRedactor, EdgeRedactorContext } from './compat/governance'
@@ -97,7 +95,7 @@ export function createAgent(options: CreateAgentOptions): EdgeAgent {
   const downloadPolicy = options.downloadPolicy ?? 'prompt'
   const maxSteps = options.maxSteps ?? 5
   const streamText = options.streamText ?? aiStreamText
-  const providers = options.model ?? [chromeAI(), webLLM()]
+  const providers = options.model ?? defaultBrowserModelProviders()
   const sessionId = options.sessionId ?? createId('session')
   const telemetry = createTelemetryDispatcher(options.telemetry, sessionId)
   let messages: EdgeModelMessage[] = []
@@ -488,6 +486,27 @@ export function createAgent(options: CreateAgentOptions): EdgeAgent {
       messages = []
     },
   }
+}
+
+function defaultBrowserModelProviders(): ModelProvider[] {
+  return [
+    createModelProvider({
+      id: 'chrome-ai',
+      label: 'Chrome AI',
+      resolve: async context => {
+        const { chromeAI } = await import('./providers/chrome-ai')
+        return chromeAI().resolve(context)
+      },
+    }),
+    createModelProvider({
+      id: 'webllm',
+      label: 'WebLLM',
+      resolve: async context => {
+        const { webLLM } = await import('./providers/web-llm')
+        return webLLM().resolve(context)
+      },
+    }),
+  ]
 }
 
 async function redactModelMessagesForHistory(

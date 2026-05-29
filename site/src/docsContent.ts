@@ -315,22 +315,56 @@ export const docsPages: DocsPage[] = [
       },
       {
         id: 'install',
-        title: 'Run the repo demos',
-        body: ['For this repository, build packages and open the demos. Package-first install instructions will become the primary command once release metadata is finalized.'],
+        title: 'Install for an existing site',
+        body: [
+          'For a public website, install the runtime packages directly from npm. Start with core, UI, and Skills; add Knowledge, Governance, AG-UI, MCP, React, or CLI only when the workflow needs those sibling capabilities.',
+          'Public visitors usually do not have a ready local model, so pair `downloadPolicy: "never"` with an honest `onNoModel` fallback. The fallback should answer from the same site/search data you would expose as tools.',
+        ],
         code: {
           language: 'bash',
-          text: 'pnpm install\npnpm build\npnpm dev:ecommerce',
+          text: 'npm install @kevinmarmstrong/edgekit @kevinmarmstrong/edgekit-ui @kevinmarmstrong/edgekit-skills zod',
         },
       },
       {
         id: 'embed',
         title: 'Embed the agent UI',
-        body: ['Import the UI package once, place `<edge-chat>` where the agent belongs in the workflow, apply the Mission Profile, then register app tools from JavaScript.'],
+        body: [
+          'Use `mountChat()` for the smallest vanilla JavaScript path. It creates `<edge-chat>`, applies the Mission Profile, registers tools, and configures fallback/model behavior in one call.',
+          'The component exposes `agent-title`, `agent-subtitle`, `status-text`, CSS custom properties, and `::part()` hooks so the assistant can match the host site without shadow-DOM surgery.',
+        ],
         code: {
-          language: 'html',
-          text: `<edge-chat
-  placeholder="Find running shoes under $100"
-></edge-chat>`,
+          language: 'ts',
+          text: `import { tool } from '@kevinmarmstrong/edgekit'
+import { createMissionProfile } from '@kevinmarmstrong/edgekit-skills'
+import { mountChat } from '@kevinmarmstrong/edgekit-ui'
+import { z } from 'zod'
+
+const searchSite = tool({
+  description: 'Search public site content.',
+  inputSchema: z.object({ query: z.string() }),
+  execute: async ({ query }) => searchLocalIndex(query),
+})
+
+const profile = createMissionProfile({
+  id: 'site-qa-v1',
+  mission: 'site-qa',
+  version: '1.0.0',
+  systemPrompt: 'Answer questions using the registered site search tool.',
+  requiredTools: ['searchSite'],
+  defaults: { toolChoice: 'required', downloadPolicy: 'never' },
+})
+
+mountChat('#assistant', {
+  missionProfile: profile,
+  tools: { searchSite },
+  placeholder: 'Ask about this site',
+  readyMessage: 'Hi. Ask me anything about this site.',
+  agentTitle: 'Ask me anything',
+  agentSubtitle: 'Answers from this site',
+  statusText: '',
+  downloadPolicy: 'never',
+  onNoModel: ({ input }) => fallbackSearch(input),
+})`,
         },
       },
       {
@@ -353,7 +387,7 @@ export const docsPages: DocsPage[] = [
       {
         id: 'register-tools',
         title: 'Register a tool',
-        body: ['Tools use the Vercel AI SDK `tool()` helper, so schemas and execution stay familiar. Apply the profile, then register the real host-app implementations.'],
+        body: ['Tools use the Vercel AI SDK `tool()` helper, so schemas and execution stay familiar. For vanilla sites, prefer `mountChat()` once the profile and tools are defined; for framework components, apply the profile and register the real host-app implementations when the element is ready.'],
         code: {
           language: 'ts',
           text: `import '@kevinmarmstrong/edgekit-ui'
@@ -376,6 +410,15 @@ const searchProducts = tool({
 const chat = document.querySelector('edge-chat')
 chat?.applyMissionProfile(catalogProfile)
 chat?.registerTools({ searchProducts })`,
+        },
+      },
+      {
+        id: 'repo-demos',
+        title: 'Run the repo demos',
+        body: ['If you are working inside the Edgekit repo instead of installing it into an app, build packages and open the demos with the monorepo commands.'],
+        code: {
+          language: 'bash',
+          text: 'pnpm install\npnpm build\npnpm dev:ecommerce',
         },
       },
       {
@@ -705,7 +748,7 @@ onMounted(() => {
           'Read `/edgekit/docs/adoption-kit.md` next for the implementation sequence and which SKILL.md file applies.',
           'Read `/edgekit/llms-full.txt` when you need broader adopter context without crawling the whole repo.',
           'Open `https://github.com/kevinmarmstrong/edgekit/tree/main/docs/agent-skills` for procedural implementation, outcome-testing, security-review, and Skill-optimization skills.',
-          'Install from npm with `@kevinmarmstrong/edgekit@^0.3.1` and only add sibling packages the workflow needs.',
+          'Install from npm with `@kevinmarmstrong/edgekit@^0.3.2` and only add sibling packages the workflow needs.',
         ],
       },
       {
@@ -977,11 +1020,11 @@ const policySkill = createKnowledgeSkill({
     slug: 'api',
     navLabel: 'API Reference',
     title: 'API reference',
-    summary: 'Typed v0.3.1 package surfaces for the core runtime and optional sibling capabilities.',
+    summary: 'Typed v0.3.2 package surfaces for the core runtime and optional sibling capabilities.',
     sections: [
       {
         id: 'exports',
-        title: 'v0.3.1 package surfaces',
+        title: 'v0.3.2 package surfaces',
         body: [
           'Install `@kevinmarmstrong/edgekit` and `@kevinmarmstrong/edgekit-ui` for the smallest browser-native agent surface. Add sibling packages only when the workflow needs that capability.',
           'Root compatibility exports for moved capabilities remain deprecated transition shims. New integrations should import directly from sibling packages.',
@@ -1209,7 +1252,7 @@ const agent = createAgent({
         id: 'hybrid-routing',
         title: 'Deprecated routing experiments',
         body: [
-          '`createHybridModelRouter()` is a deprecated root compatibility export in v0.3.1, not part of the stable v0.3 public API contract.',
+          '`createHybridModelRouter()` is a deprecated root compatibility export in v0.3.x, not part of the stable v0.3 public API contract.',
           'For new integrations, configure the model cascade with `model: [chromeAI(), webLLM(), appCloudRoute]`, use `resolveModel()` when a headless resolver is needed, and route heavier worker behavior behind app-owned tools or AG-UI endpoints.',
         ],
         code: {
@@ -1225,7 +1268,7 @@ const agent = createAgent({
         id: 'supervisor-routing',
         title: 'Worker handoffs',
         body: [
-          '`createSupervisorRouter()` is a deprecated root compatibility export in v0.3.1, not part of the stable v0.3 public API contract.',
+          '`createSupervisorRouter()` is a deprecated root compatibility export in v0.3.x, not part of the stable v0.3 public API contract.',
           'Use `createHandoffEnvelope()` from `@kevinmarmstrong/edgekit-agui` when a local agent needs to pass bounded context to a cloud worker, AG-UI backend, or other specialist service.',
           'The envelope contains the user intent, recent messages, selected memory records, public identity, app state, tool names, and trace ids without secret identity claims.',
         ],
@@ -1575,18 +1618,49 @@ function Assistant({ agent }) {
       {
         id: 'component',
         title: 'Component usage',
-        body: ['`<edge-chat>` is a web component. It can live inside any framework or vanilla app surface.'],
+        body: [
+          '`<edge-chat>` is a web component. It can live inside any framework or vanilla app surface.',
+          'For vanilla sites, use `mountChat()` to configure the component in one call. Use `agent-title`, `agent-subtitle`, `status-text`, CSS variables, and `::part()` selectors for normal site-level styling.',
+        ],
         code: {
           language: 'ts',
-          text: `import '@kevinmarmstrong/edgekit-ui'
+          text: `import { mountChat } from '@kevinmarmstrong/edgekit-ui'
 
-const chat = document.querySelector('edge-chat')
-chat?.configure({
+const chat = mountChat('#assistant', {
+  agentTitle: 'Ask me anything',
+  agentSubtitle: 'About this workflow',
+  statusText: '',
   model: [chromeAI()],
   downloadPolicy: 'never',
   onNoModel: ({ input }) => fallbackSearch(input),
 })
 chat?.registerTools({ searchProducts, addToCart })`,
+        },
+      },
+      {
+        id: 'theming',
+        title: 'Theme the component',
+        body: [
+          'The default component is intentionally modest. Host apps can set CSS custom properties for the common tokens and use `::part()` for exact controls without reaching into the shadow DOM.',
+          'Use the label attributes for product copy. Hide the status badge with `status-text=""` when the host surface already explains provider mode.',
+        ],
+        code: {
+          language: 'css',
+          text: `edge-chat {
+  --edge-chat-font-family: var(--font-sans);
+  --edge-chat-accent: #0f766e;
+  --edge-chat-user-background: #111827;
+  --edge-chat-radius: 10px;
+  --edge-chat-shadow: 0 24px 70px rgb(15 23 42 / 14%);
+}
+
+edge-chat::part(header) {
+  background: var(--surface);
+}
+
+edge-chat::part(send-button) {
+  min-width: 5rem;
+}`,
         },
       },
       {

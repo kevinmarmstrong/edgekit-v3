@@ -1,6 +1,6 @@
 {
   "name": "edgekit",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "type": "module",
   "description": "Browser-native agent runtime for adding AI sidecars to web apps.",

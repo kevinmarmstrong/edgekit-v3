@@ -5,26 +5,30 @@ Lit web component UI for Edgekit sidecars.
 Use it when an existing web app wants to mount a browser-native agent surface without adopting a specific frontend framework.
 
 ```ts
-import '@kevinmarmstrong/edgekit-ui'
-import { chromeAI, validateMissionProfile } from '@kevinmarmstrong/edgekit'
+import { mountChat } from '@kevinmarmstrong/edgekit-ui'
+import { chromeAI } from '@kevinmarmstrong/edgekit'
 import { supportTools, supportWorkflowProfile } from './support-profile'
 
-const chat = document.querySelector('edge-chat')
-
-const validation = validateMissionProfile(supportWorkflowProfile, {
-  registeredTools: supportTools,
+const chat = mountChat('#assistant', {
+  missionProfile: supportWorkflowProfile,
+  tools: supportTools,
+  agentTitle: 'Ask me anything',
+  agentSubtitle: 'About this workflow',
+  statusText: '',
+  placeholder: 'Ask for support help',
+  model: [chromeAI()],
+  telemetry,
 })
-if (!validation.ok) throw new Error(validation.errors.map(issue => issue.message).join('\n'))
-
-chat?.configure({ model: [chromeAI()], telemetry })
-chat?.applyMissionProfile(supportWorkflowProfile)
-chat?.registerTools(supportTools)
 ```
 
 ```html
-<edge-chat placeholder="Ask for support help"></edge-chat>
+<div id="assistant"></div>
 <edge-cascade-wizard></edge-cascade-wizard>
 ```
+
+For direct element usage, `<edge-chat>` also supports `agent-title`, `agent-subtitle`, `status-text`, `placeholder`, `ready-message`, and `show-tool-events` attributes.
+
+The component exposes CSS custom properties such as `--edge-chat-accent`, `--edge-chat-font-family`, `--edge-chat-radius`, and `--edge-chat-shadow`, plus `::part()` hooks for `header`, `title`, `subtitle`, `status`, `messages`, `message`, `user`, `assistant`, `system`, `form`, `input`, `button`, and `send-button`.
 
 `<edge-cascade-wizard>` is optional demo-grade UI for the headless `createCascadeReadinessController()` contract. Production apps can replace it with their own banner, setup wizard, settings panel, or feature gate.
 

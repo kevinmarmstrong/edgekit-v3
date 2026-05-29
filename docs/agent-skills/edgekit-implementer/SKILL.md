@@ -23,7 +23,7 @@ If you are starting from the public website instead of a cloned repo, read:
 2. `https://kevinmarmstrong.github.io/edgekit/docs/adoption-kit.md`
 3. `https://kevinmarmstrong.github.io/edgekit/llms-full.txt` when broader adopter context is needed.
 
-## v0.3.1 Package Shape
+## v0.3.2 Package Shape
 
 Install the core runtime and UI first:
 

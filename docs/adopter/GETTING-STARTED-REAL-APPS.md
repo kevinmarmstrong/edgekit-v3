@@ -44,6 +44,8 @@ If you want the fastest guided path, start with [30-Minute Production Sidecar](.
 If you want a coding agent or CLI scaffold to create the first files, use [Agent Adoption Kit](./AGENT-ADOPTION-KIT.md) and [Recipe Catalog](./RECIPE-CATALOG.md):
 
 ```bash
+npm install @kevinmarmstrong/edgekit @kevinmarmstrong/edgekit-ui @kevinmarmstrong/edgekit-skills zod
+npm install -D @kevinmarmstrong/edgekit-cli
 edgekit-init --list
 edgekit-init mission --recipe support-workflow --out edgekit/support
 edgekit-init mission --recipe astro-intake-knowledge --out src/edgekit/intake
@@ -116,16 +118,19 @@ const myCatalogProfile = createMissionProfile({
 In your app:
 
 ```ts
-const chat = document.querySelector('edge-chat#my-sidecar');
-chat?.configure({
-  model: [chromeAI()],
+import { mountChat } from '@kevinmarmstrong/edgekit-ui'
+
+const chat = mountChat('#my-sidecar', {
+  missionProfile: myCatalogProfile,
+  tools: { searchProducts, addToCart },
+  agentTitle: 'Ask me anything',
+  agentSubtitle: 'About this workflow',
+  statusText: '',
+  placeholder: 'Ask about products',
   telemetry,
   stateProvider,
   identityProvider,
-});
-
-chat?.applyMissionProfile(myCatalogProfile);
-chat?.registerTools({ searchProducts, addToCart });
+})
 ```
 
 For public or mixed-browser surfaces, add a cascade readiness check before promising a full local agent experience:
@@ -141,7 +146,7 @@ const readiness = createCascadeReadinessController({
   visibilityPolicy: 'show-basic-when-local-unavailable',
 })
 
-chat?.configure({
+chat.configure({
   cascadeReadiness: readiness,
   onNoModel: ({ input, readiness }) =>
     `${readiness?.message}\n\n${answerWithBasicCatalogMode(input)}`,
@@ -151,6 +156,8 @@ void readiness.check()
 ```
 
 Render the readiness snapshot however your product wants: onboarding wizard, settings panel, banner, disabled CTA, or hidden agent surface. The optional `<edge-cascade-wizard>` component is only the demo UI.
+
+`<edge-chat>` has supported theming hooks: `agent-title`, `agent-subtitle`, `status-text`, CSS custom properties such as `--edge-chat-accent`, and `::part()` selectors for header, messages, inputs, and buttons. Use those before reaching into the shadow DOM.
 
 ### Step 5: Test With Real Outcome Quality
 

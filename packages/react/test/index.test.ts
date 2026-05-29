@@ -45,6 +45,10 @@ describe('edgekit react primitives', () => {
       systemPrompt: 'You are helpful.',
       missionProfile,
       placeholder: 'Ask',
+      readyMessage: 'Ready',
+      agentTitle: 'Ask me anything',
+      agentSubtitle: 'About the app',
+      statusText: '',
       showToolEvents: true,
       onReady: attach,
     })
@@ -53,6 +57,10 @@ describe('edgekit react primitives', () => {
     const props = element.props as Record<string, unknown>
     expect(props['system-prompt']).toBe('You are helpful.')
     expect(props.placeholder).toBe('Ask')
+    expect(props['ready-message']).toBe('Ready')
+    expect(props['agent-title']).toBe('Ask me anything')
+    expect(props['agent-subtitle']).toBe('About the app')
+    expect(props['status-text']).toBe('')
     expect(props['show-tool-events']).toBe('')
     expect(typeof props.ref).toBe('function')
 

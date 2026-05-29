@@ -1,9 +1,7 @@
 import type { LanguageModelV3 } from '@ai-sdk/provider'
 import { readableError, withTimeout } from '../shared'
-import { chromeAI } from '../providers/chrome-ai'
-import { webLLM } from '../providers/web-llm'
 import type { DownloadPolicy, DownloadPromptEvent, ModelProvider, ModelStatus, ModelStatusEvent } from './index'
-import { isModelProvider } from './index'
+import { createModelProvider, isModelProvider } from './index'
 
 export type CascadeCapability =
   | 'local-model'
@@ -156,7 +154,7 @@ export function createCascadeReadinessController(
 
   const check = async (checkOptions: CascadeReadinessCheckOptions = {}) => {
     publish(buildCascadeSnapshot(snapshot.providers, config, 'checking'))
-    const providers = normalizeCascadeProviders(config.providers ?? [chromeAI(), webLLM()])
+    const providers = normalizeCascadeProviders(config.providers ?? defaultBrowserModelProviders())
     let providerSnapshots = snapshot.providers
 
     for (const entry of providers) {
@@ -272,6 +270,27 @@ export function createCascadeReadinessController(
       return check()
     },
   }
+}
+
+function defaultBrowserModelProviders(): ModelProvider[] {
+  return [
+    createModelProvider({
+      id: 'chrome-ai',
+      label: 'Chrome AI',
+      resolve: async context => {
+        const { chromeAI } = await import('../providers/chrome-ai')
+        return chromeAI().resolve(context)
+      },
+    }),
+    createModelProvider({
+      id: 'webllm',
+      label: 'WebLLM',
+      resolve: async context => {
+        const { webLLM } = await import('../providers/web-llm')
+        return webLLM().resolve(context)
+      },
+    }),
+  ]
 }
 
 function normalizeCascadeProviders(providers: Array<ModelProvider | LanguageModelV3>) {

@@ -150,6 +150,16 @@ ${maintainerLinks}
       this.emitFile({ type: 'asset', fileName: 'llms.txt', source: llms })
       this.emitFile({ type: 'asset', fileName: 'llms-full.txt', source: full })
       this.emitFile({ type: 'asset', fileName: 'llms-maintainers.txt', source: maintainers })
+      this.emitFile({
+        type: 'asset',
+        fileName: 'docs/architecture/index.html',
+        source: redirectHtml(publicDocsPath('/docs/concepts/')),
+      })
+      this.emitFile({
+        type: 'asset',
+        fileName: 'docs/getting-started/quick-start/index.html',
+        source: redirectHtml(publicDocsPath('/docs/getting-started/')),
+      })
       for (const { page, markdown } of markdownPages) {
         const fileName = page.slug === 'overview' ? 'docs.md' : `docs/${page.slug}.md`
         this.emitFile({ type: 'asset', fileName, source: markdown })
@@ -157,6 +167,10 @@ ${maintainerLinks}
       }
     },
   }
+}
+
+function redirectHtml(target: string) {
+  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=${target}"><link rel="canonical" href="${target}"><title>Redirecting...</title></head><body><a href="${target}">Redirecting...</a></body></html>`
 }
 
 function publicDocsPath(path: string) {

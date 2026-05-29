@@ -1,4 +1,6 @@
 export type { LanguageModelV3 } from '@ai-sdk/provider'
+import { createModelProvider, type ModelProvider } from './cascade'
+import type { WebLLMOptions } from './providers/web-llm'
 export { stepCountIs, tool, modelOptional } from './tools'
 export type { DownloadPolicy, DownloadPromptEvent, ModelProvider, ModelStatusEvent, NoModelEvent, ResolveModelContext } from './cascade'
 export { createModelProvider, resolveModel } from './cascade'
@@ -6,9 +8,28 @@ export type { CascadeReadinessOptions, CascadeReadinessSnapshot, CascadeRecommen
 export { createCascadeReadinessController } from './cascade/readiness'
 export type { AgentEvent, CreateAgentOptions, EdgeAgent, EdgeToolRepairOptions } from './agent'
 export { createAgent } from './agent'
-export { chromeAI } from './providers/chrome-ai'
 export type { WebLLMOptions } from './providers/web-llm'
-export { webLLM } from './providers/web-llm'
+export function chromeAI(): ModelProvider {
+  return createModelProvider({
+    id: 'chrome-ai',
+    label: 'Chrome AI',
+    resolve: async context => {
+      const { chromeAI: createChromeAIProvider } = await import('./providers/chrome-ai')
+      return createChromeAIProvider().resolve(context)
+    },
+  })
+}
+
+export function webLLM(options: WebLLMOptions = {}): ModelProvider {
+  return createModelProvider({
+    id: 'webllm',
+    label: 'WebLLM',
+    resolve: async context => {
+      const { webLLM: createWebLLMProvider } = await import('./providers/web-llm')
+      return createWebLLMProvider(options).resolve(context)
+    },
+  })
+}
 export type { EdgeActivityEvent, EdgeTelemetryEvent, EdgeTelemetrySink } from './telemetry'
 export type { EdgeIdentityProvider, EdgeSessionContext, EdgeSessionProvider, EdgeStateProvider, EdgeToolExecutionContext, EdgeToolManifest, EdgeToolProvider, EdgeToolProviderContext } from './context'
 export { resolveSessionContext, toolsFromManifests } from './context'

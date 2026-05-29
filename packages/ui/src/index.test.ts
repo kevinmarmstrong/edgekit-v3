@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentEvent } from '@kevinmarmstrong/edgekit'
-import { EdgeChat } from './index'
+import { EdgeChat, mountChat } from './index'
 
 function mount() {
   const chat = new EdgeChat()
@@ -645,5 +645,52 @@ describe('edge-chat form actions', () => {
 
     expect(execute).not.toHaveBeenCalled()
     expect(chat.shadowRoot?.textContent).toContain('requires approval')
+  })
+
+  it('exposes header labels, status text, and styling parts for host theming', async () => {
+    const chat = mount()
+    chat.agentTitle = 'Ask me anything'
+    chat.agentSubtitle = 'About this site'
+    chat.statusText = ''
+
+    await chat.updateComplete
+
+    expect(chat.shadowRoot?.querySelector('[part~="title"]')?.textContent).toContain('Ask me anything')
+    expect(chat.shadowRoot?.querySelector('[part~="subtitle"]')?.textContent).toContain('About this site')
+    expect(chat.shadowRoot?.querySelector('[data-testid="agent-status"]')).toBeNull()
+    expect(chat.shadowRoot?.querySelector('[part~="send-button"]')).toBeTruthy()
+    expect(chat.shadowRoot?.querySelector('[part~="messages"]')).toBeTruthy()
+  })
+
+  it('mountChat applies profile, tools, labels, and fallback config in one call', async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const searchSite = { execute: vi.fn() }
+    const chat = mountChat(host, {
+      missionProfile: {
+        id: 'site-qa-v1',
+        mission: 'site-qa',
+        version: '1.0.0',
+        systemPrompt: 'Answer from site content.',
+        requiredTools: ['searchSite'],
+      },
+      tools: { searchSite },
+      placeholder: 'Ask about this site',
+      readyMessage: 'Ready for site Q&A.',
+      agentTitle: 'Ask me anything',
+      agentSubtitle: 'About the site',
+      statusText: '',
+      downloadPolicy: 'never',
+      onNoModel: ({ input }) => `Basic answer: ${input}`,
+    })
+
+    await chat.updateComplete
+
+    expect(host.querySelector('edge-chat')).toBe(chat)
+    expect(chat.shadowRoot?.textContent).toContain('Ask me anything')
+    expect(chat.shadowRoot?.textContent).toContain('About the site')
+    expect(chat.shadowRoot?.textContent).toContain('Ready for site Q&A.')
+    await send(chat, 'contact')
+    await waitFor(() => chat.shadowRoot?.textContent?.includes('Basic answer: contact'))
   })
 })

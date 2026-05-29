@@ -12,7 +12,7 @@ Use the public site discovery path before assuming repo-local context:
 2. Read `https://kevinmarmstrong.github.io/edgekit/docs/adoption-kit.md` for this implementation sequence.
 3. Read `https://kevinmarmstrong.github.io/edgekit/llms-full.txt` when broader adopter context is needed.
 4. Use the GitHub `docs/agent-skills/*/SKILL.md` files only when you are ready to implement, test, optimize, or security-review.
-5. Install from npm with `@kevinmarmstrong/edgekit@^0.3.1` plus only the sibling packages the workflow needs.
+5. Install from npm with `@kevinmarmstrong/edgekit@^0.3.2` plus only the sibling packages the workflow needs.
 
 It has four layers:
 

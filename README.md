@@ -10,47 +10,55 @@ The useful path is retrofit: pick one workflow, expose a few governed tools, gat
 
 ## Quick Start
 
-Try the packed-package demo first:
+Install into an existing site or app:
+
+```bash
+npm install @kevinmarmstrong/edgekit @kevinmarmstrong/edgekit-ui @kevinmarmstrong/edgekit-skills zod
+```
+
+Try the packed-package demos when you want a complete reference app:
 
 - [External ecommerce quickstart](https://github.com/kevinmarmstrong/edgekit-demo-ecommerce#quickstart)
 - [COOP/COEP live demo](https://edgekit-demo-ecommerce.pages.dev/)
 - [Docs site](https://kevinmarmstrong.github.io/edgekit/)
 
-Run this repo locally:
-
-```bash
-pnpm install
-pnpm build
-pnpm dev:ecommerce
-```
-
-Open `http://127.0.0.1:5173`.
-
 ## Embed
 
-```html
-<edge-chat id="agent"></edge-chat>
-```
-
 ```ts
-import '@kevinmarmstrong/edgekit-ui'
-import { chromeAI, tool, webLLM } from '@kevinmarmstrong/edgekit'
+import { tool } from '@kevinmarmstrong/edgekit'
+import { createMissionProfile } from '@kevinmarmstrong/edgekit-skills'
+import { mountChat } from '@kevinmarmstrong/edgekit-ui'
 import { z } from 'zod'
 
-const searchProducts = tool({
-  description: 'Search the product catalog',
+const searchSite = tool({
+  description: 'Search public site content',
   inputSchema: z.object({ query: z.string() }),
-  execute: ({ query }) => fetch(`/api/products?q=${encodeURIComponent(query)}`).then(res => res.json()),
+  execute: ({ query }) => searchLocalIndex(query),
 })
 
-agent.configure({
-  model: [chromeAI(), webLLM(), appCloudRoute],
-  toolChoice: 'required',
+const profile = createMissionProfile({
+  id: 'site-qa-v1',
+  mission: 'site-qa',
+  version: '1.0.0',
+  systemPrompt: 'Answer questions using registered site search.',
+  requiredTools: ['searchSite'],
+  defaults: { toolChoice: 'required', downloadPolicy: 'never' },
 })
-agent.registerTools({ searchProducts, addToCart })
+
+mountChat('#assistant', {
+  missionProfile: profile,
+  tools: { searchSite },
+  agentTitle: 'Ask me anything',
+  agentSubtitle: 'Answers from this site',
+  statusText: '',
+  placeholder: 'Ask about this site',
+  readyMessage: 'Hi. Ask me anything about this site.',
+  downloadPolicy: 'never',
+  onNoModel: ({ input }) => fallbackSearch(input),
+})
 ```
 
-Use local providers first. Add a developer-owned cloud route only when your app chooses to escalate.
+Use `downloadPolicy: "never"` for public sites unless visitors have explicitly opted into local model downloads. Add Chrome AI, WebLLM, or a developer-owned cloud route when your app chooses to escalate.
 
 ## Production Shape
 

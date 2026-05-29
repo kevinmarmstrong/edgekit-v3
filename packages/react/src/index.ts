@@ -122,6 +122,10 @@ export interface EdgeChatProps {
   systemPrompt?: string
   missionProfile?: EdgeMissionProfile
   placeholder?: string
+  readyMessage?: string
+  agentTitle?: string
+  agentSubtitle?: string
+  statusText?: string
   showToolEvents?: boolean
   className?: string
   onReady?: (element: EdgeChatElement) => void
@@ -133,6 +137,10 @@ export function EdgeChat(props: EdgeChatProps): ReactElement {
   const elementProps: Record<string, unknown> = {
     className: props.className,
     placeholder: props.placeholder,
+    'ready-message': props.readyMessage,
+    'agent-title': props.agentTitle,
+    'agent-subtitle': props.agentSubtitle,
+    'status-text': props.statusText,
     ref: (element: EdgeChatElement | null) => {
       if (element) {
         if (props.missionProfile) element.applyMissionProfile?.(props.missionProfile)

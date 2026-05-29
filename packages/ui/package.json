@@ -1,6 +1,6 @@
 {
   "name": "@kevinmarmstrong/edgekit-ui",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "type": "module",
   "description": "Web component UI for edgekit browser-native agents.",
   "publishConfig": {

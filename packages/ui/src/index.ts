@@ -305,16 +305,16 @@ export class EdgeChat extends LitElement {
   static styles = css`
     :host {
       display: block;
-      color: #15201d;
+      color: var(--edge-chat-foreground, #15201d);
       font-family:
-        Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        var(--edge-chat-font-family, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
     }
 
     .shell {
-      border: 1px solid #d9e2de;
-      border-radius: 8px;
-      background: #ffffff;
-      box-shadow: 0 18px 45px rgb(29 43 38 / 10%);
+      border: 1px solid var(--edge-chat-border, #d9e2de);
+      border-radius: var(--edge-chat-radius, 8px);
+      background: var(--edge-chat-surface, #ffffff);
+      box-shadow: var(--edge-chat-shadow, 0 18px 45px rgb(29 43 38 / 10%));
       overflow: hidden;
     }
 
@@ -324,8 +324,8 @@ export class EdgeChat extends LitElement {
       gap: 16px;
       align-items: center;
       padding: 16px 18px;
-      border-bottom: 1px solid #e7eeeb;
-      background: #f7faf8;
+      border-bottom: 1px solid var(--edge-chat-border-muted, #e7eeeb);
+      background: var(--edge-chat-header-background, #f7faf8);
     }
 
     .title {
@@ -336,13 +336,13 @@ export class EdgeChat extends LitElement {
 
     .subtitle {
       margin-top: 3px;
-      color: #5f6f69;
+      color: var(--edge-chat-muted, #5f6f69);
       font-size: 12px;
       line-height: 1.3;
     }
 
     .status {
-      color: #2b6b50;
+      color: var(--edge-chat-status, #2b6b50);
       font-size: 12px;
       line-height: 1.3;
       text-align: right;
@@ -355,13 +355,13 @@ export class EdgeChat extends LitElement {
       max-height: 460px;
       overflow: auto;
       padding: 18px;
-      background: #fbfcfb;
+      background: var(--edge-chat-background, #fbfcfb);
     }
 
     .message {
       width: fit-content;
       max-width: min(580px, 86%);
-      border-radius: 8px;
+      border-radius: var(--edge-chat-message-radius, var(--edge-chat-radius, 8px));
       padding: 11px 13px;
       font-size: 14px;
       line-height: 1.45;
@@ -370,21 +370,21 @@ export class EdgeChat extends LitElement {
 
     .user {
       justify-self: end;
-      background: #163d31;
-      color: #ffffff;
+      background: var(--edge-chat-user-background, #163d31);
+      color: var(--edge-chat-user-foreground, #ffffff);
     }
 
     .assistant {
-      background: #ffffff;
-      border: 1px solid #e1e9e5;
-      color: #15201d;
+      background: var(--edge-chat-message-background, #ffffff);
+      border: 1px solid var(--edge-chat-border-muted, #e1e9e5);
+      color: var(--edge-chat-foreground, #15201d);
     }
 
     .system,
     .tool {
       justify-self: start;
-      color: #5f6f69;
-      background: #eef5f2;
+      color: var(--edge-chat-muted, #5f6f69);
+      background: var(--edge-chat-system-background, #eef5f2);
       font-size: 12px;
     }
 
@@ -399,10 +399,10 @@ export class EdgeChat extends LitElement {
       display: flex;
       align-items: center;
       gap: 8px;
-      color: #42534d;
-      border: 1px solid #dfe9e4;
-      border-radius: 8px;
-      background: #f7faf8;
+      color: var(--edge-chat-body, #42534d);
+      border: 1px solid var(--edge-chat-border-muted, #dfe9e4);
+      border-radius: var(--edge-chat-radius, 8px);
+      background: var(--edge-chat-header-background, #f7faf8);
       padding: 8px 10px;
       font-size: 12px;
       line-height: 1.35;
@@ -414,7 +414,7 @@ export class EdgeChat extends LitElement {
       height: 8px;
       flex: 0 0 auto;
       border-radius: 999px;
-      background: #177e58;
+      background: var(--edge-chat-accent, #177e58);
     }
 
     .activity.completed::before {
@@ -428,14 +428,14 @@ export class EdgeChat extends LitElement {
     .prompt {
       display: grid;
       gap: 10px;
-      border: 1px solid #cfe0d8;
-      border-radius: 8px;
-      background: #f2faf6;
+      border: 1px solid var(--edge-chat-border, #cfe0d8);
+      border-radius: var(--edge-chat-radius, 8px);
+      background: var(--edge-chat-prompt-background, #f2faf6);
       padding: 12px;
     }
 
     .approval-summary {
-      color: #5f6f69;
+      color: var(--edge-chat-muted, #5f6f69);
       font-size: 12px;
       word-break: break-word;
     }
@@ -450,9 +450,9 @@ export class EdgeChat extends LitElement {
       gap: 12px;
       justify-self: start;
       max-width: min(580px, 92%);
-      border: 1px solid #cfe0d8;
-      border-radius: 8px;
-      background: #ffffff;
+      border: 1px solid var(--edge-chat-border, #cfe0d8);
+      border-radius: var(--edge-chat-radius, 8px);
+      background: var(--edge-chat-surface, #ffffff);
       padding: 14px;
       box-shadow: 0 12px 28px rgb(29 43 38 / 8%);
     }
@@ -464,7 +464,7 @@ export class EdgeChat extends LitElement {
     }
 
     .view-description {
-      color: #5f6f69;
+      color: var(--edge-chat-muted, #5f6f69);
       font-size: 12px;
       line-height: 1.4;
     }
@@ -477,7 +477,7 @@ export class EdgeChat extends LitElement {
     .view-field {
       display: grid;
       gap: 5px;
-      color: #42534d;
+      color: var(--edge-chat-body, #42534d);
       font-size: 12px;
       font-weight: 700;
     }
@@ -490,7 +490,7 @@ export class EdgeChat extends LitElement {
 
     .view-table th,
     .view-table td {
-      border-bottom: 1px solid #e6eeea;
+      border-bottom: 1px solid var(--edge-chat-border-muted, #e6eeea);
       padding: 7px 6px;
       text-align: left;
     }
@@ -511,14 +511,14 @@ export class EdgeChat extends LitElement {
     .view-bar {
       height: 10px;
       border-radius: 999px;
-      background: #177e58;
+      background: var(--edge-chat-accent, #177e58);
     }
 
     select {
       min-width: 0;
-      border: 1px solid #cdd9d4;
-      border-radius: 8px;
-      background: #ffffff;
+      border: 1px solid var(--edge-chat-input-border, #cdd9d4);
+      border-radius: var(--edge-chat-radius, 8px);
+      background: var(--edge-chat-surface, #ffffff);
       padding: 9px 10px;
       font: inherit;
       font-size: 14px;
@@ -529,14 +529,14 @@ export class EdgeChat extends LitElement {
       grid-template-columns: 1fr auto;
       gap: 10px;
       padding: 14px;
-      border-top: 1px solid #e7eeeb;
-      background: #ffffff;
+      border-top: 1px solid var(--edge-chat-border-muted, #e7eeeb);
+      background: var(--edge-chat-surface, #ffffff);
     }
 
     input {
       min-width: 0;
-      border: 1px solid #cdd9d4;
-      border-radius: 8px;
+      border: 1px solid var(--edge-chat-input-border, #cdd9d4);
+      border-radius: var(--edge-chat-radius, 8px);
       padding: 11px 12px;
       font: inherit;
       font-size: 14px;
@@ -544,10 +544,10 @@ export class EdgeChat extends LitElement {
 
     button {
       border: 0;
-      border-radius: 8px;
+      border-radius: var(--edge-chat-radius, 8px);
       padding: 10px 14px;
-      color: #ffffff;
-      background: #177e58;
+      color: var(--edge-chat-accent-foreground, #ffffff);
+      background: var(--edge-chat-accent, #177e58);
       font: inherit;
       font-size: 14px;
       font-weight: 700;
@@ -555,8 +555,8 @@ export class EdgeChat extends LitElement {
     }
 
     button.secondary {
-      color: #24453a;
-      background: #dcebe5;
+      color: var(--edge-chat-secondary-foreground, #24453a);
+      background: var(--edge-chat-secondary-background, #dcebe5);
     }
 
     button:disabled,
@@ -575,14 +575,20 @@ export class EdgeChat extends LitElement {
   @property({ attribute: 'ready-message' })
   readyMessage = 'Ready. Ask for product help and the agent will use registered tools.'
 
+  @property({ attribute: 'agent-title' })
+  agentTitle = 'edgekit agent'
+
+  @property({ attribute: 'agent-subtitle' })
+  agentSubtitle = 'Browser-native agent with tool calling'
+
+  @property({ attribute: 'status-text' })
+  statusText = 'Browser agent'
+
   @property({ type: Boolean, attribute: 'show-tool-events' })
   showToolEvents = false
 
   @state()
   private messages: ChatMessage[] = []
-
-  @state()
-  private statusText = 'Browser agent'
 
   @state()
   private busy = false
@@ -657,35 +663,44 @@ export class EdgeChat extends LitElement {
 
   protected render() {
     return html`
-      <section class="shell" data-testid="edge-chat">
-        <header>
+      <section class="shell" part="shell" data-testid="edge-chat">
+        <header part="header">
           <div>
-            <div class="title">edgekit agent</div>
-            <div class="subtitle">Browser-native agent with tool calling</div>
+            <div class="title" part="title">${this.agentTitle}</div>
+            <div class="subtitle" part="subtitle">${this.agentSubtitle}</div>
           </div>
-          <div class="status" data-testid="agent-status">${this.statusText}</div>
+          ${this.statusText
+            ? html`<div class="status" part="status" data-testid="agent-status">${this.statusText}</div>`
+            : null}
         </header>
-        <div class="messages" data-testid="chat-messages">
+        <div class="messages" part="messages" data-testid="chat-messages">
           ${this.messages.map(
-            message => html`<div class="message ${message.role}" data-testid="message">${message.text}</div>`,
+            message => html`<div
+              class="message ${message.role}"
+              part=${`message ${message.role}`}
+              data-testid="message"
+            >
+              ${message.text}
+            </div>`,
           )}
           ${this.pendingPrompt
-            ? html`<div class="message assistant prompt" data-testid="download-prompt">
+            ? html`<div class="message assistant prompt" part="message assistant prompt" data-testid="download-prompt">
                 <div>${this.pendingPrompt.message}</div>
                 <div class="prompt-actions">
-                  <button type="button" @click=${() => this.answerPrompt(true)}>Enable</button>
-                  <button class="secondary" type="button" @click=${() => this.answerPrompt(false)}>
+                  <button part="button" type="button" @click=${() => this.answerPrompt(true)}>Enable</button>
+                  <button part="button secondary-button" class="secondary" type="button" @click=${() => this.answerPrompt(false)}>
                     Not now
                   </button>
                 </div>
               </div>`
             : null}
           ${this.pendingApproval
-            ? html`<div class="message assistant prompt" data-testid="approval-prompt">
+            ? html`<div class="message assistant prompt" part="message assistant prompt" data-testid="approval-prompt">
                 <div>Approve ${this.pendingApproval.toolName}?</div>
                 <div class="approval-summary">${this.summarizeInput(this.pendingApproval.input)}</div>
                 <div class="prompt-actions">
                   <button
+                    part="button"
                     type="button"
                     data-testid="approve-button"
                     @click=${() => this.answerApproval(true)}
@@ -693,6 +708,7 @@ export class EdgeChat extends LitElement {
                     Approve
                   </button>
                   <button
+                    part="button secondary-button"
                     class="secondary"
                     type="button"
                     data-testid="reject-button"
@@ -706,7 +722,7 @@ export class EdgeChat extends LitElement {
           ${this.activities.length > 0
             ? html`<div class="activity-list" data-testid="activity-list">
                 ${this.activities.map(
-                  activity => html`<div class="activity ${activity.status}" data-testid="activity-item">
+                  activity => html`<div class="activity ${activity.status}" part="activity" data-testid="activity-item">
                     ${activity.label}${activity.detail ? `: ${activity.detail}` : ''}
                   </div>`,
                 )}
@@ -714,14 +730,15 @@ export class EdgeChat extends LitElement {
             : null}
           ${this.views.map(view => this.renderView(view))}
         </div>
-        <form @submit=${this.submit}>
+        <form part="form" @submit=${this.submit}>
           <input
+            part="input"
             data-testid="chat-input"
             .placeholder=${this.placeholder}
             ?disabled=${this.busy}
             autocomplete="off"
           />
-          <button data-testid="send-button" ?disabled=${this.busy}>Send</button>
+          <button part="button send-button" data-testid="send-button" ?disabled=${this.busy}>Send</button>
         </form>
       </section>
     `
@@ -837,10 +854,10 @@ export class EdgeChat extends LitElement {
   }
 
   private renderView(view: EdgeViewNode): unknown {
-    if (view.type === 'text') return html`<div class="message assistant">${view.text}</div>`
+    if (view.type === 'text') return html`<div class="message assistant" part="message assistant">${view.text}</div>`
 
     if (view.type === 'card') {
-      return html`<div class="view-card" data-testid="action-card">
+      return html`<div class="view-card" part="view-card" data-testid="action-card">
         <div>
           <div class="view-title">${view.title}</div>
           ${view.description ? html`<div class="view-description">${view.description}</div>` : null}
@@ -854,14 +871,14 @@ export class EdgeChat extends LitElement {
           ? html`<div class="view-fields">${view.fields.map(field => this.renderFormField(view, field))}</div>`
           : null}
         <div class="prompt-actions">
-          <button type="button" data-testid="action-run-button" @click=${() => this.runForm(view)}>
+          <button part="button action-button" type="button" data-testid="action-run-button" @click=${() => this.runForm(view)}>
             ${view.submitLabel}
           </button>
         </div>`
     }
 
     if (view.type === 'table') {
-      return html`<div class="view-card">
+      return html`<div class="view-card" part="view-card">
         <table class="view-table">
           <thead>
             <tr>${view.columns.map(column => html`<th>${column.label}</th>`)}</tr>
@@ -875,7 +892,7 @@ export class EdgeChat extends LitElement {
 
     if (view.type === 'chart') {
       const max = Math.max(1, ...view.data.map(point => point.value))
-      return html`<div class="view-card">
+      return html`<div class="view-card" part="view-card">
         ${view.title ? html`<div class="view-title">${view.title}</div>` : null}
         <div class="view-chart">
           ${view.data.map(
@@ -1225,11 +1242,40 @@ function formatSchemaError(error: unknown) {
   return String(error)
 }
 
-export function mountChat(target: string | HTMLElement, options: Partial<CreateAgentOptions> = {}) {
+export interface EdgeChatMountOptions extends Partial<CreateAgentOptions> {
+  missionProfile?: EdgeMissionProfile
+  placeholder?: string
+  readyMessage?: string
+  agentTitle?: string
+  agentSubtitle?: string
+  statusText?: string
+  showToolEvents?: boolean
+}
+
+export function mountChat(target: string | HTMLElement, options: EdgeChatMountOptions = {}) {
   const host = typeof target === 'string' ? document.querySelector(target) : target
   if (!host) throw new Error('edgekit mount target not found')
+  const {
+    missionProfile,
+    placeholder,
+    readyMessage,
+    agentTitle,
+    agentSubtitle,
+    statusText,
+    showToolEvents,
+    tools,
+    ...agentOptions
+  } = options
   const chat = document.createElement('edge-chat') as EdgeChat
-  chat.configure(options)
+  if (placeholder != null) chat.placeholder = placeholder
+  if (readyMessage != null) chat.readyMessage = readyMessage
+  if (agentTitle != null) chat.agentTitle = agentTitle
+  if (agentSubtitle != null) chat.agentSubtitle = agentSubtitle
+  if (statusText != null) chat.statusText = statusText
+  if (showToolEvents != null) chat.showToolEvents = showToolEvents
+  if (missionProfile) chat.applyMissionProfile(missionProfile)
+  if (tools) chat.registerTools(tools)
+  chat.configure(agentOptions)
   host.appendChild(chat)
   return chat
 }

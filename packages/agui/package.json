@@ -1,6 +1,6 @@
 {
   "name": "@kevinmarmstrong/edgekit-agui",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "type": "module",
   "description": "AG-UI bridge for Edgekit agents.",
   "publishConfig": {
